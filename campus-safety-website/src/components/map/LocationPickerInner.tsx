@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap, GeoJSON } from "react-leaflet";
+import { useEffect, useState } from "react";
+import { MapContainer, Marker, useMapEvents, useMap, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import { MapPin, LocateFixed, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
@@ -15,28 +15,27 @@ const pinIcon = L.divIcon({
 function ClickHandler({
   onChange,
 }: {
-  onChange: (val: { lat: number; lng: number; address?: string }) => void;
+  onChange: (val: { lat: number; lng: number }) => void;
 }) {
   useMapEvents({
     click(e) {
-      onChange({ lat: e.latlng.lat, lng: e.latlng.lng });
+      onChange({
+        lat: Number(e.latlng.lat.toFixed(5)),
+        lng: Number(e.latlng.lng.toFixed(5)),
+      });
     },
   });
   return null;
 }
 
-function MapFlyTo({ position }: { position: [number, number] | null }) {
+function MapFlyController({ target }: { target: [number, number] | null }) {
   const map = useMap();
-  const prevPos = useRef<[number, number] | null>(null);
 
   useEffect(() => {
-    if (position) {
-      if (!prevPos.current || prevPos.current[0] !== position[0] || prevPos.current[1] !== position[1]) {
-        map.flyTo(position, 17, { animate: true, duration: 1.2 });
-        prevPos.current = position;
-      }
+    if (target) {
+      map.flyTo(target, 17, { animate: true, duration: 1.0 });
     }
-  }, [position, map]);
+  }, [target, map]);
 
   return null;
 }
@@ -57,9 +56,10 @@ export default function LocationPickerInner({
   const [locError, setLocError] = useState<string | null>(null);
   const [locSuccess, setLocSuccess] = useState(false);
   const [customAddress, setCustomAddress] = useState(address || "");
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
 
   useEffect(() => {
-    fetch('/gis/campus_all_gis.json')
+    fetch("/gis/campus_all_gis.json")
       .then((r) => r.json())
       .then((d) => setGisLayers(d))
       .catch(() => {});
@@ -85,10 +85,11 @@ export default function LocationPickerInner({
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords = {
-          lat: Number(pos.coords.latitude.toFixed(6)),
-          lng: Number(pos.coords.longitude.toFixed(6)),
+          lat: Number(pos.coords.latitude.toFixed(5)),
+          lng: Number(pos.coords.longitude.toFixed(5)),
         };
         onChange(coords);
+        setFlyTarget([coords.lat, coords.lng]);
         setLocating(false);
         setLocSuccess(true);
         setTimeout(() => setLocSuccess(false), 4000);
@@ -104,10 +105,12 @@ export default function LocationPickerInner({
           errorMsg = "Location request timed out. Retrying with network location...";
           navigator.geolocation.getCurrentPosition(
             (fallbackPos) => {
-              onChange({
-                lat: Number(fallbackPos.coords.latitude.toFixed(6)),
-                lng: Number(fallbackPos.coords.longitude.toFixed(6)),
-              });
+              const coords = {
+                lat: Number(fallbackPos.coords.latitude.toFixed(5)),
+                lng: Number(fallbackPos.coords.longitude.toFixed(5)),
+              };
+              onChange(coords);
+              setFlyTarget([coords.lat, coords.lng]);
               setLocSuccess(true);
               setLocError(null);
               setTimeout(() => setLocSuccess(false), 4000);
@@ -134,7 +137,7 @@ export default function LocationPickerInner({
 
   return (
     <div>
-      <div className="relative w-full h-[320px] rounded-xl overflow-hidden border border-gray-200 shadow-inner bg-[#090d16]">
+      <div className="relative w-full h-[320px] rounded-xl overflow-hidden border border-gray-200 shadow-inner bg-[#090d16] z-0 isolate">
         <style jsx global>{`
           .leaflet-tile-pane {
             display: none !important;
@@ -144,13 +147,18 @@ export default function LocationPickerInner({
           center={value ? [value.lat, value.lng] : [31.7773, 76.9914]}
           zoom={16}
           attributionControl={false}
+          scrollWheelZoom={true}
+          dragging={true}
+          touchZoom={true}
+          doubleClickZoom={true}
           style={{ width: "100%", height: "100%", background: "#090d16" }}
         >
-          {/* GIS Boundaries */}
+          {/* GIS Boundaries - non-interactive outline, NEVER blocks dragging or clicking */}
           {gisLayers.boundaries && (
             <GeoJSON
               data={gisLayers.boundaries}
-              style={{ color: "#ef4444", weight: 2, dashArray: "6, 6", fillOpacity: 0.04, fillColor: "#ef4444" }}
+              style={{ color: "#ef4444", weight: 2, dashArray: "6, 6", fill: false }}
+              interactive={false}
             />
           )}
 
@@ -161,11 +169,17 @@ export default function LocationPickerInner({
               style={{ fillColor: "#22c55e", fillOpacity: 0.65, color: "#16a34a", weight: 2 }}
               onEachFeature={(feat, layer) => {
                 const groundName = (feat.properties?.ground_name || feat.properties?.name || "Campus Ground").trim();
-                layer.on('click', () => {
-                  if (onAddressChange && groundName) {
+                layer.on("click", (e: any) => {
+                  if (e.latlng) {
+                    onChange({
+                      lat: Number(e.latlng.lat.toFixed(5)),
+                      lng: Number(e.latlng.lng.toFixed(5)),
+                    });
+                  }
+                  if (groundName) {
                     const addr = `Near ${groundName}`;
                     setCustomAddress(addr);
-                    onAddressChange(addr);
+                    if (onAddressChange) onAddressChange(addr);
                   }
                 });
               }}
@@ -179,10 +193,16 @@ export default function LocationPickerInner({
               style={{ color: "#f59e0b", weight: 3.5, opacity: 0.9 }}
               onEachFeature={(feat, layer) => {
                 const name = (feat.properties?.name || feat.properties?.road_name || "Campus Road").trim();
-                layer.on('click', () => {
-                  if (onAddressChange && name) {
+                layer.on("click", (e: any) => {
+                  if (e.latlng) {
+                    onChange({
+                      lat: Number(e.latlng.lat.toFixed(5)),
+                      lng: Number(e.latlng.lng.toFixed(5)),
+                    });
+                  }
+                  if (name) {
                     setCustomAddress(name);
-                    onAddressChange(name);
+                    if (onAddressChange) onAddressChange(name);
                   }
                 });
               }}
@@ -194,6 +214,7 @@ export default function LocationPickerInner({
             <GeoJSON
               data={gisLayers.pedestrian_paths}
               style={{ color: "#06b6d4", weight: 2, dashArray: "4, 4" }}
+              interactive={false}
             />
           )}
 
@@ -203,22 +224,31 @@ export default function LocationPickerInner({
               data={gisLayers.buildings}
               style={{ fillColor: "#3b82f6", fillOpacity: 0.65, color: "#1d4ed8", weight: 1.5 }}
               onEachFeature={(feat, layer) => {
-                const rawName = 
-                  feat.properties?.name || 
-                  feat.properties?.building || 
-                  feat.properties?.building_name || 
-                  feat.properties?.building_id || 
-                  feat.properties?.block_code || 
+                const rawName =
+                  feat.properties?.name ||
+                  feat.properties?.building ||
+                  feat.properties?.building_name ||
+                  feat.properties?.building_id ||
+                  feat.properties?.block_code ||
                   "";
                 const cleanName = String(rawName).trim();
-                const buildingName = cleanName && cleanName !== "null" && cleanName !== "undefined"
-                  ? cleanName
-                  : (feat.properties?.fid ? `Building B-${feat.properties.fid}` : "Campus Building");
-                layer.on('click', () => {
-                  if (onAddressChange && buildingName) {
+                const buildingName =
+                  cleanName && cleanName !== "null" && cleanName !== "undefined"
+                    ? cleanName
+                    : feat.properties?.fid
+                    ? `Building B-${feat.properties.fid}`
+                    : "Campus Building";
+                layer.on("click", (e: any) => {
+                  if (e.latlng) {
+                    onChange({
+                      lat: Number(e.latlng.lat.toFixed(5)),
+                      lng: Number(e.latlng.lng.toFixed(5)),
+                    });
+                  }
+                  if (buildingName) {
                     const addr = `Near ${buildingName}`;
                     setCustomAddress(addr);
-                    onAddressChange(addr);
+                    if (onAddressChange) onAddressChange(addr);
                   }
                 });
               }}
@@ -226,7 +256,7 @@ export default function LocationPickerInner({
           )}
 
           <ClickHandler onChange={onChange} />
-          <MapFlyTo position={value ? [value.lat, value.lng] : null} />
+          <MapFlyController target={flyTarget} />
           {value && <Marker position={[value.lat, value.lng]} icon={pinIcon} />}
         </MapContainer>
       </div>
@@ -255,10 +285,10 @@ export default function LocationPickerInner({
               Pinned: {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
             </span>
           ) : (
-            <span className="text-xs text-muted">Click map to pin or tap &quot;Use GPS&quot;</span>
+            <span className="text-xs text-muted">Click or drag map to pin, or tap &quot;Use GPS&quot;</span>
           )}
         </div>
-        
+
         <button
           type="button"
           disabled={locating}

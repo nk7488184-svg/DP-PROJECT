@@ -8,8 +8,8 @@ export default function ReportPage() {
     <>
       <Navbar />
       <main className="flex-1">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-          <div className="mb-8">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="mb-5">
             <h1 className="text-3xl font-bold text-foreground mb-2">Report a Hazard</h1>
             <p className="text-muted">
               Help make IIT Mandi campus safer by reporting road hazards. Upload
@@ -17,7 +17,7 @@ export default function ReportPage() {
             </p>
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-8">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-5">
             <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-amber-700">
               <p className="font-medium mb-1">For emergencies, call campus security directly</p>

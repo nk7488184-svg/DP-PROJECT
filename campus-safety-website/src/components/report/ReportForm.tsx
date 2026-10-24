@@ -41,6 +41,7 @@ export default function ReportForm() {
   const [step, setStep] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [address, setAddress] = useState("");
   const [category, setCategory] = useState<HazardCategory | null>(null);
   const [severity, setSeverity] = useState<Severity | null>(null);
   const [description, setDescription] = useState("");
@@ -120,7 +121,7 @@ export default function ReportForm() {
           location: {
             lat: location?.lat || 31.7808,
             lng: location?.lng || 76.9967,
-            address: 'IIT Mandi Campus'
+            address: address || 'IIT Mandi Campus'
           },
           images: photos.length > 0 ? [photos[0]] : []
         })
@@ -246,7 +247,7 @@ export default function ReportForm() {
           <div>
             <h3 className="text-lg font-semibold mb-1">Set Location</h3>
             <p className="text-sm text-muted mb-6">Click on the map or use GPS to mark the hazard location</p>
-            <LocationPicker value={location} onChange={setLocation} />
+            <LocationPicker value={location} address={address} onChange={setLocation} onAddressChange={setAddress} />
           </div>
         )}
 
@@ -328,7 +329,7 @@ export default function ReportForm() {
                 <div>
                   <p className="text-sm text-muted">Location</p>
                   <p className="font-medium">
-                    {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "Not set"}
+                    {location ? (address ? `${address} (${location.lat.toFixed(4)}, ${location.lng.toFixed(4)})` : `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`) : "Not set"}
                   </p>
                 </div>
                 <div>
