@@ -171,6 +171,14 @@ npm run dev -- -p 3002
 ## 👥 Team
 
 Built as part of the **Design Practicum (DP)** course project at **IIT Mandi**.
+Neeraj Kumar
+Devansh Yadav
+Shivansh Awasthi
+Shreyansh Jha
+Anil
+Pankaj
+Saffan 
+
 
 ---
 
