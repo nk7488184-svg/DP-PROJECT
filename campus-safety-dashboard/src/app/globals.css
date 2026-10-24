@@ -1,0 +1,145 @@
+@import "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --primary: #10b981;
+  --primary-light: #34d399;
+  --primary-dark: #059669;
+  --secondary: #0ea5e9;
+  --destructive: #ef4444;
+  --warning: #f59e0b;
+  --muted: #a1a1aa;
+  --muted-light: #d4d4d8;
+  --card: #141415;
+  --card-foreground: #fafafa;
+  --card-hover: #27272a;
+  --border: #27272a;
+  --sidebar: #09090b;
+  --sidebar-hover: #18181b;
+  --input: #18181b;
+
+  /* bklit chart theme — emerald palette for dark background */
+  --chart-1: oklch(0.75 0.17 162);
+  --chart-2: oklch(0.60 0.15 162);
+  --chart-3: oklch(0.50 0.13 162);
+  --chart-4: oklch(0.42 0.11 162);
+  --chart-5: oklch(0.35 0.09 162);
+  --chart-background: #09090b;
+  --chart-foreground: #a1a1aa;
+  --chart-foreground-muted: #71717a;
+  --chart-line-primary: #34d399;
+  --chart-line-secondary: #059669;
+  --chart-crosshair: #3f3f46;
+  --chart-grid: #27272a;
+  --chart-brush-border: #27272a;
+  --chart-tooltip-background: rgba(20, 20, 21, 0.92);
+  --chart-tooltip-foreground: #fafafa;
+  --chart-tooltip-muted: #a1a1aa;
+  --chart-marker-background: #18181b;
+  --chart-marker-border: #3f3f46;
+  --chart-marker-foreground: #fafafa;
+  --chart-label: #a1a1aa;
+  --chart-scale-01: oklch(0.30 0.06 162);
+  --chart-scale-02: oklch(0.40 0.09 162);
+  --chart-scale-03: oklch(0.50 0.12 162);
+  --chart-scale-04: oklch(0.60 0.14 162);
+  --chart-scale-05: oklch(0.70 0.16 162);
+  --chart-scale-pattern-color: #09090b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-muted: var(--muted);
+  --color-muted-light: var(--muted-light);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-input: var(--input);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
+  --color-chart-scale-05: var(--chart-scale-05);
+  --color-chart-scale-04: var(--chart-scale-04);
+  --color-chart-scale-03: var(--chart-scale-03);
+  --color-chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-01: var(--chart-scale-01);
+  --color-chart-label: var(--chart-label);
+  --color-chart-marker-foreground: var(--chart-marker-foreground);
+  --color-chart-marker-border: var(--chart-marker-border);
+  --color-chart-marker-background: var(--chart-marker-background);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --chart-brush-border: var(--chart-brush-border);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-crosshair: var(--chart-crosshair);
+  --chart-line-secondary: var(--chart-line-secondary);
+  --chart-line-primary: var(--chart-line-primary);
+  --color-chart-foreground-muted: var(--chart-foreground-muted);
+  --color-chart-foreground: var(--chart-foreground);
+  --color-chart-background: var(--chart-background);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+.dark {
+  --chart-1: oklch(1 0 none);
+  --chart-2: oklch(0.73 0 none);
+  --chart-3: oklch(0.51 0 none);
+  --chart-4: oklch(0.39 0 none);
+  --chart-5: oklch(0.32 0 none);
+  --chart-background: oklch(0.145 0 0);
+  --chart-foreground: oklch(0.45 0 0);
+  --chart-foreground-muted: oklch(0.65 0.01 260);
+  --chart-crosshair: oklch(0.45 0 0);
+  --chart-grid: oklch(0.25 0 0);
+  --chart-brush-border: var(--chart-grid);
+  --chart-marker-background: oklch(0.25 0.01 260);
+  --chart-marker-border: oklch(0.4 0.01 260);
+  --chart-marker-foreground: oklch(0.9 0 0);
+  --chart-label: oklch(0.75 0.01 260);
+  --chart-scale-01: oklch(0.28 0.03 270);
+  --chart-scale-02: oklch(0.38 0.04 270);
+  --chart-scale-03: oklch(0.48 0.05 270);
+  --chart-scale-04: oklch(0.58 0.06 270);
+  --chart-scale-05: oklch(0.68 0.07 270);
+  --chart-scale-pattern-color: oklch(0.145 0 0);
+}
+
+
+/* Hide Leaflet & OpenStreetMap attribution watermarks */
+.leaflet-control-attribution {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

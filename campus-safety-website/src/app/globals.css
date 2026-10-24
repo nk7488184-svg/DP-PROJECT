@@ -1,0 +1,150 @@
+@import "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --primary: #059669;
+  --primary-light: #34d399;
+  --primary-dark: #047857;
+  --secondary: #0ea5e9;
+  --destructive: #ef4444;
+  --warning: #f59e0b;
+  --muted: #64748b;
+  --muted-light: #94a3b8;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --border: #e2e8f0;
+  --accent: #f0fdf4;
+  --accent-foreground: #065f46;
+
+  /* Chart theme - Light mode emerald */
+  --chart-1: oklch(0.65 0.17 162);
+  --chart-2: oklch(0.70 0.15 162);
+  --chart-3: oklch(0.75 0.13 162);
+  --chart-4: oklch(0.80 0.11 162);
+  --chart-5: oklch(0.85 0.09 162);
+  --chart-background: #ffffff;
+  --chart-foreground: #64748b;
+  --chart-foreground-muted: #94a3b8;
+  --chart-line-primary: #059669;
+  --chart-line-secondary: #0ea5e9;
+  --chart-crosshair: #e2e8f0;
+  --chart-grid: #f1f5f9;
+  --chart-brush-border: #e2e8f0;
+  --chart-tooltip-background: rgba(255, 255, 255, 0.95);
+  --chart-tooltip-foreground: #0f172a;
+  --chart-tooltip-muted: #64748b;
+  --chart-marker-background: #ffffff;
+  --chart-marker-border: #cbd5e1;
+  --chart-marker-foreground: #0f172a;
+  --chart-label: #64748b;
+  --chart-scale-01: oklch(0.95 0.03 162);
+  --chart-scale-02: oklch(0.90 0.05 162);
+  --chart-scale-03: oklch(0.85 0.08 162);
+  --chart-scale-04: oklch(0.80 0.11 162);
+  --chart-scale-05: oklch(0.75 0.14 162);
+  --chart-scale-pattern-color: #f8fafc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-muted: var(--muted);
+  --color-muted-light: var(--muted-light);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
+  --color-chart-scale-05: var(--chart-scale-05);
+  --color-chart-scale-04: var(--chart-scale-04);
+  --color-chart-scale-03: var(--chart-scale-03);
+  --color-chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-01: var(--chart-scale-01);
+  --color-chart-label: var(--chart-label);
+  --color-chart-marker-foreground: var(--chart-marker-foreground);
+  --color-chart-marker-border: var(--chart-marker-border);
+  --color-chart-marker-background: var(--chart-marker-background);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --chart-brush-border: var(--chart-brush-border);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-crosshair: var(--chart-crosshair);
+  --chart-line-secondary: var(--chart-line-secondary);
+  --chart-line-primary: var(--chart-line-primary);
+  --color-chart-foreground-muted: var(--chart-foreground-muted);
+  --color-chart-foreground: var(--chart-foreground);
+  --color-chart-background: var(--chart-background);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+}
+
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.dark {
+  /* Chart theme - Dark mode emerald */
+  --chart-1: oklch(0.75 0.17 162);
+  --chart-2: oklch(0.60 0.15 162);
+  --chart-3: oklch(0.50 0.13 162);
+  --chart-4: oklch(0.42 0.11 162);
+  --chart-5: oklch(0.35 0.09 162);
+  --chart-background: #0f172a;
+  --chart-foreground: #94a3b8;
+  --chart-foreground-muted: #64748b;
+  --chart-line-primary: #34d399;
+  --chart-line-secondary: #0ea5e9;
+  --chart-crosshair: #334155;
+  --chart-grid: #1e293b;
+  --chart-brush-border: #334155;
+  --chart-tooltip-background: rgba(15, 23, 42, 0.95);
+  --chart-tooltip-foreground: #f8fafc;
+  --chart-tooltip-muted: #94a3b8;
+  --chart-marker-background: #1e293b;
+  --chart-marker-border: #475569;
+  --chart-marker-foreground: #f8fafc;
+  --chart-label: #94a3b8;
+  --chart-scale-01: oklch(0.30 0.06 162);
+  --chart-scale-02: oklch(0.40 0.09 162);
+  --chart-scale-03: oklch(0.50 0.12 162);
+  --chart-scale-04: oklch(0.60 0.14 162);
+  --chart-scale-05: oklch(0.70 0.16 162);
+  --chart-scale-pattern-color: #0f172a;
+}
+
+
+/* Hide Leaflet & OpenStreetMap attribution watermarks */
+.leaflet-control-attribution {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
