@@ -4,9 +4,17 @@ A full-stack GIS-integrated road hazard reporting and monitoring platform built 
 
 ---
 
-## 🌐 Live Online Demo (Run Directly on the Web)
+## 🌐 Live Application Links (Live Testing)
 
-You can run and test the complete application directly in your browser without installing anything on your computer:
+Test the complete application directly in your browser without setting up anything locally:
+
+| Application | Description | Live Link | Status |
+|-------------|-------------|-----------|--------|
+| 🌐 **Public Website** | Report hazards, track status, view IIT Mandi GIS map | `[PASTE_PUBLIC_WEBSITE_LINK_HERE]` | Ready for Testing |
+| 📊 **Admin Dashboard** | Review reports, update statuses, view analytics & heatmaps | `[PASTE_ADMIN_DASHBOARD_LINK_HERE]` | Ready for Testing |
+| ⚙️ **Backend REST API** | Live Express API serving reports and GIS GeoJSON data | [`https://road-sentinel-backend.onrender.com/api`](https://road-sentinel-backend.onrender.com/api) | **Online & Active** ✅ |
+
+---
 
 ## 📂 Project Structure
 
