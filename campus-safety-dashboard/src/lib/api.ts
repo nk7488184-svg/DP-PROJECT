@@ -1,4 +1,5 @@
-const rawBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').trim();
+const defaultUrl = 'https://road-sentinel-backend.onrender.com/api';
+const rawBase = (process.env.NEXT_PUBLIC_API_URL || defaultUrl).trim();
 const cleanBase = rawBase.replace(/\/+$/, '');
 const API_BASE = cleanBase.endsWith('/api') ? cleanBase : `${cleanBase}/api`;
 
