@@ -1,4 +1,6 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const rawBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').trim();
+const cleanBase = rawBase.replace(/\/+$/, '');
+const API_BASE = cleanBase.endsWith('/api') ? cleanBase : `${cleanBase}/api`;
 
 export async function fetchFromApi<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -9,11 +11,13 @@ export async function fetchFromApi<T = any>(endpoint: string, options: RequestIn
     ...options.headers,
   };
 
+  // 30 second timeout allows free-tier cloud backends (like Render) time to wake up from cold start
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   try {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const res = await fetch(`${API_BASE}${cleanEndpoint}`, {
       ...options,
       headers,
       signal: controller.signal,
