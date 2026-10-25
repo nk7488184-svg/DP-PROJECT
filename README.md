@@ -4,6 +4,51 @@ A full-stack GIS-integrated road hazard reporting and monitoring platform built 
 
 ---
 
+## 🌐 Live Online Demo (Run Directly on the Web)
+
+You can run and test the complete application directly in your browser without installing anything on your computer:
+
+| Service | Live Web Link | Hosting Platform |
+|---------|---------------|------------------|
+| 🌐 **Public Website** | [Open Public Website](https://vercel.com) *(See 1-click guide below)* | Vercel (Free) |
+| 📊 **Admin Dashboard** | [Open Admin Dashboard](https://vercel.com) *(See 1-click guide below)* | Vercel (Free) |
+| ⚙️ **Backend API** | [Open Backend API](https://render.com) *(See 1-click guide below)* | Render (Free) |
+
+---
+
+### ⚡ 1-Click Free Cloud Deployment Guide
+
+Follow these quick steps to host your live web links in under 3 minutes:
+
+#### 1. Deploy Backend on [Render](https://render.com) (Free)
+1. Go to [render.com](https://render.com) and sign in with your GitHub account.
+2. Click **New +** → **Blueprint** (or **Web Service**).
+3. Select this repository: **`nk7488184-svg/DP-PROJECT`**.
+4. Render automatically reads `render.yaml`:
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+5. Click **Apply / Create Web Service**. Render gives you a live API URL like `https://road-sentinel-backend.onrender.com`.
+
+#### 2. Deploy Frontends on [Vercel](https://vercel.com) (Free)
+1. Go to [vercel.com](https://vercel.com) and log in with GitHub.
+2. Click **Add New...** → **Project** → Import **`DP-PROJECT`**.
+3. **For Public Website**:
+   - Set **Project Name**: `roadsentinel-website`
+   - **Root Directory**: Click *Edit* and select **`campus-safety-website`**
+   - **Environment Variables**: Add `NEXT_PUBLIC_API_URL` = `https://your-backend.onrender.com/api` (or leave default for local/mock)
+   - Click **Deploy**.
+4. **For Admin Dashboard**:
+   - Click **Add New...** → **Project** → Import **`DP-PROJECT`** again.
+   - Set **Project Name**: `roadsentinel-dashboard`
+   - **Root Directory**: Click *Edit* and select **`campus-safety-dashboard`**
+   - **Environment Variables**: Add `NEXT_PUBLIC_API_URL` = `https://your-backend.onrender.com/api` (or leave default for local/mock)
+   - Click **Deploy**.
+
+*Once deployed, Vercel gives you instant `.vercel.app` live web links that can be shared with anyone on any phone or laptop.*
+
+---
+
 ## 📂 Project Structure
 
 ```
@@ -38,12 +83,15 @@ DP-PROJECT/
 │   ├── public/gis/            # GIS data for map rendering
 │   └── package.json
 │
+├── render.yaml                 # 1-click Render blueprint for backend deployment
 └── README.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## 💻 Local Development Setup
+
+If you wish to run the project locally on your machine instead:
 
 ### Prerequisites
 
@@ -85,13 +133,13 @@ cp .env.example .env
 ```bash
 # Dashboard — create .env.local
 cd campus-safety-dashboard
-echo NEXT_PUBLIC_API_URL=http://localhost:3001 > .env.local
+echo NEXT_PUBLIC_API_URL=http://localhost:3001/api > .env.local
 ```
 
 ```bash
 # Website — create .env.local
 cd campus-safety-website
-echo NEXT_PUBLIC_API_URL=http://localhost:3001 > .env.local
+echo NEXT_PUBLIC_API_URL=http://localhost:3001/api > .env.local
 ```
 
 ### 4. Start All Three Servers
@@ -114,8 +162,8 @@ npm run dev -- -p 3002
 
 ### 5. Open in Browser
 
-| Service | URL |
-|---------|-----|
+| Service | Local URL |
+|---------|-----------|
 | **Public Website** | http://localhost:3002 |
 | **Admin Dashboard** | http://localhost:3000/dashboard |
 | **Backend API** | http://localhost:3001/api |
@@ -170,15 +218,14 @@ npm run dev -- -p 3002
 
 ## 👥 Team
 
-Built as part of the **Design Practicum (DP)** course project at **IIT Mandi**.
-Neeraj Kumar
-Devansh Yadav
-Shivansh Awasthi
-Shreyansh Jha
-Anil
-Pankaj
-Saffan 
-
+Built as part of the **Design Practicum (DP)** course project at **IIT Mandi**:
+- Neeraj Kumar
+- Devansh Yadav
+- Shivansh Awasthi
+- Shreyansh Jha
+- Anil
+- Pankaj
+- Saffan
 
 ---
 
