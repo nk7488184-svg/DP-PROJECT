@@ -10,8 +10,8 @@ Test the complete application directly in your browser without setting up anythi
 
 | Application | Description | Live Link | Status |
 |-------------|-------------|-----------|--------|
-| 🌐 **Public Website** | Report hazards, track status, view IIT Mandi GIS map | `[PASTE_PUBLIC_WEBSITE_LINK_HERE]` | Ready for Testing |
-| 📊 **Admin Dashboard** | Review reports, update statuses, view analytics & heatmaps | `[PASTE_ADMIN_DASHBOARD_LINK_HERE]` | Ready for Testing |
+| 🌐 **Public Website** | Report hazards, track status, view IIT Mandi GIS map | `[https://roadsentiweb.vercel.app/]` | Ready for Testing |
+| 📊 **Admin Dashboard** | Review reports, update statuses, view analytics & heatmaps | `[https://roadsentidash.vercel.app/dashboard]` | Ready for Testing |
 | ⚙️ **Backend REST API** | Live Express API serving reports and GIS GeoJSON data | [`https://road-sentinel-backend.onrender.com/api`](https://road-sentinel-backend.onrender.com/api) | **Online & Active** ✅ |
 
 ---
