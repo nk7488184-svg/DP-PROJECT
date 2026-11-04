@@ -66,11 +66,13 @@ export async function predictRoadHazard(imageInput: string): Promise<MLPredictio
     return await new Promise<MLPredictionResult | null>((resolve) => {
       // Find classifier.py candidate paths
       const candidates = [
-        path.resolve(__dirname, '..', '..', '..', 'fastapi-backend', 'classifier.py'),
-        path.resolve(__dirname, '..', '..', 'fastapi-backend', 'classifier.py'),
-        path.resolve(process.cwd(), '..', 'fastapi-backend', 'classifier.py'),
+        path.resolve(__dirname, '..', '..', 'classifier.py'),
+        path.resolve(__dirname, '..', 'classifier.py'),
+        path.resolve(process.cwd(), 'classifier.py'),
         path.resolve(process.cwd(), 'fastapi-backend', 'classifier.py'),
+        path.resolve(process.cwd(), '..', 'fastapi-backend', 'classifier.py'),
         path.resolve('C:\\Users\\nk748\\OneDrive\\Desktop\\DP-PROJECT\\fastapi-backend\\classifier.py'),
+        path.resolve('C:\\Users\\nk748\\OneDrive\\Desktop\\Backend\\classifier.py'),
       ];
 
       const scriptPath = candidates.find(p => fs.existsSync(p)) || candidates[0];

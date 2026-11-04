@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { mockReports as fallbackReports } from "@/lib/mock-data";
 import { categoryLabels, type HazardCategory, type Status, type Severity, type HazardReport } from "@/types";
 import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
-import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Image as ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchFromApi } from "@/lib/api";
+import { fetchFromApi, fetchFromFastApi } from "@/lib/api";
 
 export default function ReportsTable() {
   const [reports, setReports] = useState<HazardReport[]>(fallbackReports);
@@ -20,9 +20,10 @@ export default function ReportsTable() {
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [analyzingReportId, setAnalyzingReportId] = useState<string | null>(null);
   const perPage = 10;
 
-  const loadReports = (showSpinner = false) => {
+  const loadReports = useCallback((showSpinner = false) => {
     if (showSpinner) setLoading(true);
     fetchFromApi('/reports?limit=50')
       .then((res) => {
@@ -51,7 +52,7 @@ export default function ReportsTable() {
       .finally(() => {
         if (showSpinner) setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     loadReports(true);
@@ -67,7 +68,7 @@ export default function ReportsTable() {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [loadReports]);
 
   const handleUpdateStatus = async (reportId: string, newStatus: Status) => {
     setStatusUpdating(true);
@@ -87,6 +88,53 @@ export default function ReportsTable() {
     }
   };
 
+  // Run ML model classification on-demand for any report with a photo
+  const runOnDemandAnalysis = useCallback(async (reportId: string, imageSrc: string) => {
+    if (!imageSrc || analyzingReportId === reportId) return;
+    setAnalyzingReportId(reportId);
+    try {
+      let pred: any = null;
+
+      // 1. Try FastAPI ML engine first (port 8000)
+      try {
+        const fRes = await fetchFromFastApi('/api/v1/predict', {
+          method: 'POST',
+          body: JSON.stringify({ image: imageSrc }),
+        });
+        if (fRes && fRes.success) {
+          pred = fRes;
+        }
+      } catch (fErr) {
+        // FastAPI unavailable, try Express
+      }
+
+      // 2. Fallback to Express backend classify route
+      if (!pred) {
+        try {
+          const bRes = await fetchFromApi('/reports/classify', {
+            method: 'POST',
+            body: JSON.stringify({ image: imageSrc }),
+          });
+          if (bRes && bRes.success) {
+            pred = bRes.data;
+          }
+        } catch (bErr) {
+          // Express classify failed
+        }
+      }
+
+      if (pred) {
+        setReports((prev) =>
+          prev.map((r) => (r.id === reportId ? { ...r, mlPrediction: pred } : r))
+        );
+      }
+    } catch (err) {
+      console.warn('On-demand ML analysis notice:', err);
+    } finally {
+      setAnalyzingReportId(null);
+    }
+  }, [analyzingReportId]);
+
   const filtered = useMemo(() => {
     return reports.filter((r) => {
       if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.location.address.toLowerCase().includes(search.toLowerCase())) return false;
@@ -100,6 +148,16 @@ export default function ReportsTable() {
   const paged = filtered.slice(page * perPage, (page + 1) * perPage);
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const selected = selectedId ? reports.find((r) => r.id === selectedId) : null;
+
+  // Auto-analyze selected report if it has an image but no prediction recorded yet
+  useEffect(() => {
+    if (selected && selected.images && selected.images.length > 0 && !selected.mlPrediction && analyzingReportId !== selected.id) {
+      const img = selected.images[0];
+      if (typeof img === 'string' && (img.startsWith('data:image') || img.startsWith('http') || img.startsWith('/'))) {
+        runOnDemandAnalysis(selected.id, img);
+      }
+    }
+  }, [selected, analyzingReportId, runOnDemandAnalysis]);
 
   return (
     <div>
@@ -280,7 +338,12 @@ export default function ReportsTable() {
                 )}
 
                 {/* ML Prediction Badge and Confidence */}
-                {selected.mlPrediction ? (
+                {analyzingReportId === selected.id ? (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center gap-2.5 text-xs text-blue-300 animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
+                    <span>Running PyTorch EfficientNetV2-S model on hazard photo...</span>
+                  </div>
+                ) : selected.mlPrediction ? (
                   <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
                     <div className="flex items-center justify-between mb-1">
                       <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
@@ -306,10 +369,28 @@ export default function ReportsTable() {
                         ))}
                       </div>
                     )}
+                    <div className="mt-2 pt-2 border-t border-emerald-500/20 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => selected.images?.[0] && runOnDemandAnalysis(selected.id, selected.images[0])}
+                        className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Re-classify Photo
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="p-2.5 bg-muted/10 border border-border rounded-lg text-xs text-muted">
-                    No automated ML prediction recorded for this report.
+                  <div className="p-3 bg-muted/10 border border-border rounded-lg flex items-center justify-between text-xs text-muted">
+                    <span>No automated ML prediction recorded for this report.</span>
+                    {selected.images && selected.images.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => runOnDemandAnalysis(selected.id, selected.images[0])}
+                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded text-xs flex items-center gap-1 transition-colors"
+                      >
+                        <Sparkles className="w-3 h-3" /> Classify Now
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

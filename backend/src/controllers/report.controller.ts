@@ -72,9 +72,9 @@ export const createReport = async (req: Request, res: Response) => {
     try {
         const { title, description, category, severity, location, images } = req.body;
         
-        // ML Prediction: Automatically run image through trained PyTorch model
-        let mlPrediction: any = null;
-        if (images && Array.isArray(images) && images.length > 0 && images[0]) {
+        // ML Prediction: Use client-provided prediction or compute automatically from trained model
+        let mlPrediction: any = req.body.mlPrediction || null;
+        if (!mlPrediction && images && Array.isArray(images) && images.length > 0 && images[0]) {
             try {
                 mlPrediction = await predictRoadHazard(images[0]);
             } catch (mlErr) {

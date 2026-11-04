@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Camera,
   MapPin,
@@ -13,12 +13,13 @@ import {
   AlertTriangle,
   Sparkles,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { categoryLabels, type HazardCategory, type Severity } from "@/types";
 import CategoryIcon from "@/components/shared/CategoryIcon";
 import LocationPicker from "@/components/map/LocationPicker";
-import { fetchFromApi } from "@/lib/api";
+import { fetchFromApi, fetchFromFastApi } from "@/lib/api";
 
 const steps = [
   { label: "Photos", icon: Camera },
@@ -70,28 +71,55 @@ export default function ReportForm() {
   const [mlResult, setMlResult] = useState<MLPredictionData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const analyzePhoto = async (photoBase64: string) => {
+  const applyPrediction = useCallback((data: MLPredictionData) => {
+    setMlResult(data);
+    if (data.mappedCategory) {
+      setCategory(data.mappedCategory);
+    }
+    if (data.suggestedSeverity) {
+      setSeverity(data.suggestedSeverity);
+    }
+  }, []);
+
+  const analyzePhoto = useCallback(async (photoBase64: string) => {
+    if (!photoBase64 || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
+      // 1. Try direct FastAPI ML server (fastest, warm in-memory model, <50ms)
+      try {
+        const fastApiRes = await fetchFromFastApi("/api/v1/predict", {
+          method: "POST",
+          body: JSON.stringify({ image: photoBase64 }),
+        });
+        if (fastApiRes && fastApiRes.success) {
+          applyPrediction(fastApiRes);
+          return;
+        }
+      } catch (fastApiErr) {
+        // FastAPI offline or not reachable, fallback to Node.js backend
+      }
+
+      // 2. Try Node.js backend route
       const res = await fetchFromApi("/reports/classify", {
         method: "POST",
         body: JSON.stringify({ image: photoBase64 }),
       });
       if (res && res.success && res.data) {
-        setMlResult(res.data);
-        if (res.data.mappedCategory) {
-          setCategory(res.data.mappedCategory as HazardCategory);
-        }
-        if (res.data.suggestedSeverity) {
-          setSeverity(res.data.suggestedSeverity as Severity);
-        }
+        applyPrediction(res.data);
       }
     } catch (err) {
       console.warn("ML image analysis notice:", err);
     } finally {
       setIsAnalyzing(false);
     }
-  };
+  }, [isAnalyzing, applyPrediction]);
+
+  // Automatically trigger AI classification whenever a photo is uploaded or changed
+  useEffect(() => {
+    if (photos.length > 0 && photos[0] && !mlResult && !isAnalyzing) {
+      analyzePhoto(photos[0]);
+    }
+  }, [photos, mlResult, isAnalyzing, analyzePhoto]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -122,21 +150,9 @@ export default function ReportForm() {
             if (ctx) {
               ctx.drawImage(img, 0, 0, width, height);
               const compressed = canvas.toDataURL("image/jpeg", 0.6);
-              setPhotos((prev) => {
-                const nextPhotos = [...prev, compressed];
-                if (prev.length === 0) {
-                  analyzePhoto(compressed);
-                }
-                return nextPhotos;
-              });
+              setPhotos((prev) => [...prev, compressed]);
             } else {
-              setPhotos((prev) => {
-                const nextPhotos = [...prev, rawData];
-                if (prev.length === 0) {
-                  analyzePhoto(rawData);
-                }
-                return nextPhotos;
-              });
+              setPhotos((prev) => [...prev, rawData]);
             }
           };
           img.onerror = () => {
@@ -187,7 +203,8 @@ export default function ReportForm() {
             lng: location?.lng || 76.9967,
             address: address || 'IIT Mandi Campus'
           },
-          images: photos.length > 0 ? [photos[0]] : []
+          images: photos.length > 0 ? [photos[0]] : [],
+          mlPrediction: mlResult || undefined
         })
       });
 
@@ -353,6 +370,28 @@ export default function ReportForm() {
                 <p className="text-xs text-muted mt-1">
                   Model identified road hazard. Category <strong className="text-primary">{mlResult.mappedCategory}</strong> pre-selected.
                 </p>
+                <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between">
+                  <span className="text-[11px] text-muted">EfficientNetV2-S (300×300)</span>
+                  <button
+                    type="button"
+                    onClick={() => photos[0] && analyzePhoto(photos[0])}
+                    className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Re-classify
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!mlResult && !isAnalyzing && photos.length > 0 && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => photos[0] && analyzePhoto(photos[0])}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Analyze Image with AI Model
+                </button>
               </div>
             )}
           </div>

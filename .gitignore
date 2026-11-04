@@ -44,3 +44,4 @@ __pycache__/
 
 # Misc
 *.log
+backend/best_model.pth
