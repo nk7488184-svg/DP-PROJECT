@@ -30,8 +30,17 @@ const steps = [
 ];
 
 const categories: HazardCategory[] = [
-  "pothole", "damaged_pavement", "faded_markings",
-  "roadside_obstruction", "drainage_issue", "poor_lighting", "other",
+  "pothole",
+  "road_cracks",
+  "damaged_pavement",
+  "edge_damage",
+  "patch_deterioration",
+  "loose_aggregate",
+  "debris_on_road",
+  "vegetation",
+  "drainage_iron_grid",
+  "broken_curb",
+  "other",
 ];
 
 interface MLPredictionData {
@@ -276,8 +285,8 @@ export default function ReportForm() {
               {mlResult.label}
             </p>
             <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between text-xs text-muted">
-              <span>Predicted Category: <strong className="text-foreground capitalize">{mlResult.mappedCategory}</strong></span>
-              <span>Assessed Severity: <strong className="text-foreground capitalize">{mlResult.suggestedSeverity || severity}</strong></span>
+              <span>Predicted Category: <strong className="text-foreground capitalize">{mlResult.mappedCategory ? categoryLabels[mlResult.mappedCategory] || mlResult.mappedCategory : "Other"}</strong></span>
+              <span>Severity: <strong className="text-foreground capitalize">{mlResult.suggestedSeverity || severity}</strong></span>
             </div>
           </div>
         )}
@@ -379,7 +388,7 @@ export default function ReportForm() {
             {isAnalyzing && (
               <div className="mt-5 p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-sm text-blue-700 animate-pulse">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
-                <span>Running trained EfficientNetV2-S model to classify hazard...</span>
+                <span>Analyzing hazard photo...</span>
               </div>
             )}
 
@@ -397,8 +406,8 @@ export default function ReportForm() {
                   {mlResult.label}
                 </p>
                 <div className="mt-2 pt-2 border-t border-emerald-200/80 flex items-center justify-between text-xs text-emerald-800">
-                  <span>Category: <strong className="capitalize">{mlResult.mappedCategory}</strong></span>
-                  <span>Assessed Severity: <strong className="capitalize">{mlResult.suggestedSeverity}</strong></span>
+                  <span>Category: <strong className="capitalize">{mlResult.mappedCategory ? categoryLabels[mlResult.mappedCategory] || mlResult.mappedCategory : "Other"}</strong></span>
+                  <span>Severity: <strong className="capitalize">{mlResult.suggestedSeverity}</strong></span>
                 </div>
                 <div className="mt-2 flex justify-end">
                   <button
@@ -446,7 +455,7 @@ export default function ReportForm() {
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    AI detected: <strong>{mlResult.label}</strong> ({mlResult.confidencePercentage})
+                    Detected: <strong>{mlResult.label}</strong> ({mlResult.confidencePercentage})
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -458,31 +467,23 @@ export default function ReportForm() {
             )}
 
             <label className="block text-sm font-medium mb-3">Category</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setCategory(cat)}
                   className={cn(
-                    "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-sm",
+                    "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-sm text-center",
                     category === cat
                       ? "border-primary bg-accent text-primary font-semibold"
                       : "border-gray-200 hover:border-primary/40 text-muted"
                   )}
                 >
                   <CategoryIcon category={cat} className="w-6 h-6" />
-                  {categoryLabels[cat]}
+                  <span className="leading-tight">{categoryLabels[cat]}</span>
                 </button>
               ))}
-            </div>
-
-            {/* Note about automated severity */}
-            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2.5 text-xs text-blue-800">
-              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>
-                Road hazard severity is computed automatically by our computer vision model based on surface breakout depth and safety risk.
-              </span>
             </div>
 
             <label className="block text-sm font-medium mb-2">Description (optional)</label>
@@ -532,9 +533,8 @@ export default function ReportForm() {
                 </div>
                 <div>
                   <p className="text-sm text-muted">Severity</p>
-                  <p className="font-medium capitalize text-emerald-700 flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                    {severity || "Medium"} <span className="text-xs text-muted font-normal">(AI Assessed)</span>
+                  <p className="font-medium capitalize text-foreground">
+                    {severity || "Medium"}
                   </p>
                 </div>
               </div>

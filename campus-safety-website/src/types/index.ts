@@ -1,6 +1,14 @@
 export type HazardCategory =
   | "pothole"
+  | "road_cracks"
   | "damaged_pavement"
+  | "edge_damage"
+  | "patch_deterioration"
+  | "loose_aggregate"
+  | "debris_on_road"
+  | "vegetation"
+  | "drainage_iron_grid"
+  | "broken_curb"
   | "faded_markings"
   | "roadside_obstruction"
   | "drainage_issue"
@@ -50,7 +58,15 @@ export interface HazardReport {
 
 export const categoryLabels: Record<HazardCategory, string> = {
   pothole: "Pothole",
+  road_cracks: "Road Cracks",
   damaged_pavement: "Damaged Pavement",
+  edge_damage: "Edge & Shoulder Damage",
+  patch_deterioration: "Patch Repair",
+  loose_aggregate: "Loose Aggregate / Rubble",
+  debris_on_road: "Debris on Road",
+  vegetation: "Vegetation & Moss",
+  drainage_iron_grid: "Drainage / Iron Grid",
+  broken_curb: "Broken Curbside / Steps",
   faded_markings: "Faded Markings",
   roadside_obstruction: "Roadside Obstruction",
   drainage_issue: "Drainage Issue",

@@ -1,6 +1,14 @@
 export type HazardCategory =
   | "pothole"
+  | "road_cracks"
   | "damaged_pavement"
+  | "edge_damage"
+  | "patch_deterioration"
+  | "loose_aggregate"
+  | "debris_on_road"
+  | "vegetation"
+  | "drainage_iron_grid"
+  | "broken_curb"
   | "faded_markings"
   | "roadside_obstruction"
   | "drainage_issue"
@@ -66,7 +74,15 @@ export interface CategoryData {
 
 export const categoryLabels: Record<HazardCategory, string> = {
   pothole: "Pothole",
+  road_cracks: "Road Cracks",
   damaged_pavement: "Damaged Pavement",
+  edge_damage: "Edge & Shoulder Damage",
+  patch_deterioration: "Patch Repair",
+  loose_aggregate: "Loose Aggregate / Rubble",
+  debris_on_road: "Debris on Road",
+  vegetation: "Vegetation & Moss",
+  drainage_iron_grid: "Drainage / Iron Grid",
+  broken_curb: "Broken Curbside / Steps",
   faded_markings: "Faded Markings",
   roadside_obstruction: "Roadside Obstruction",
   drainage_issue: "Drainage Issue",
@@ -77,11 +93,19 @@ export const categoryLabels: Record<HazardCategory, string> = {
 
 export const categoryColors: Record<HazardCategory, string> = {
   pothole: "#ef4444",
-  damaged_pavement: "#f97316",
-  faded_markings: "#eab308",
+  road_cracks: "#f97316",
+  damaged_pavement: "#fb923c",
+  edge_damage: "#eab308",
+  patch_deterioration: "#a855f7",
+  loose_aggregate: "#64748b",
+  debris_on_road: "#d97706",
+  vegetation: "#10b981",
+  drainage_iron_grid: "#06b6d4",
+  broken_curb: "#f43f5e",
+  faded_markings: "#ca8a04",
   roadside_obstruction: "#8b5cf6",
   drainage_issue: "#3b82f6",
-  poor_lighting: "#06b6d4",
+  poor_lighting: "#0ea5e9",
   driver_behavior: "#ec4899",
   other: "#6b7280",
 };

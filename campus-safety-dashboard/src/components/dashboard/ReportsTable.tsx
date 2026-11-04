@@ -403,13 +403,13 @@ export default function ReportsTable() {
                 {analyzingReportId === selected.id ? (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center gap-2.5 text-xs text-blue-300 animate-pulse">
                     <Loader2 className="w-4 h-4 animate-spin text-blue-400 shrink-0" />
-                    <span>Running PyTorch EfficientNetV2-S model on hazard photo...</span>
+                    <span>Analyzing hazard photo...</span>
                   </div>
                 ) : selected.mlPrediction ? (
                   <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
                     <div className="flex items-center justify-between mb-1">
                       <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> PyTorch ML Prediction
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> AI Classification
                       </span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         {selected.mlPrediction.confidencePercentage} Confidence
@@ -419,7 +419,7 @@ export default function ReportsTable() {
                       {selected.mlPrediction.label}
                     </p>
                     <p className="text-xs text-muted font-mono mt-0.5">
-                      Class: {selected.mlPrediction.rawClass} • EfficientNetV2-S
+                      Detected: {selected.mlPrediction.label}
                     </p>
                     {selected.mlPrediction.topPredictions && selected.mlPrediction.topPredictions.length > 1 && (
                       <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex flex-wrap gap-2 text-xs">
