@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Camera,
   MapPin,
@@ -14,7 +14,7 @@ import {
   Sparkles,
   Loader2,
   RefreshCw,
-  ShieldCheck,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { categoryLabels, type HazardCategory, type Severity } from "@/types";
@@ -71,9 +71,76 @@ export default function ReportForm() {
   const [submitted, setSubmitted] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  // Camera capture modal state
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
   // ML Prediction state
   const [mlResult, setMlResult] = useState<MLPredictionData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const startCamera = async () => {
+    setIsCameraOpen(true);
+    setCameraError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API not supported in this environment");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch (err: any) {
+      console.warn("Camera init notice:", err);
+      setCameraError("Camera permission denied or camera not available. Use device camera shutter or choose from gallery.");
+    }
+  };
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraOpen(false);
+    setCameraError(null);
+  }, []);
+
+  useEffect(() => {
+    if (isCameraOpen && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const takeSnapshot = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+      setPhotos((prev) => [...prev, dataUrl]);
+      stopCamera();
+    }
+  };
 
   const applyPrediction = useCallback((data: MLPredictionData) => {
     setMlResult(data);
@@ -224,25 +291,25 @@ export default function ReportForm() {
     let assignedId = `RPT-${Math.floor(1000 + Math.random() * 9000)}`;
     
     try {
-      const finalCategory = category || mlResult?.mappedCategory || 'other';
-      const finalSeverity = mlResult?.suggestedSeverity || severity || 'medium';
-      const title = `${finalCategory.replace('_', ' ').toUpperCase()} reported via Web`;
+      const finalCategory = category || mlResult?.mappedCategory || "other";
+      const finalSeverity = mlResult?.suggestedSeverity || severity || "medium";
+      const title = `${finalCategory.replace("_", " ").toUpperCase()} reported via Web`;
 
-      const res = await fetchFromApi('/reports', {
-        method: 'POST',
+      const res = await fetchFromApi("/reports", {
+        method: "POST",
         body: JSON.stringify({
           title,
-          description: description || 'Hazard reported on campus road.',
+          description: description || "Hazard reported on campus road.",
           category: finalCategory,
           severity: finalSeverity,
           location: {
             lat: location?.lat || 31.7808,
             lng: location?.lng || 76.9967,
-            address: address || 'IIT Mandi Campus'
+            address: address || "IIT Mandi Campus",
           },
           images: photos.length > 0 ? [photos[0]] : [],
-          mlPrediction: mlResult || undefined
-        })
+          mlPrediction: mlResult || undefined,
+        }),
       });
 
       if (res && res.success && res.data) {
@@ -342,31 +409,150 @@ export default function ReportForm() {
         {/* Step 0: Photos */}
         {step === 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-1">Upload Photos</h3>
-            <p className="text-sm text-muted mb-6">Take or upload photos of the road hazard</p>
+            <h3 className="text-lg font-semibold mb-1">Add Hazard Photos</h3>
+            <p className="text-sm text-muted mb-6">Choose between taking a photo with your camera or uploading from gallery/files</p>
 
+            {/* 2 Primary Upload Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              {/* Option 1: Camera */}
+              <button
+                type="button"
+                onClick={startCamera}
+                className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary transition-all text-center group cursor-pointer shadow-sm"
+              >
+                <div className="w-14 h-14 rounded-full bg-primary/15 flex items-center justify-center text-primary mb-3 group-hover:scale-105 transition-transform">
+                  <Camera className="w-7 h-7" />
+                </div>
+                <span className="font-semibold text-foreground text-base">Open Camera</span>
+                <span className="text-xs text-muted mt-1">Take photo now with camera or webcam</span>
+              </button>
+
+              {/* Option 2: Gallery / Files */}
+              <button
+                type="button"
+                onClick={() => document.getElementById("gallery-input")?.click()}
+                className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-border bg-card hover:bg-accent/40 hover:border-primary/50 transition-all text-center group cursor-pointer shadow-sm"
+              >
+                <div className="w-14 h-14 rounded-full bg-muted/15 flex items-center justify-center text-primary mb-3 group-hover:scale-105 transition-transform">
+                  <ImageIcon className="w-7 h-7" />
+                </div>
+                <span className="font-semibold text-foreground text-base">Choose from Gallery / Files</span>
+                <span className="text-xs text-muted mt-1">Browse photos stored on your device</span>
+              </button>
+            </div>
+
+            {/* Native Camera input fallback */}
+            <input
+              id="native-camera-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+
+            {/* Gallery file picker input */}
+            <input
+              id="gallery-input"
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleFiles(e.target.files)}
+            />
+
+            {/* Drag & drop box */}
             <div
               className={cn(
-                "border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors",
-                dragActive ? "border-primary bg-accent" : "border-gray-300 hover:border-primary hover:bg-accent/50"
+                "border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors",
+                dragActive ? "border-primary bg-accent" : "border-gray-200 hover:border-primary/40 hover:bg-accent/20"
               )}
               onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
               onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
-              onClick={() => document.getElementById("photo-input")?.click()}
+              onClick={() => document.getElementById("gallery-input")?.click()}
             >
-              <Upload className="w-10 h-10 text-muted mx-auto mb-3" />
-              <p className="font-medium text-foreground">Drag & drop photos here</p>
-              <p className="text-sm text-muted mt-1">or click to browse</p>
-              <input
-                id="photo-input"
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => handleFiles(e.target.files)}
-              />
+              <Upload className="w-6 h-6 text-muted mx-auto mb-1.5" />
+              <p className="text-xs text-muted">Or drag & drop photo files here</p>
             </div>
+
+            {/* Live Camera Viewfinder Modal */}
+            {isCameraOpen && (
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-card border border-border rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl relative flex flex-col">
+                  <div className="p-4 border-b border-border flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold text-foreground text-sm">Capture Road Hazard Photo</h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="p-1 rounded-lg hover:bg-muted text-muted hover:text-foreground"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    {cameraError && (
+                      <div className="absolute inset-0 bg-black/85 p-6 flex flex-col items-center justify-center text-center text-sm text-red-300">
+                        <AlertTriangle className="w-8 h-8 text-amber-400 mb-2" />
+                        <p className="mb-4">{cameraError}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            stopCamera();
+                            document.getElementById("native-camera-input")?.click();
+                          }}
+                          className="px-4 py-2 bg-primary text-white text-xs font-semibold rounded-lg shadow-sm"
+                        >
+                          Open Device Camera App
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-muted/20 border-t border-border flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        stopCamera();
+                        document.getElementById("native-camera-input")?.click();
+                      }}
+                      className="text-xs text-muted hover:text-primary transition-colors flex items-center gap-1.5"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      Device Shutter
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={takeSnapshot}
+                      disabled={!!cameraError}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium text-sm transition-all shadow-md active:scale-95 disabled:opacity-50"
+                    >
+                      <Camera className="w-4 h-4" /> Snap Photo
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="text-xs text-muted hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {photos.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-6">
