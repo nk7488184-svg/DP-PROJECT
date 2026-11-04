@@ -14,12 +14,13 @@ import {
   Sparkles,
   Loader2,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { categoryLabels, type HazardCategory, type Severity } from "@/types";
 import CategoryIcon from "@/components/shared/CategoryIcon";
 import LocationPicker from "@/components/map/LocationPicker";
-import { fetchFromApi, fetchFromFastApi } from "@/lib/api";
+import { fetchFromApi } from "@/lib/api";
 
 const steps = [
   { label: "Photos", icon: Camera },
@@ -31,13 +32,6 @@ const steps = [
 const categories: HazardCategory[] = [
   "pothole", "damaged_pavement", "faded_markings",
   "roadside_obstruction", "drainage_issue", "poor_lighting", "other",
-];
-
-const severityOptions: { value: Severity; label: string; color: string }[] = [
-  { value: "low", label: "Low", color: "bg-green-500" },
-  { value: "medium", label: "Medium", color: "bg-yellow-500" },
-  { value: "high", label: "High", color: "bg-orange-500" },
-  { value: "critical", label: "Critical", color: "bg-red-500" },
 ];
 
 interface MLPredictionData {
@@ -62,7 +56,8 @@ export default function ReportForm() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
   const [category, setCategory] = useState<HazardCategory | null>(null);
-  const [severity, setSeverity] = useState<Severity | null>(null);
+  // Severity is determined automatically by the ML model and hidden from the user
+  const [severity, setSeverity] = useState<Severity>("medium");
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -76,6 +71,7 @@ export default function ReportForm() {
     if (data.mappedCategory) {
       setCategory(data.mappedCategory);
     }
+    // Auto-assign severity based strictly on ML model prediction
     if (data.suggestedSeverity) {
       setSeverity(data.suggestedSeverity);
     }
@@ -85,21 +81,41 @@ export default function ReportForm() {
     if (!photoBase64 || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
-      // 1. Try direct FastAPI ML server (fastest, warm in-memory model, <50ms)
+      // 1. Direct Next.js same-origin API route (never blocked by CORS or port mismatch)
       try {
-        const fastApiRes = await fetchFromFastApi("/api/v1/predict", {
+        const nextRes = await fetch("/api/classify", {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image: photoBase64 }),
         });
-        if (fastApiRes && fastApiRes.success) {
-          applyPrediction(fastApiRes);
-          return;
+        if (nextRes.ok) {
+          const body = await nextRes.json();
+          if (body && body.success && body.data) {
+            applyPrediction(body.data);
+            return;
+          }
         }
-      } catch (fastApiErr) {
-        // FastAPI offline or not reachable, fallback to Node.js backend
+      } catch (localErr) {
+        // Fall through to external endpoints if local route fails
       }
 
-      // 2. Try Node.js backend route
+      // 2. Direct FastAPI port 8000
+      try {
+        const fRes = await fetch("http://127.0.0.1:8000/api/v1/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: photoBase64 }),
+        });
+        if (fRes.ok) {
+          const body = await fRes.json();
+          if (body && body.success) {
+            applyPrediction(body);
+            return;
+          }
+        }
+      } catch (fastApiErr) {}
+
+      // 3. Fallback to Express backend route
       const res = await fetchFromApi("/reports/classify", {
         method: "POST",
         body: JSON.stringify({ image: photoBase64 }),
@@ -177,10 +193,11 @@ export default function ReportForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdReportId, setCreatedReportId] = useState("RPT-2048");
 
+  // Severity is automatic, user only needs to ensure category is set
   const canNext = () => {
     if (step === 0) return photos.length > 0;
     if (step === 1) return location !== null;
-    if (step === 2) return category !== null && severity !== null;
+    if (step === 2) return category !== null;
     return true;
   };
 
@@ -189,15 +206,17 @@ export default function ReportForm() {
     let assignedId = `RPT-${Math.floor(1000 + Math.random() * 9000)}`;
     
     try {
-      const title = `${category ? category.replace('_', ' ').toUpperCase() : 'HAZARD'} reported via Web`;
+      const finalCategory = category || mlResult?.mappedCategory || 'other';
+      const finalSeverity = mlResult?.suggestedSeverity || severity || 'medium';
+      const title = `${finalCategory.replace('_', ' ').toUpperCase()} reported via Web`;
 
       const res = await fetchFromApi('/reports', {
         method: 'POST',
         body: JSON.stringify({
           title,
           description: description || 'Hazard reported on campus road.',
-          category: category || mlResult?.mappedCategory || 'other',
-          severity: severity || mlResult?.suggestedSeverity || 'medium',
+          category: finalCategory,
+          severity: finalSeverity,
           location: {
             lat: location?.lat || 31.7808,
             lng: location?.lng || 76.9967,
@@ -247,9 +266,10 @@ export default function ReportForm() {
             <p className="text-sm font-bold text-foreground">
               {mlResult.label}
             </p>
-            <p className="text-xs text-muted mt-1">
-              Model classified road hazard and attached inference metadata to your report.
-            </p>
+            <div className="mt-2 pt-2 border-t border-emerald-200 flex items-center justify-between text-xs text-muted">
+              <span>Predicted Category: <strong className="text-foreground capitalize">{mlResult.mappedCategory}</strong></span>
+              <span>Assessed Severity: <strong className="text-foreground capitalize">{mlResult.suggestedSeverity || severity}</strong></span>
+            </div>
           </div>
         )}
 
@@ -367,17 +387,17 @@ export default function ReportForm() {
                 <p className="text-base font-bold text-foreground">
                   {mlResult.label}
                 </p>
-                <p className="text-xs text-muted mt-1">
-                  Model identified road hazard. Category <strong className="text-primary">{mlResult.mappedCategory}</strong> pre-selected.
-                </p>
-                <div className="mt-2.5 pt-2 border-t border-emerald-200/60 flex items-center justify-between">
-                  <span className="text-[11px] text-muted">EfficientNetV2-S (300×300)</span>
+                <div className="mt-2 pt-2 border-t border-emerald-200/80 flex items-center justify-between text-xs text-emerald-800">
+                  <span>Category: <strong className="capitalize">{mlResult.mappedCategory}</strong></span>
+                  <span>Assessed Severity: <strong className="capitalize">{mlResult.suggestedSeverity}</strong></span>
+                </div>
+                <div className="mt-2 flex justify-end">
                   <button
                     type="button"
                     onClick={() => photos[0] && analyzePhoto(photos[0])}
                     className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold flex items-center gap-1"
                   >
-                    <RefreshCw className="w-3 h-3" /> Re-classify
+                    <RefreshCw className="w-3 h-3" /> Re-classify Photo
                   </button>
                 </div>
               </div>
@@ -406,21 +426,25 @@ export default function ReportForm() {
           </div>
         )}
 
-        {/* Step 2: Details */}
+        {/* Step 2: Details - SEVERITY IS AUTOMATIC & HIDDEN */}
         {step === 2 && (
           <div>
-            <h3 className="text-lg font-semibold mb-1">Hazard Details</h3>
-            <p className="text-sm text-muted mb-6">Select the category and severity</p>
+            <h3 className="text-lg font-semibold mb-1">Hazard Category & Details</h3>
+            <p className="text-sm text-muted mb-6">Confirm the hazard category and add an optional description</p>
 
             {mlResult && (
               <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>
-                    AI suggested: <strong>{mlResult.label}</strong> ({mlResult.confidencePercentage})
+                    AI detected: <strong>{mlResult.label}</strong> ({mlResult.confidencePercentage})
                   </span>
                 </div>
-                <span className="font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Auto-selected</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                    Severity: {severity.toUpperCase()}
+                  </span>
+                </div>
               </div>
             )}
 
@@ -444,24 +468,12 @@ export default function ReportForm() {
               ))}
             </div>
 
-            <label className="block text-sm font-medium mb-3">Severity</label>
-            <div className="flex gap-3 mb-8">
-              {severityOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setSeverity(opt.value)}
-                  className={cn(
-                    "flex-1 py-3 rounded-xl border-2 text-sm font-medium transition-all",
-                    severity === opt.value
-                      ? "border-primary bg-accent text-primary"
-                      : "border-gray-200 hover:border-primary/40 text-muted"
-                  )}
-                >
-                  <div className={cn("w-3 h-3 rounded-full mx-auto mb-1.5", opt.color)} />
-                  {opt.label}
-                </button>
-              ))}
+            {/* Note about automated severity */}
+            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2.5 text-xs text-blue-800">
+              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>
+                Road hazard severity is computed automatically by our computer vision model based on surface breakout depth and safety risk.
+              </span>
             </div>
 
             <label className="block text-sm font-medium mb-2">Description (optional)</label>
@@ -511,7 +523,10 @@ export default function ReportForm() {
                 </div>
                 <div>
                   <p className="text-sm text-muted">Severity</p>
-                  <p className="font-medium capitalize">{severity ?? "Not set"}</p>
+                  <p className="font-medium capitalize text-emerald-700 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    {severity || "Medium"} <span className="text-xs text-muted font-normal">(AI Assessed)</span>
+                  </p>
                 </div>
               </div>
 

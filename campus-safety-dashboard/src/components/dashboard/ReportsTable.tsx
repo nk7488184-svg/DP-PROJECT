@@ -8,7 +8,7 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
 import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Image as ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchFromApi, fetchFromFastApi } from "@/lib/api";
+import { fetchFromApi } from "@/lib/api";
 
 export default function ReportsTable() {
   const [reports, setReports] = useState<HazardReport[]>(fallbackReports);
@@ -20,6 +20,7 @@ export default function ReportsTable() {
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [severityUpdating, setSeverityUpdating] = useState(false);
   const [analyzingReportId, setAnalyzingReportId] = useState<string | null>(null);
   const perPage = 10;
 
@@ -88,6 +89,25 @@ export default function ReportsTable() {
     }
   };
 
+  // Admin capability to edit/override severity according to requirements
+  const handleUpdateSeverity = async (reportId: string, newSeverity: Severity) => {
+    setSeverityUpdating(true);
+    try {
+      await fetchFromApi(`/reports/${reportId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ severity: newSeverity }),
+      });
+      // Optimistic update
+      setReports((prev) =>
+        prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity } : r))
+      );
+    } catch (err) {
+      console.error("Failed to update severity:", err);
+    } finally {
+      setSeverityUpdating(false);
+    }
+  };
+
   // Run ML model classification on-demand for any report with a photo
   const runOnDemandAnalysis = useCallback(async (reportId: string, imageSrc: string) => {
     if (!imageSrc || analyzingReportId === reportId) return;
@@ -95,20 +115,37 @@ export default function ReportsTable() {
     try {
       let pred: any = null;
 
-      // 1. Try FastAPI ML engine first (port 8000)
+      // 1. Try local Next.js API route first (bulletproof same-origin)
       try {
-        const fRes = await fetchFromFastApi('/api/v1/predict', {
+        const localRes = await fetch('/api/classify', {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: imageSrc }),
         });
-        if (fRes && fRes.success) {
-          pred = fRes;
+        if (localRes.ok) {
+          const body = await localRes.json();
+          if (body && body.success && body.data) {
+            pred = body.data;
+          }
         }
-      } catch (fErr) {
-        // FastAPI unavailable, try Express
+      } catch (localErr) {}
+
+      // 2. Try FastAPI ML engine (port 8000)
+      if (!pred) {
+        try {
+          const fRes = await fetch('http://127.0.0.1:8000/api/v1/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageSrc }),
+          });
+          if (fRes.ok) {
+            const body = await fRes.json();
+            if (body && body.success) pred = body;
+          }
+        } catch (fErr) {}
       }
 
-      // 2. Fallback to Express backend classify route
+      // 3. Fallback to Express backend classify route
       if (!pred) {
         try {
           const bRes = await fetchFromApi('/reports/classify', {
@@ -118,14 +155,21 @@ export default function ReportsTable() {
           if (bRes && bRes.success) {
             pred = bRes.data;
           }
-        } catch (bErr) {
-          // Express classify failed
-        }
+        } catch (bErr) {}
       }
 
       if (pred) {
         setReports((prev) =>
-          prev.map((r) => (r.id === reportId ? { ...r, mlPrediction: pred } : r))
+          prev.map((r) => {
+            if (r.id === reportId) {
+              return {
+                ...r,
+                mlPrediction: pred,
+                severity: r.severity || (pred.suggestedSeverity as Severity) || 'medium',
+              };
+            }
+            return r;
+          })
         );
       }
     } catch (err) {
@@ -430,6 +474,34 @@ export default function ReportsTable() {
               <div>
                 <p className="text-xs text-muted">Reported</p>
                 <p className="text-foreground">{new Date(selected.reportedAt).toLocaleString()}</p>
+              </div>
+
+              {/* Admin Severity Editor (Admin can modify severity, defaults to ML predicted) */}
+              <div className="pt-3 border-t border-border">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-muted uppercase">UPDATE SEVERITY (ADMIN OVERRIDE)</p>
+                  <span className="text-[11px] text-muted">
+                    Active: <strong className="capitalize text-foreground">{selected.severity}</strong>
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {(["low", "medium", "high", "critical"] as Severity[]).map((sev) => (
+                    <button
+                      key={sev}
+                      disabled={severityUpdating || selected.severity === sev}
+                      onClick={() => handleUpdateSeverity(selected.id, sev)}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors capitalize",
+                        selected.severity === sev
+                          ? "bg-primary text-white border-primary cursor-default"
+                          : "bg-input border-border text-foreground hover:bg-card-hover hover:border-primary/50",
+                        severityUpdating && "opacity-50 cursor-wait"
+                      )}
+                    >
+                      {sev}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Status Updater */}
