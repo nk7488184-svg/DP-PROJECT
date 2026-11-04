@@ -315,7 +315,7 @@ export default function ReportForm() {
               <div className="flex flex-col items-center">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
+                    "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors flex-shrink-0",
                     i < step
                       ? "bg-primary text-white"
                       : i === step
@@ -323,14 +323,14 @@ export default function ReportForm() {
                       : "bg-gray-200 text-gray-400"
                   )}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <span className={cn("text-xs mt-1.5 font-medium", i <= step ? "text-primary" : "text-muted")}>
                   {s.label}
                 </span>
               </div>
               {i < steps.length - 1 && (
-                <div className={cn("w-16 h-0.5 mx-2 mb-5", i < step ? "bg-primary" : "bg-gray-200")} />
+                <div className={cn("w-4 sm:w-10 md:w-16 h-0.5 mx-1 sm:mx-2 mb-4 sm:mb-5", i < step ? "bg-primary" : "bg-gray-200")} />
               )}
             </div>
           );

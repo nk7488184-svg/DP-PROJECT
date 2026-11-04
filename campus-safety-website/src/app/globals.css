@@ -95,6 +95,12 @@
   --color-chart-1: var(--chart-1);
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -138,13 +144,4 @@ body {
   --chart-scale-04: oklch(0.60 0.14 162);
   --chart-scale-05: oklch(0.70 0.16 162);
   --chart-scale-pattern-color: #0f172a;
-}
-
-
-/* Hide Leaflet & OpenStreetMap attribution watermarks */
-.leaflet-control-attribution {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
 }

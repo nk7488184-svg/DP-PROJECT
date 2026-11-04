@@ -4,7 +4,8 @@ import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import CampusMap from "@/components/map/CampusMap";
 import { categoryLabels, categoryColors, type HazardCategory } from "@/types";
-import { Filter } from "lucide-react";
+import { mockReports } from "@/lib/mock-data";
+import { Filter, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const categories: HazardCategory[] = [
@@ -22,6 +23,10 @@ export default function MapPage() {
     );
   };
 
+  const filteredCount = selectedCategories.length
+    ? mockReports.filter((r) => selectedCategories.includes(r.category)).length
+    : mockReports.length;
+
   return (
     <>
       <Navbar />
@@ -30,7 +35,7 @@ export default function MapPage() {
         <div
           className={cn(
             "absolute top-4 left-4 z-[1000] bg-white rounded-xl shadow-lg transition-all",
-            showFilters ? "p-5 w-64" : "p-0 w-auto"
+            showFilters ? "p-4 sm:p-5 w-64 max-w-[calc(100vw-32px)]" : "p-0 w-auto"
           )}
         >
           <button
@@ -75,6 +80,11 @@ export default function MapPage() {
                   Clear filters
                 </button>
               )}
+
+              <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-1.5 text-xs text-muted">
+                <MapPin className="w-3.5 h-3.5" />
+                Showing {filteredCount} reports
+              </div>
             </>
           )}
         </div>

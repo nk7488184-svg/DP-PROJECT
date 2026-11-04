@@ -11,14 +11,17 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  Gauge,
   Radio,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarNavItem from "@/components/ui/SidebarNavItem";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/dashboard/traffic", label: "Radar Telemetry", icon: Radio },
+  { href: "/dashboard/speed", label: "Speed Tracker", icon: Gauge },
+  { href: "/dashboard/enforcement", label: "Traffic Enforcement", icon: Radio },
   { href: "/dashboard/reports", label: "Reports", icon: FileText },
   { href: "/dashboard/map", label: "Map View", icon: Map },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
@@ -30,10 +33,16 @@ export default function Sidebar() {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
 
+  const triggerStaggeredMenu = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("toggle-staggered-menu"));
+    }
+  };
+
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-full bg-sidebar border-r border-border flex flex-col transition-all duration-300 z-40",
+        "hidden md:flex flex-col fixed left-0 top-0 h-full bg-sidebar border-r border-border transition-all duration-300 z-40",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -49,8 +58,31 @@ export default function Sidebar() {
         )}
       </div>
 
+      {/* Prominent Staggered Menu Action Pill */}
+      <div className="px-2 pt-3 pb-2 border-b border-border/60">
+        <button
+          onClick={triggerStaggeredMenu}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all",
+            "bg-gradient-to-r from-emerald-600/30 via-emerald-500/15 to-emerald-600/30 text-emerald-300 border border-emerald-500/40 hover:border-emerald-300 hover:shadow-[0_0_16px_rgba(16,185,129,0.35)] hover:text-white group"
+          )}
+          title="Open React Bits Staggered Menu"
+          type="button"
+        >
+          <Sparkles className="w-4 h-4 text-emerald-400 group-hover:rotate-12 transition-transform flex-shrink-0" />
+          {!collapsed && (
+            <div className="flex items-center justify-between flex-1">
+              <span>Staggered Menu</span>
+              <span className="text-[10px] bg-emerald-500/25 border border-emerald-500/30 px-1.5 py-0.5 rounded text-emerald-300 font-mono">
+                GSAP
+              </span>
+            </div>
+          )}
+        </button>
+      </div>
+
       {/* Nav Items */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {collapsed ? (
           navItems.map((item) => {
             const Icon = item.icon;

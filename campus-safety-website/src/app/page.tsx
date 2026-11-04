@@ -63,7 +63,7 @@ export default function HomePage() {
                 <Shield className="w-3.5 h-3.5" />
                 <span>Campus Road Safety Observatory</span>
               </div>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[0.95] mb-6 text-white">
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.0] sm:leading-[0.95] mb-6 text-white">
                 Making IIT Mandi
                 <br />
                 Roads <span className="text-emerald-400">Safer</span>
@@ -76,14 +76,14 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/report"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-[#07130d] rounded-xl font-bold hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/10"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-[#07130d] rounded-xl font-bold hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/10"
                 >
                   <Camera className="w-5 h-5" />
                   Report a Hazard
                 </Link>
                 <Link
                   href="/map"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-emerald-800/80 text-emerald-400 rounded-xl font-semibold hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 border border-emerald-800/80 text-emerald-400 rounded-xl font-semibold hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors"
                 >
                   <MapPin className="w-5 h-5" />
                   View Map
@@ -159,7 +159,7 @@ export default function HomePage() {
         </section>
         
         {/* Full-width Flowing Menu */}
-        <section className="w-full h-[600px] border-y border-white/10 bg-[#07130d]">
+        <section className="w-full h-[420px] sm:h-[520px] md:h-[600px] border-y border-white/10 bg-[#07130d]">
           <FlowingMenu 
             items={menuItems} 
             bgColor="#07130d" 
