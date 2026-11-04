@@ -6,6 +6,7 @@ import TrendChart from "@/components/dashboard/TrendChart";
 import CategoryPieChart from "@/components/dashboard/CategoryPieChart";
 import PriorityList from "@/components/dashboard/PriorityList";
 import AutomatedHotspotAlerts from "@/components/dashboard/AutomatedHotspotAlerts";
+import OverspeedAlertsCard from "@/components/dashboard/OverspeedAlertsCard";
 import { mockReports as fallbackReports } from "@/lib/mock-data";
 import { categoryLabels, type HazardCategory, type HazardReport } from "@/types";
 import SeverityBadge from "@/components/shared/SeverityBadge";
@@ -68,6 +69,9 @@ export default function DashboardOverview() {
 
       <AutomatedHotspotAlerts />
 
+      {/* Real-time Radar & ALPR Overspeeding Vehicle Watch */}
+      <OverspeedAlertsCard />
+
       <StatsCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -98,15 +102,15 @@ export default function DashboardOverview() {
                     <p className="text-sm font-semibold text-foreground truncate">{report.title}</p>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted">
-                    <span className="flex items-center gap-1 min-w-0 truncate">
-                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{report.location.address}</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-muted" />
+                      {report.location.address}
                     </span>
-                    <span className="text-muted/40">•</span>
-                    <span className="flex-shrink-0">{categoryLabels[report.category as HazardCategory] || report.category}</span>
+                    <span>•</span>
+                    <span>{report.reportedBy}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <SeverityBadge severity={report.severity} />
                   <StatusBadge status={report.status} />
                 </div>

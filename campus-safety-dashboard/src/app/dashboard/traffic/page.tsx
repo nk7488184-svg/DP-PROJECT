@@ -17,6 +17,7 @@ import {
   Layers,
   CheckCircle2,
   ExternalLink,
+  ShieldAlert,
 } from "lucide-react";
 import { fetchFromFastApi, getFastApiWsUrl } from "@/lib/api";
 
@@ -88,6 +89,7 @@ export default function TrafficRadarPage() {
   const [stats, setStats] = useState<any>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [selectedBreach, setSelectedBreach] = useState<BreachRecord | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   // Fallback initial sample data if backend is offline
@@ -137,13 +139,11 @@ export default function TrafficRadarPage() {
 
       const alRes = await fetchFromFastApi("/api/v1/telemetry/active-learning");
       if (alRes?.data) setActiveLearningQueue(alRes.data);
-    } catch (err) {
-      // Backend not yet running or network gap; use fallback gracefully
+    } catch {
       if (!telemetry) setTelemetry(fallbackTelemetry);
     }
   };
 
-  // Setup live WebSocket feed
   useEffect(() => {
     loadAllData();
     const pollTimer = setInterval(loadAllData, 8000);
@@ -190,7 +190,6 @@ export default function TrafficRadarPage() {
 
   const activeData = telemetry || fallbackTelemetry;
 
-  // Trigger quick test burst
   const handleTriggerTestBurst = async () => {
     setIsSimulating(true);
     try {
@@ -448,7 +447,7 @@ export default function TrafficRadarPage() {
         </div>
       </div>
 
-      {/* Speed Breaches & Server-Side Machine Learning Vision Feed */}
+      {/* Speed Breaches & Server-Side Machine Learning Vision Feed with HSRP Plate Display */}
       <div className="bg-sidebar border border-border rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
@@ -457,7 +456,7 @@ export default function TrafficRadarPage() {
               <span>Speed Breach Ingestion & Automated License Plate Recognition (ALPR)</span>
             </h3>
             <p className="text-xs text-muted mt-0.5">
-              1080p camera frames captured in RAM upon radar trigger, decoded directly on NVMe, and classified via YOLOv8 + OCR
+              Overspeeding vehicle registration numbers captured via Doppler radar triggers & server-side OCR
             </p>
           </div>
           <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 font-semibold">
@@ -471,10 +470,10 @@ export default function TrafficRadarPage() {
               <tr>
                 <th className="p-3">Breach ID</th>
                 <th className="p-3">Timestamp</th>
-                <th className="p-3">Location / Node</th>
-                <th className="p-3">Speed Recorded</th>
+                <th className="p-3">Location / Road</th>
+                <th className="p-3">Clocked Speed</th>
                 <th className="p-3">Vehicle Type (PCE)</th>
-                <th className="p-3">ALPR Plate Read</th>
+                <th className="p-3 text-center">Vehicle Number Plate (ALPR)</th>
                 <th className="p-3">OCR Confidence</th>
                 <th className="p-3">Active Learning Queue</th>
               </tr>
@@ -488,7 +487,11 @@ export default function TrafficRadarPage() {
                 </tr>
               ) : (
                 breaches.map((b) => (
-                  <tr key={b.breach_id} className="hover:bg-card/40 transition-colors">
+                  <tr
+                    key={b.breach_id}
+                    onClick={() => setSelectedBreach(b)}
+                    className="hover:bg-card/60 transition-colors cursor-pointer"
+                  >
                     <td className="p-3 font-mono font-bold text-foreground">{b.breach_id}</td>
                     <td className="p-3 text-muted">
                       {new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -502,8 +505,14 @@ export default function TrafficRadarPage() {
                       <span className="font-semibold text-foreground">{b.vehicle_type}</span>
                       <span className="text-[10px] text-muted ml-1">({b.pce_weight} PCE)</span>
                     </td>
-                    <td className="p-3 font-mono font-bold tracking-wider text-foreground bg-card/60 px-2 py-1 rounded">
-                      {b.license_plate}
+                    {/* HSRP High-Visibility License Plate */}
+                    <td className="p-3 text-center">
+                      <div className="inline-flex items-center bg-white text-zinc-950 border border-zinc-700 rounded shadow-sm px-2.5 py-1 font-mono font-black text-xs tracking-wider select-all">
+                        <div className="flex flex-col items-center justify-center pr-1.5 mr-1.5 border-r border-zinc-400 text-[8px] leading-tight text-blue-700 font-bold">
+                          <span>IND</span>
+                        </div>
+                        <span className="font-extrabold tracking-widest text-zinc-950">{b.license_plate}</span>
+                      </div>
                     </td>
                     <td className="p-3">
                       <span
@@ -532,6 +541,80 @@ export default function TrafficRadarPage() {
           </table>
         </div>
       </div>
+
+      {/* Breach Evidence Preview Modal */}
+      {selectedBreach && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-sidebar border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-red-500" />
+                <h3 className="font-bold text-foreground text-sm">
+                  Overspeed Evidence Ticket: {selectedBreach.breach_id}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedBreach(null)}
+                className="text-muted hover:text-foreground text-xs px-2 py-1 rounded bg-card"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Official HSRP Plate Header */}
+            <div className="p-4 bg-card rounded-xl border border-border flex flex-col items-center justify-center space-y-2">
+              <span className="text-[11px] text-muted font-medium">RECOGNISED VEHICLE NUMBER PLATE</span>
+              <div className="inline-flex items-center bg-white text-zinc-950 border-2 border-zinc-900 rounded-lg shadow-md px-4 py-2 font-mono font-black text-lg tracking-widest">
+                <div className="flex flex-col items-center justify-center pr-2 mr-2 border-r border-zinc-400 text-[9px] leading-tight text-blue-700 font-bold">
+                  <span>🇮🇳</span>
+                  <span>IND</span>
+                </div>
+                <span>{selectedBreach.license_plate}</span>
+              </div>
+              <span className="text-[11px] text-emerald-400 font-semibold">
+                ALPR OCR Confidence: {Math.round(selectedBreach.ocr_confidence * 100)}%
+              </span>
+            </div>
+
+            {/* Violation Details */}
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted">Recorded Vehicle Velocity</span>
+                <span className="font-mono font-bold text-red-400 text-sm">{selectedBreach.speed_kmh} km/h</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted">Posted Road Limit</span>
+                <span className="font-mono text-foreground">{selectedBreach.posted_limit_kmh} km/h</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted">Excess Speed (Delta)</span>
+                <span className="font-mono font-bold text-red-500">+{selectedBreach.delta_over_limit} km/h Over</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted">Location</span>
+                <span className="text-foreground font-medium">{selectedBreach.road_name}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted">Vehicle Classification</span>
+                <span className="text-foreground">{selectedBreach.vehicle_type} (PCE {selectedBreach.pce_weight})</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-muted">Timestamp</span>
+                <span className="text-foreground font-mono">{new Date(selectedBreach.timestamp).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                onClick={() => setSelectedBreach(null)}
+                className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg text-xs font-semibold transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Active Learning Retraining Pipeline Card */}
       <div className="bg-sidebar border border-border rounded-2xl p-6 space-y-4">
