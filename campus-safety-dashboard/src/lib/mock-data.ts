@@ -43,7 +43,15 @@ const statuses = ["submitted", "under_review", "in_progress", "resolved"] as con
 
 const titles: Record<HazardCategory, string[]> = {
   pothole: ["Large pothole on road", "Deep pothole near drain", "Multiple potholes cluster", "Expanding pothole"],
+  road_cracks: ["Longitudinal road crack", "Transverse road surface fracture", "Block cracking network"],
   damaged_pavement: ["Cracked pavement section", "Broken sidewalk tiles", "Pavement sinking", "Eroded shoulder"],
+  edge_damage: ["Shoulder road breakdown", "Eroded road edge", "Curb slope degradation"],
+  patch_deterioration: ["Failing asphalt patch", "Deteriorated road repair", "Sunken patch trench"],
+  loose_aggregate: ["Loose gravel on asphalt", "Unpaved loose aggregate", "Scattered stone chips"],
+  debris_on_road: ["Fallen tree branch", "Construction debris", "Spilled construction stones"],
+  vegetation: ["Overgrown roadside grass", "Moss slippery road corner", "Bushes blocking view"],
+  drainage_iron_grid: ["Damaged iron culvert grid", "Broken stormwater drain grate", "Bent iron drain cover"],
+  broken_curb: ["Cracked concrete staircase", "Broken pedestrian steps", "Chipped roadside curb"],
   faded_markings: ["Faded speed breaker markings", "Invisible crosswalk", "Missing lane markings", "Worn stop line"],
   roadside_obstruction: ["Fallen tree branch", "Construction debris", "Abandoned vehicle", "Overgrown bushes"],
   drainage_issue: ["Blocked drain overflowing", "Water logging area", "Open manhole cover", "Damaged culvert"],

@@ -1,31 +1,26 @@
-import { HazardReport, HazardCategory } from "@/types";
+import type { HazardReport, HazardCategory, Severity, Status } from "@/types";
 
-const campusLocations = [
-  { lat: 31.7754, lng: 76.9861, address: "Main Academic Block Road" },
-  { lat: 31.7748, lng: 76.9855, address: "Near North Campus Gate" },
-  { lat: 31.7761, lng: 76.9870, address: "Hostel Road - Block A" },
-  { lat: 31.7740, lng: 76.9848, address: "Library Junction" },
-  { lat: 31.7769, lng: 76.9878, address: "Sports Complex Road" },
-  { lat: 31.7735, lng: 76.9842, address: "South Campus Entrance" },
-  { lat: 31.7757, lng: 76.9865, address: "Cafeteria Parking Lot" },
-  { lat: 31.7745, lng: 76.9852, address: "Workshop Road" },
-  { lat: 31.7763, lng: 76.9873, address: "Hostel Block C Entrance" },
-  { lat: 31.7750, lng: 76.9858, address: "Central Lawn Pathway" },
-  { lat: 31.7738, lng: 76.9845, address: "Admin Building Curve" },
-  { lat: 31.7772, lng: 76.9882, address: "Faculty Quarters Road" },
-  { lat: 31.7743, lng: 76.9850, address: "Auditorium Lane" },
-  { lat: 31.7766, lng: 76.9876, address: "Medical Center Road" },
-  { lat: 31.7752, lng: 76.9863, address: "SBI ATM Road" },
-  { lat: 31.7759, lng: 76.9868, address: "OAT Approach Road" },
-  { lat: 31.7747, lng: 76.9854, address: "Lab Complex Junction" },
-  { lat: 31.7770, lng: 76.9880, address: "Kamand Bridge Road" },
-  { lat: 31.7736, lng: 76.9843, address: "Guest House Path" },
-  { lat: 31.7755, lng: 76.9862, address: "Mess Road" },
-  { lat: 31.7742, lng: 76.9849, address: "Parking Area B" },
-  { lat: 31.7768, lng: 76.9879, address: "Tennis Court Road" },
-  { lat: 31.7733, lng: 76.9840, address: "Main Gate Approach" },
-  { lat: 31.7760, lng: 76.9869, address: "Hostel Block D Road" },
-  { lat: 31.7746, lng: 76.9853, address: "Computer Center Path" },
+// Seeded random data generator for IIT Mandi campus
+const locations = [
+  { lat: 31.7754, lng: 76.9861, address: "Main Academic Building Road" },
+  { lat: 31.7782, lng: 76.9895, address: "North Campus Entry Gate" },
+  { lat: 31.7721, lng: 76.9832, address: "South Campus Bridge Approach" },
+  { lat: 31.7768, lng: 76.9876, address: "Hostel Block C Pathway" },
+  { lat: 31.7745, lng: 76.9852, address: "Central Library Road" },
+  { lat: 31.7791, lng: 76.9908, address: "Faculty Housing Outer Ring" },
+  { lat: 31.7734, lng: 76.9841, address: "Sports Complex Access Road" },
+  { lat: 31.7761, lng: 76.9869, address: "Dining Hall 2 Junction" },
+  { lat: 31.7778, lng: 76.9888, address: "Engineering Block Internal Road" },
+  { lat: 31.7715, lng: 76.9825, address: "River View Point Road" },
+  { lat: 31.7787, lng: 76.9901, address: "Guest House Approach" },
+  { lat: 31.775, lng: 76.9858, address: "Student Activity Center Lane" },
+  { lat: 31.773, lng: 76.9837, address: "Workshop Area Road" },
+  { lat: 31.7771, lng: 76.9881, address: "Auditorium Back Road" },
+  { lat: 31.7758, lng: 76.9865, address: "Health Center Junction" },
+  { lat: 31.7741, lng: 76.9847, address: "Playground Access Road" },
+  { lat: 31.7774, lng: 76.9884, address: "Upper Campus Road" },
+  { lat: 31.7737, lng: 76.9844, address: "Lower Campus Curve" },
+  { lat: 31.7764, lng: 76.9874, address: "New Hostel Road" },
 ];
 
 const categories: HazardCategory[] = [
@@ -38,7 +33,15 @@ const statuses = ["submitted", "under_review", "in_progress", "resolved"] as con
 
 const titles: Record<HazardCategory, string[]> = {
   pothole: ["Large pothole on road", "Deep pothole near drain", "Multiple potholes cluster"],
+  road_cracks: ["Longitudinal road crack", "Transverse road surface fracture", "Block cracking network"],
   damaged_pavement: ["Cracked pavement section", "Broken sidewalk tiles", "Pavement sinking"],
+  edge_damage: ["Shoulder road breakdown", "Eroded road edge", "Curb slope degradation"],
+  patch_deterioration: ["Failing asphalt patch", "Deteriorated road repair", "Sunken patch trench"],
+  loose_aggregate: ["Loose gravel on asphalt", "Unpaved loose aggregate", "Scattered stone chips"],
+  debris_on_road: ["Fallen tree branch", "Construction debris", "Spilled construction stones"],
+  vegetation: ["Overgrown roadside grass", "Moss slippery road corner", "Bushes blocking view"],
+  drainage_iron_grid: ["Damaged iron culvert grid", "Broken stormwater drain grate", "Bent iron drain cover"],
+  broken_curb: ["Cracked concrete staircase", "Broken pedestrian steps", "Chipped roadside curb"],
   faded_markings: ["Faded speed breaker markings", "Invisible crosswalk", "Missing lane markings"],
   roadside_obstruction: ["Fallen tree branch", "Construction debris", "Abandoned vehicle"],
   drainage_issue: ["Blocked drain overflowing", "Water logging area", "Open manhole cover"],
@@ -59,36 +62,48 @@ function randomDate(daysBack: number, seed: number): string {
   return d.toISOString();
 }
 
-function generateReports(): HazardReport[] {
-  return campusLocations.map((loc, i) => {
-    const cat = categories[i % categories.length];
-    const sev = severities[Math.floor(seededRandom(i) * severities.length)];
-    const stat = statuses[Math.floor(seededRandom(i + 100) * statuses.length)];
-    const titleOptions = titles[cat];
-    const reportedAt = randomDate(90, i);
-    const updatedAt = randomDate(30, i + 200);
+export function generateMockReports(count: number = 40): HazardReport[] {
+  const reports: HazardReport[] = [];
 
-    return {
-      id: `RPT-${String(1001 + i).padStart(4, "0")}`,
-      title: titleOptions[i % titleOptions.length],
-      description: `Reported hazard at ${loc.address}. This ${cat.replace(/_/g, " ")} poses a ${sev} risk to pedestrians and vehicles. Immediate attention is needed.`,
+  for (let i = 0; i < count; i++) {
+    const cat = categories[Math.floor(seededRandom(i * 7 + 1) * categories.length)];
+    const sev = severities[Math.floor(seededRandom(i * 13 + 2) * severities.length)] as Severity;
+    const stat = statuses[Math.floor(seededRandom(i * 19 + 3) * statuses.length)] as Status;
+    const loc = locations[i % locations.length];
+    const catTitles = titles[cat] || titles.other;
+    const title = catTitles[Math.floor(seededRandom(i * 23 + 4) * catTitles.length)];
+    const daysBack = Math.floor(seededRandom(i * 31 + 5) * 60);
+
+    const sevWeight = { critical: 40, high: 30, medium: 20, low: 10 }[sev];
+    const catWeight = { pothole: 20, drainage_issue: 18, damaged_pavement: 15, roadside_obstruction: 12, poor_lighting: 10, faded_markings: 8, driver_behavior: 15, other: 5, road_cracks: 15, edge_damage: 15, patch_deterioration: 12, loose_aggregate: 12, debris_on_road: 15, vegetation: 10, drainage_iron_grid: 18, broken_curb: 15 }[cat] || 10;
+    const ageBonus = Math.min(daysBack * 0.5, 20);
+    const priorityScore = Math.min(Math.round(sevWeight + catWeight + ageBonus), 100);
+
+    const reportedAt = randomDate(daysBack, i * 41);
+    const resolvedAt = stat === "resolved" ? randomDate(Math.max(0, daysBack - 5), i * 43) : undefined;
+
+    reports.push({
+      id: `RPT-${1000 + i}`,
+      title,
+      description: `Reported hazard at ${loc.address}. Requires inspection and appropriate maintenance action.`,
       category: cat,
       severity: sev,
       status: stat,
-      location: loc,
-      images: [`/images/hazard-${(i % 6) + 1}.jpg`],
-      reportedBy: `user${100 + i}@iitmandi.ac.in`,
+      location: { ...loc },
+      images: [
+        `https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=400&auto=format&fit=crop&q=60`,
+      ],
+      reportedBy: `Reporter #${(i % 12) + 1}`,
       reportedAt,
-      updatedAt: updatedAt > reportedAt ? updatedAt : reportedAt,
-      priorityScore: sev === "critical" ? 95 + seededRandom(i) * 5 :
-        sev === "high" ? 70 + seededRandom(i) * 20 :
-        sev === "medium" ? 40 + seededRandom(i) * 25 :
-        10 + seededRandom(i) * 25,
-    };
-  });
+      updatedAt: resolvedAt || reportedAt,
+      priorityScore,
+    });
+  }
+
+  return reports.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
 }
 
-export const mockReports: HazardReport[] = generateReports();
+export const mockReports = generateMockReports(40);
 
 export const mockStats = {
   totalReports: mockReports.length,
