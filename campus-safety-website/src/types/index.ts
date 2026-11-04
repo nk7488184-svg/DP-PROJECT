@@ -12,6 +12,22 @@ export type Severity = "low" | "medium" | "high" | "critical";
 
 export type Status = "submitted" | "under_review" | "in_progress" | "resolved";
 
+export interface MLPrediction {
+  label: string;
+  rawClass: string;
+  confidence: number;
+  confidencePercentage: string;
+  mappedCategory?: string;
+  suggestedSeverity?: string;
+  isLowConfidence?: boolean;
+  topPredictions?: Array<{
+    rawClass: string;
+    label: string;
+    confidence: number;
+    confidencePercentage: string;
+  }>;
+}
+
 export interface HazardReport {
   id: string;
   title: string;
@@ -29,6 +45,7 @@ export interface HazardReport {
   reportedAt: string;
   updatedAt: string;
   priorityScore: number;
+  mlPrediction?: MLPrediction;
 }
 
 export const categoryLabels: Record<HazardCategory, string> = {
@@ -48,9 +65,9 @@ export const categoryColors: Record<HazardCategory, string> = {
   faded_markings: "#eab308",
   roadside_obstruction: "#8b5cf6",
   drainage_issue: "#3b82f6",
-  poor_lighting: "#6366f1",
-  driver_behavior: "#ec4899", // pink color for driver behavior
-  other: "#64748b",
+  poor_lighting: "#06b6d4",
+  driver_behavior: "#ec4899",
+  other: "#6b7280",
 };
 
 export const severityLabels: Record<Severity, string> = {
@@ -58,6 +75,20 @@ export const severityLabels: Record<Severity, string> = {
   medium: "Medium",
   high: "High",
   critical: "Critical",
+};
+
+export const severityColors: Record<Severity, string> = {
+  low: "#22c55e",
+  medium: "#eab308",
+  high: "#f97316",
+  critical: "#ef4444",
+};
+
+export const statusColors: Record<Status, string> = {
+  submitted: "#3b82f6",
+  under_review: "#eab308",
+  in_progress: "#8b5cf6",
+  resolved: "#22c55e",
 };
 
 export const statusLabels: Record<Status, string> = {

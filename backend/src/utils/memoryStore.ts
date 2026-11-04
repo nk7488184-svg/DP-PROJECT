@@ -11,6 +11,7 @@ export interface MockReport {
   reportedAt: string;
   updatedAt: string;
   priorityScore: number;
+  mlPrediction?: any;
 }
 
 export const initialReports: MockReport[] = [
@@ -86,12 +87,12 @@ export const initialReports: MockReport[] = [
   }
 ];
 
-// Helper to sanitize images so huge base64 strings don't bloat JSON payloads
+// Helper to sanitize images - allows compressed base64 images up to 4MB for display
 function sanitizeImages(images: any[]): string[] {
   if (!Array.isArray(images)) return [];
   return images.map(img => {
     if (typeof img !== 'string') return '';
-    if (img.startsWith('data:image') && img.length > 50000) {
+    if (img.startsWith('data:image') && img.length > 4000000) {
       return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%2322c55e" width="100" height="100"/><text fill="%23ffffff" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="12">Uploaded Photo</text></svg>';
     }
     return img;
@@ -140,6 +141,7 @@ class MemoryStore {
       reportedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       priorityScore: reportData.priorityScore || 50,
+      mlPrediction: reportData.mlPrediction || null,
     };
     this.reports.unshift(newReport);
     return newReport;

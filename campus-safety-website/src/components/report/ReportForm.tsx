@@ -11,6 +11,8 @@ import {
   Upload,
   X,
   AlertTriangle,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { categoryLabels, type HazardCategory, type Severity } from "@/types";
@@ -37,6 +39,22 @@ const severityOptions: { value: Severity; label: string; color: string }[] = [
   { value: "critical", label: "Critical", color: "bg-red-500" },
 ];
 
+interface MLPredictionData {
+  label: string;
+  rawClass: string;
+  confidence: number;
+  confidencePercentage: string;
+  mappedCategory?: HazardCategory;
+  suggestedSeverity?: Severity;
+  isLowConfidence?: boolean;
+  topPredictions?: Array<{
+    rawClass: string;
+    label: string;
+    confidence: number;
+    confidencePercentage: string;
+  }>;
+}
+
 export default function ReportForm() {
   const [step, setStep] = useState(0);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -47,6 +65,33 @@ export default function ReportForm() {
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  // ML Prediction state
+  const [mlResult, setMlResult] = useState<MLPredictionData | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const analyzePhoto = async (photoBase64: string) => {
+    setIsAnalyzing(true);
+    try {
+      const res = await fetchFromApi("/reports/classify", {
+        method: "POST",
+        body: JSON.stringify({ image: photoBase64 }),
+      });
+      if (res && res.success && res.data) {
+        setMlResult(res.data);
+        if (res.data.mappedCategory) {
+          setCategory(res.data.mappedCategory as HazardCategory);
+        }
+        if (res.data.suggestedSeverity) {
+          setSeverity(res.data.suggestedSeverity as Severity);
+        }
+      }
+    } catch (err) {
+      console.warn("ML image analysis notice:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files) return;
@@ -76,9 +121,22 @@ export default function ReportForm() {
             const ctx = canvas.getContext("2d");
             if (ctx) {
               ctx.drawImage(img, 0, 0, width, height);
-              setPhotos((prev) => [...prev, canvas.toDataURL("image/jpeg", 0.6)]);
+              const compressed = canvas.toDataURL("image/jpeg", 0.6);
+              setPhotos((prev) => {
+                const nextPhotos = [...prev, compressed];
+                if (prev.length === 0) {
+                  analyzePhoto(compressed);
+                }
+                return nextPhotos;
+              });
             } else {
-              setPhotos((prev) => [...prev, rawData]);
+              setPhotos((prev) => {
+                const nextPhotos = [...prev, rawData];
+                if (prev.length === 0) {
+                  analyzePhoto(rawData);
+                }
+                return nextPhotos;
+              });
             }
           };
           img.onerror = () => {
@@ -91,7 +149,13 @@ export default function ReportForm() {
   }, []);
 
   const removePhoto = (index: number) => {
-    setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotos((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length === 0) {
+        setMlResult(null);
+      }
+      return next;
+    });
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,8 +180,8 @@ export default function ReportForm() {
         body: JSON.stringify({
           title,
           description: description || 'Hazard reported on campus road.',
-          category: category || 'other',
-          severity: severity || 'medium',
+          category: category || mlResult?.mappedCategory || 'other',
+          severity: severity || mlResult?.suggestedSeverity || 'medium',
           location: {
             lat: location?.lat || 31.7808,
             lng: location?.lng || 76.9967,
@@ -129,6 +193,9 @@ export default function ReportForm() {
 
       if (res && res.success && res.data) {
         assignedId = res.data.id || res.data._id || assignedId;
+        if (res.mlPrediction) {
+          setMlResult(res.mlPrediction);
+        }
       }
     } catch (err) {
       console.warn("Backend sync notice:", err);
@@ -146,7 +213,29 @@ export default function ReportForm() {
           <CheckCircle className="w-10 h-10 text-primary" />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Report Submitted!</h2>
-        <p className="text-muted mb-4">Your report ID is <span className="font-mono font-bold text-primary">{createdReportId}</span></p>
+        <p className="text-muted mb-3">
+          Your report ID is <span className="font-mono font-bold text-primary">{createdReportId}</span>
+        </p>
+
+        {mlResult && (
+          <div className="max-w-md mx-auto my-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-left shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-800">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> AI Classification Verified
+              </span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                {mlResult.confidencePercentage}
+              </span>
+            </div>
+            <p className="text-sm font-bold text-foreground">
+              {mlResult.label}
+            </p>
+            <p className="text-xs text-muted mt-1">
+              Model classified road hazard and attached inference metadata to your report.
+            </p>
+          </div>
+        )}
+
         <p className="text-sm text-muted mb-6">
           You can track the status of your report using this ID on the Track Report page.
         </p>
@@ -199,7 +288,7 @@ export default function ReportForm() {
         {step === 0 && (
           <div>
             <h3 className="text-lg font-semibold mb-1">Upload Photos</h3>
-            <p className="text-sm text-muted mb-6">Take or upload photos of the hazard</p>
+            <p className="text-sm text-muted mb-6">Take or upload photos of the road hazard</p>
 
             <div
               className={cn(
@@ -227,7 +316,7 @@ export default function ReportForm() {
             {photos.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-6">
                 {photos.map((photo, i) => (
-                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden group">
+                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden group border border-border">
                     <img src={photo} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
@@ -237,6 +326,33 @@ export default function ReportForm() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* AI Classification Feedback Banner */}
+            {isAnalyzing && (
+              <div className="mt-5 p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-sm text-blue-700 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
+                <span>Running trained EfficientNetV2-S model to classify hazard...</span>
+              </div>
+            )}
+
+            {mlResult && !isAnalyzing && (
+              <div className="mt-5 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-left">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-800">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> AI Classification Detected
+                  </span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
+                    {mlResult.confidencePercentage} Confidence
+                  </span>
+                </div>
+                <p className="text-base font-bold text-foreground">
+                  {mlResult.label}
+                </p>
+                <p className="text-xs text-muted mt-1">
+                  Model identified road hazard. Category <strong className="text-primary">{mlResult.mappedCategory}</strong> pre-selected.
+                </p>
               </div>
             )}
           </div>
@@ -256,6 +372,18 @@ export default function ReportForm() {
           <div>
             <h3 className="text-lg font-semibold mb-1">Hazard Details</h3>
             <p className="text-sm text-muted mb-6">Select the category and severity</p>
+
+            {mlResult && (
+              <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    AI suggested: <strong>{mlResult.label}</strong> ({mlResult.confidencePercentage})
+                  </span>
+                </div>
+                <span className="font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Auto-selected</span>
+              </div>
+            )}
 
             <label className="block text-sm font-medium mb-3">Category</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
@@ -317,11 +445,17 @@ export default function ReportForm() {
             <div className="bg-gray-50 rounded-xl p-6 space-y-4">
               <div className="flex items-start gap-4">
                 {photos[0] && (
-                  <img src={photos[0]} alt="Hazard" className="w-24 h-24 rounded-lg object-cover" />
+                  <img src={photos[0]} alt="Hazard" className="w-24 h-24 rounded-lg object-cover border border-gray-200" />
                 )}
                 <div>
                   <p className="text-sm text-muted">Photos</p>
                   <p className="font-medium">{photos.length} photo(s) uploaded</p>
+                  {mlResult && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-md text-xs font-semibold">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                      {mlResult.label} ({mlResult.confidencePercentage})
+                    </div>
+                  )}
                 </div>
               </div>
 

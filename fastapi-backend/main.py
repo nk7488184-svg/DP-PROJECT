@@ -3,14 +3,25 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routes.telemetry import router as telemetry_router
+from app.routes.predict import router as predict_router, get_classifier
 from app.websocket_manager import manager
 from app.database import db
 
 app = FastAPI(
     title="RoadSentinel Traffic Telemetry & Enforcement Engine",
-    description="Central FastAPI high-throughput ingestion & statistical analytics backend for Raspberry Pi 4 (24GHz Doppler Radar + Camera Module 3) roadside sensing nodes.",
-    version="2.0.0",
+    description="Central FastAPI high-throughput ingestion & statistical analytics backend for Raspberry Pi 4 roadside sensing nodes + PyTorch Road Hazard Classification ML Engine.",
+    version="2.1.0",
 )
+
+# Pre-load ML model during application startup
+@app.on_event("startup")
+async def startup_event():
+    try:
+        print("[Startup] Initializing Road Hazard Classifier ML Model...")
+        get_classifier()
+        print("[Startup] Road Hazard Classifier ML Model ready for inference.")
+    except Exception as e:
+        print(f"[Startup Warning] Could not warm-load ML classifier: {e}")
 
 # Enable CORS for Next.js Website & Dashboard frontends
 app.use_all_cors = True
@@ -27,17 +38,20 @@ evidence_dir = os.path.join(os.path.dirname(__file__), "storage", "evidence")
 os.makedirs(evidence_dir, exist_ok=True)
 app.mount("/evidence", StaticFiles(directory=evidence_dir), name="evidence")
 
-# Register Telemetry & Analytics Router
+# Register Routers
 app.include_router(telemetry_router)
+app.include_router(predict_router)
 
 @app.get("/")
 def root():
     return {
         "system": "RoadSentinel Traffic Analytics & Enforcement Engine",
         "status": "online",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "docs_url": "/docs",
         "endpoints": {
+            "ml_hazard_predict": "POST /api/v1/predict",
+            "ml_model_info": "GET /api/v1/predict/info",
             "telemetry_summary": "POST /api/v1/telemetry/summary",
             "speed_breach_event": "POST /api/v1/telemetry/breach",
             "latest_analytics": "GET /api/v1/telemetry/latest",

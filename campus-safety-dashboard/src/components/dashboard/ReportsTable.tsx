@@ -6,7 +6,7 @@ import { mockReports as fallbackReports } from "@/lib/mock-data";
 import { categoryLabels, type HazardCategory, type Status, type Severity, type HazardReport } from "@/types";
 import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
-import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchFromApi } from "@/lib/api";
 
@@ -40,6 +40,7 @@ export default function ReportsTable() {
             reportedAt: r.reportedAt || new Date().toISOString(),
             updatedAt: r.updatedAt || new Date().toISOString(),
             priorityScore: r.priorityScore || 50,
+            mlPrediction: r.mlPrediction || undefined,
           }));
           setReports(normalized);
         }
@@ -183,11 +184,26 @@ export default function ReportsTable() {
                     className="hover:bg-card-hover/40 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-foreground">{report.title}</div>
+                      <div className="font-semibold text-foreground flex items-center gap-1.5">
+                        {report.title}
+                        {report.images && report.images.length > 0 && (
+                          <span title="Has photo" className="inline-flex items-center">
+                            <ImageIcon className="w-3.5 h-3.5 text-muted shrink-0" />
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-muted font-mono">{report.id}</div>
                     </td>
                     <td className="px-4 py-3 text-foreground whitespace-nowrap">
-                      {categoryLabels[report.category as HazardCategory] || report.category}
+                      <div>{categoryLabels[report.category as HazardCategory] || report.category}</div>
+                      {report.mlPrediction && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded">
+                            <Sparkles className="w-2.5 h-2.5" />
+                            {report.mlPrediction.label} ({report.mlPrediction.confidencePercentage})
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <SeverityBadge severity={report.severity} />
@@ -249,6 +265,56 @@ export default function ReportsTable() {
                 <X className="w-5 h-5 text-muted" />
               </button>
             </div>
+
+            {/* Photo & ML Prediction Presentation Card */}
+            {(selected.images?.length > 0 || selected.mlPrediction) && (
+              <div className="rounded-xl overflow-hidden border border-border bg-black/20 p-3 mb-4 space-y-3">
+                {selected.images && selected.images.length > 0 && (
+                  <div className="relative aspect-video max-h-56 w-full overflow-hidden rounded-lg border border-border">
+                    <img
+                      src={selected.images[0]}
+                      alt="Hazard evidence photo"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* ML Prediction Badge and Confidence */}
+                {selected.mlPrediction ? (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> PyTorch ML Prediction
+                      </span>
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        {selected.mlPrediction.confidencePercentage} Confidence
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-foreground">
+                      {selected.mlPrediction.label}
+                    </p>
+                    <p className="text-xs text-muted font-mono mt-0.5">
+                      Class: {selected.mlPrediction.rawClass} • EfficientNetV2-S
+                    </p>
+                    {selected.mlPrediction.topPredictions && selected.mlPrediction.topPredictions.length > 1 && (
+                      <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex flex-wrap gap-2 text-xs">
+                        <span className="text-muted">Top Predictions:</span>
+                        {selected.mlPrediction.topPredictions.map((top, idx) => (
+                          <span key={idx} className="text-muted">
+                            {top.label}: <strong className="text-foreground">{top.confidencePercentage}</strong>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-muted/10 border border-border rounded-lg text-xs text-muted">
+                    No automated ML prediction recorded for this report.
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-3.5 text-sm">
               <div className="flex gap-2 items-center">
                 <StatusBadge status={selected.status} />
