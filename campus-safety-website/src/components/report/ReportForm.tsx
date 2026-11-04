@@ -79,33 +79,20 @@ export default function ReportForm() {
 
   const analyzePhoto = useCallback(async (photoBase64: string) => {
     if (!photoBase64 || isAnalyzing) return;
+    if (typeof photoBase64 === "string" && photoBase64.startsWith("data:image/svg")) return;
     setIsAnalyzing(true);
     try {
-      // 1. Direct Next.js same-origin API route (never blocked by CORS or port mismatch)
+      // 1. Direct FastAPI port 8000 (pre-warmed in memory, takes ~150ms)
       try {
-        const nextRes = await fetch("/api/classify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: photoBase64 }),
-        });
-        if (nextRes.ok) {
-          const body = await nextRes.json();
-          if (body && body.success && body.data) {
-            applyPrediction(body.data);
-            return;
-          }
-        }
-      } catch (localErr) {
-        // Fall through to external endpoints if local route fails
-      }
-
-      // 2. Direct FastAPI port 8000
-      try {
+        const c1 = new AbortController();
+        const t1 = setTimeout(() => c1.abort(), 1800);
         const fRes = await fetch("http://127.0.0.1:8000/api/v1/predict", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image: photoBase64 }),
+          signal: c1.signal,
         });
+        clearTimeout(t1);
         if (fRes.ok) {
           const body = await fRes.json();
           if (body && body.success) {
@@ -115,14 +102,36 @@ export default function ReportForm() {
         }
       } catch (fastApiErr) {}
 
+      // 2. Direct Next.js same-origin API route
+      try {
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 3500);
+        const nextRes = await fetch("/api/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: photoBase64 }),
+          signal: c2.signal,
+        });
+        clearTimeout(t2);
+        if (nextRes.ok) {
+          const body = await nextRes.json();
+          if (body && body.success && body.data) {
+            applyPrediction(body.data);
+            return;
+          }
+        }
+      } catch (localErr) {}
+
       // 3. Fallback to Express backend route
-      const res = await fetchFromApi("/reports/classify", {
-        method: "POST",
-        body: JSON.stringify({ image: photoBase64 }),
-      });
-      if (res && res.success && res.data) {
-        applyPrediction(res.data);
-      }
+      try {
+        const res = await fetchFromApi("/reports/classify", {
+          method: "POST",
+          body: JSON.stringify({ image: photoBase64 }),
+        });
+        if (res && res.success && res.data) {
+          applyPrediction(res.data);
+        }
+      } catch (backendErr) {}
     } catch (err) {
       console.warn("ML image analysis notice:", err);
     } finally {

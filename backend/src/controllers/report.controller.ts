@@ -150,11 +150,11 @@ export const classifyImage = async (req: Request, res: Response) => {
  */
 export const updateReport = async (req: Request, res: Response) => {
     try {
-        const { category, severity, status, title, description, location, images } = req.body;
+        const { category, severity, status, title, description, location, images, mlPrediction } = req.body;
         const targetId = req.params.id;
 
         const updatedMem = memoryStore.updateReport(targetId, {
-            category, severity, status, title, description, location, images
+            category, severity, status, title, description, location, images, mlPrediction
         });
 
         if (mongoose.connection.readyState === 1) {
@@ -168,6 +168,7 @@ export const updateReport = async (req: Request, res: Response) => {
                     if (status) report.status = status;
                     if (category) report.category = category;
                     if (severity) report.severity = severity;
+                    if (mlPrediction) (report as any).mlPrediction = mlPrediction;
                     report.updatedAt = new Date();
                     await report.save();
                 }

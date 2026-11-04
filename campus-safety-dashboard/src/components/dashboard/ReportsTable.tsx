@@ -111,38 +111,47 @@ export default function ReportsTable() {
   // Run ML model classification on-demand for any report with a photo
   const runOnDemandAnalysis = useCallback(async (reportId: string, imageSrc: string) => {
     if (!imageSrc || analyzingReportId === reportId) return;
+    if (typeof imageSrc === 'string' && imageSrc.startsWith('data:image/svg')) return;
     setAnalyzingReportId(reportId);
     try {
       let pred: any = null;
 
-      // 1. Try local Next.js API route first (bulletproof same-origin)
+      // 1. Try FastAPI ML engine directly (port 8000, pre-warmed model, ~150ms)
       try {
-        const localRes = await fetch('/api/classify', {
+        const c1 = new AbortController();
+        const t1 = setTimeout(() => c1.abort(), 1800);
+        const fRes = await fetch('http://127.0.0.1:8000/api/v1/predict', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: imageSrc }),
+          signal: c1.signal,
         });
-        if (localRes.ok) {
-          const body = await localRes.json();
-          if (body && body.success && body.data) {
-            pred = body.data;
-          }
+        clearTimeout(t1);
+        if (fRes.ok) {
+          const body = await fRes.json();
+          if (body && body.success) pred = body;
         }
-      } catch (localErr) {}
+      } catch (fErr) {}
 
-      // 2. Try FastAPI ML engine (port 8000)
+      // 2. Try local Next.js API route (bulletproof same-origin)
       if (!pred) {
         try {
-          const fRes = await fetch('http://127.0.0.1:8000/api/v1/predict', {
+          const c2 = new AbortController();
+          const t2 = setTimeout(() => c2.abort(), 3500);
+          const localRes = await fetch('/api/classify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageSrc }),
+            signal: c2.signal,
           });
-          if (fRes.ok) {
-            const body = await fRes.json();
-            if (body && body.success) pred = body;
+          clearTimeout(t2);
+          if (localRes.ok) {
+            const body = await localRes.json();
+            if (body && body.success && body.data) {
+              pred = body.data;
+            }
           }
-        } catch (fErr) {}
+        } catch (localErr) {}
       }
 
       // 3. Fallback to Express backend classify route
@@ -171,6 +180,15 @@ export default function ReportsTable() {
             return r;
           })
         );
+
+        // Persist prediction back to backend report
+        fetchFromApi(`/reports/${reportId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            mlPrediction: pred,
+            severity: pred.suggestedSeverity || undefined,
+          }),
+        }).catch(() => {});
       }
     } catch (err) {
       console.warn('On-demand ML analysis notice:', err);
@@ -197,7 +215,7 @@ export default function ReportsTable() {
   useEffect(() => {
     if (selected && selected.images && selected.images.length > 0 && !selected.mlPrediction && analyzingReportId !== selected.id) {
       const img = selected.images[0];
-      if (typeof img === 'string' && (img.startsWith('data:image') || img.startsWith('http') || img.startsWith('/'))) {
+      if (typeof img === 'string' && !img.startsWith('data:image/svg') && (img.startsWith('data:image') || img.startsWith('http') || img.startsWith('/'))) {
         runOnDemandAnalysis(selected.id, img);
       }
     }
