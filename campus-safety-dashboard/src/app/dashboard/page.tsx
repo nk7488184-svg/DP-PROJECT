@@ -8,6 +8,7 @@ import PriorityList from "@/components/dashboard/PriorityList";
 import AutomatedHotspotAlerts from "@/components/dashboard/AutomatedHotspotAlerts";
 import OverspeedAlertsCard from "@/components/dashboard/OverspeedAlertsCard";
 import { mockReports as fallbackReports } from "@/lib/mock-data";
+import { getAllMergedReports } from "@/lib/localReportsStore";
 import { categoryLabels, type HazardCategory, type HazardReport } from "@/types";
 import SeverityBadge from "@/components/shared/SeverityBadge";
 import StatusBadge from "@/components/shared/StatusBadge";
@@ -21,8 +22,9 @@ export default function DashboardOverview() {
   const loadRecentReports = () => {
     fetchFromApi('/reports?limit=10')
       .then((res) => {
+        let backendItems: HazardReport[] = [];
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const normalized: HazardReport[] = res.data.map((r: any) => ({
+          backendItems = res.data.map((r: any) => ({
             id: r.id || r._id || `RPT-${Math.floor(Math.random() * 9000)}`,
             title: r.title || 'Hazard Report',
             description: r.description || '',
@@ -36,11 +38,11 @@ export default function DashboardOverview() {
             updatedAt: r.updatedAt || new Date().toISOString(),
             priorityScore: r.priorityScore || 50,
           }));
-          setReports(normalized);
         }
+        setReports(getAllMergedReports(backendItems));
       })
-      .catch((err) => {
-        console.warn("Could not load real-time reports feed:", err);
+      .catch(() => {
+        setReports(getAllMergedReports([]));
       });
   };
 

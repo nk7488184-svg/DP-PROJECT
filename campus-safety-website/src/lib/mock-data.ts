@@ -24,8 +24,22 @@ const locations = [
 ];
 
 const categories: HazardCategory[] = [
-  "pothole", "damaged_pavement", "faded_markings",
-  "roadside_obstruction", "drainage_issue", "poor_lighting", "driver_behavior", "other",
+  "pothole",
+  "road_cracks",
+  "damaged_pavement",
+  "edge_damage",
+  "patch_deterioration",
+  "loose_aggregate",
+  "debris_on_road",
+  "vegetation",
+  "drainage_iron_grid",
+  "broken_curb",
+  "faded_markings",
+  "roadside_obstruction",
+  "drainage_issue",
+  "poor_lighting",
+  "driver_behavior",
+  "other",
 ];
 
 const severities = ["low", "medium", "high", "critical"] as const;

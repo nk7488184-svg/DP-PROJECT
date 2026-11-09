@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import { X } from 'lucide-react';
 
@@ -249,12 +250,18 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
   }, [playClose, onMenuClose]);
 
   const handleLinkClick = useCallback((e: React.MouseEvent, href: string) => {
-    closeMenu();
+    // Instantly dismiss menu overlay so target page renders immediately
+    openRef.current = false;
+    setOpen(false);
+    busyRef.current = false;
+    openTlRef.current?.kill();
+    closeTweenRef.current?.kill();
+    onMenuClose?.();
+
     if (href.startsWith('/') && !href.startsWith('//')) {
-      e.preventDefault();
       router.push(href);
     }
-  }, [closeMenu, router]);
+  }, [router, onMenuClose]);
 
   // Support external triggers via custom window event
   useEffect(() => {
@@ -370,15 +377,16 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
             <ul className="sm-panel-list" role="list" data-numbering={displayItemNumbering || undefined}>
               {items.map((item, idx) => (
                 <li className="sm-panel-itemWrap" key={idx}>
-                  <a
+                  <Link
                     className="sm-panel-item"
                     href={item.link}
+                    prefetch={true}
                     aria-label={item.ariaLabel}
                     data-index={idx + 1}
                     onClick={(e) => handleLinkClick(e, item.link)}
                   >
                     <span className="sm-panel-itemLabel">{item.label}</span>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

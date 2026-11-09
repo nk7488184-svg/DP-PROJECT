@@ -17,10 +17,11 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { categoryLabels, type HazardCategory, type Severity } from "@/types";
+import { categoryLabels, type HazardCategory, type Severity, type HazardReport } from "@/types";
 import CategoryIcon from "@/components/shared/CategoryIcon";
 import LocationPicker from "@/components/map/LocationPicker";
 import { fetchFromApi } from "@/lib/api";
+import { saveLocalReport } from "@/lib/localReportsStore";
 
 const steps = [
   { label: "Photos", icon: Camera },
@@ -289,12 +290,43 @@ export default function ReportForm() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     let assignedId = `RPT-${Math.floor(1000 + Math.random() * 9000)}`;
-    
-    try {
-      const finalCategory = category || mlResult?.mappedCategory || "other";
-      const finalSeverity = mlResult?.suggestedSeverity || severity || "medium";
-      const title = `${finalCategory.replace("_", " ").toUpperCase()} reported via Web`;
+    const finalCategory = category || mlResult?.mappedCategory || "other";
+    const finalSeverity = mlResult?.suggestedSeverity || severity || "medium";
+    const title = `${finalCategory.replace("_", " ").toUpperCase()} reported via Web`;
 
+    const newReport: HazardReport = {
+      id: assignedId,
+      title,
+      description: description || "Hazard reported on campus road.",
+      category: finalCategory,
+      severity: finalSeverity,
+      status: "submitted",
+      location: {
+        lat: location?.lat || 31.7808,
+        lng: location?.lng || 76.9967,
+        address: address || "IIT Mandi Campus",
+      },
+      images: photos.length > 0 ? [photos[0]] : [],
+      reportedBy: "Campus Reporter",
+      reportedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      priorityScore: finalSeverity === "critical" ? 95 : finalSeverity === "high" ? 80 : finalSeverity === "medium" ? 55 : 30,
+      mlPrediction: mlResult ? {
+        label: mlResult.label,
+        rawClass: mlResult.rawClass,
+        confidence: mlResult.confidence,
+        confidencePercentage: mlResult.confidencePercentage,
+        mappedCategory: mlResult.mappedCategory,
+        suggestedSeverity: mlResult.suggestedSeverity,
+        isLowConfidence: mlResult.isLowConfidence,
+        topPredictions: mlResult.topPredictions,
+      } : undefined,
+    };
+
+    // Immediately save locally so tracking and maps work 100% reliably
+    saveLocalReport(newReport);
+
+    try {
       const res = await fetchFromApi("/reports", {
         method: "POST",
         body: JSON.stringify({
@@ -317,6 +349,7 @@ export default function ReportForm() {
         if (res.mlPrediction) {
           setMlResult(res.mlPrediction);
         }
+        saveLocalReport({ ...newReport, id: assignedId });
       }
     } catch (err) {
       console.warn("Backend sync notice:", err);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { mockReports } from "@/lib/mock-data";
+import { getAllMergedReports } from "@/lib/localReportsStore";
 import PriorityAlertRow from "@/components/ui/PriorityAlertRow";
 import { AlertTriangle } from "lucide-react";
 import { fetchFromApi } from "@/lib/api";

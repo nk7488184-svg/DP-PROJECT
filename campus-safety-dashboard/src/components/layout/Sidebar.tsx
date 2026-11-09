@@ -107,10 +107,10 @@ export default function Sidebar() {
           navItems.map((item) => (
             <SidebarNavItem
               key={item.href}
+              href={item.href}
               label={item.label}
               icon={item.icon}
               isActive={pathname === item.href}
-              onClick={() => router.push(item.href)}
             />
           ))
         )}

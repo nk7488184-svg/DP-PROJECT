@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { MapContainer, Marker, Popup, GeoJSON, LayersControl, LayerGroup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { mockReports } from "@/lib/mock-data";
+import { getAllMergedReports } from "@/lib/localReportsStore";
 import { categoryLabels, categoryColors, type HazardCategory, type HazardReport } from "@/types";
 import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
@@ -79,11 +80,12 @@ export default function MapInner({
   const loadReports = () => {
     fetchFromApi('/reports?limit=100')
       .then((res) => {
-        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          setReports(res.data);
-        }
+        const backendItems = res && res.success && Array.isArray(res.data) ? res.data : [];
+        setReports(getAllMergedReports(backendItems));
       })
-      .catch(() => {});
+      .catch(() => {
+        setReports(getAllMergedReports([]));
+      });
   };
 
   useEffect(() => {

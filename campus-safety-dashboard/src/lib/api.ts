@@ -12,9 +12,9 @@ export async function fetchFromApi<T = any>(endpoint: string, options: RequestIn
     ...options.headers,
   };
 
-  // 30 second timeout allows free-tier cloud backends (like Render) time to wake up from cold start
+  // 4 second timeout prevents UI from freezing on cold starts or offline backends
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
 
   try {
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;

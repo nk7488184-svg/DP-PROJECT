@@ -8,6 +8,7 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
 import CategoryIcon from "@/components/shared/CategoryIcon";
 import { mockReports } from "@/lib/mock-data";
+import { getLocalReports } from "@/lib/localReportsStore";
 import { categoryLabels } from "@/types";
 import {
   Search,
@@ -76,6 +77,19 @@ export default function TrackPage() {
       // If backend reports error, try local mock fallback
     } finally {
       setLoading(false);
+    }
+
+    const local = getLocalReports();
+    const foundLocal = local.find(
+      (r) => r.id.toLowerCase() === term.toLowerCase()
+    );
+    if (foundLocal) {
+      setReport({
+        ...foundLocal,
+        location: foundLocal.location || { lat: 31.7754, lng: 76.9861, address: "IIT Mandi Campus" },
+      });
+      setNotFound(false);
+      return;
     }
 
     const found = mockReports.find(

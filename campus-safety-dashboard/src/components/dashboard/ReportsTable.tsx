@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { mockReports as fallbackReports } from "@/lib/mock-data";
+import { getAllMergedReports, updateLocalReport } from "@/lib/localReportsStore";
 import { categoryLabels, type HazardCategory, type Status, type Severity, type HazardReport } from "@/types";
 import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
@@ -28,8 +29,9 @@ export default function ReportsTable() {
     if (showSpinner) setLoading(true);
     fetchFromApi('/reports?limit=50')
       .then((res) => {
+        let backendItems: HazardReport[] = [];
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const normalized: HazardReport[] = res.data.map((r: any) => ({
+          backendItems = res.data.map((r: any) => ({
             id: r.id || r._id || `RPT-${Math.floor(Math.random() * 9000)}`,
             title: r.title || 'Hazard Report',
             description: r.description || '',
@@ -44,11 +46,11 @@ export default function ReportsTable() {
             priorityScore: r.priorityScore || 50,
             mlPrediction: r.mlPrediction || undefined,
           }));
-          setReports(normalized);
         }
+        setReports(getAllMergedReports(backendItems));
       })
       .catch((err) => {
-        console.warn("Backend reports unreachable, using local reports store", err);
+        setReports(getAllMergedReports([]));
       })
       .finally(() => {
         if (showSpinner) setLoading(false);
@@ -78,7 +80,8 @@ export default function ReportsTable() {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
-      // Optimistic update
+      // Optimistic update & local storage sync
+      updateLocalReport(reportId, { status: newStatus });
       setReports((prev) =>
         prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r))
       );
@@ -97,7 +100,8 @@ export default function ReportsTable() {
         method: 'PATCH',
         body: JSON.stringify({ severity: newSeverity }),
       });
-      // Optimistic update
+      // Optimistic update & local storage sync
+      updateLocalReport(reportId, { severity: newSeverity });
       setReports((prev) =>
         prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity } : r))
       );
