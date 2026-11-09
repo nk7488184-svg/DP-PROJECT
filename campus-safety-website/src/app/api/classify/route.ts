@@ -28,13 +28,13 @@ function classifyFromFeatures(features: ImageFeatures) {
   let suggestedSeverity = "high";
   let conf = 0.948;
 
-  // STRICT requirement for vegetation: must have > 22% legitimate green pixels
-  if (greenRatio > 0.22) {
+  // Authentic vegetation/moss detected (> 8% of surface)
+  if (greenRatio > 0.08) {
     rawClass = "Vegetation_Moss";
     label = "Vegetation / Moss";
     mappedCategory = "vegetation";
     suggestedSeverity = "low";
-    conf = Math.min(0.98, 0.88 + greenRatio * 0.18);
+    conf = Math.min(0.98, 0.90 + greenRatio * 0.15);
   } else if (craterDelta > 10 || (darkRatio > 0.14 && craterDelta > 5)) {
     rawClass = "Pothole_Surface_Breakout";
     label = "Pothole";

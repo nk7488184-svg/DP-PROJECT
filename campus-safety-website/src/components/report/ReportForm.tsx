@@ -104,7 +104,8 @@ function extractCanvasFeatures(canvas: HTMLCanvasElement): ImageFeatures {
         gSum += g;
         bSum += b;
 
-        if (g > 1.35 * r && g > 1.25 * b && g > 55) {
+        const nexg = (2 * g - r - b) / (r + g + b + 1);
+        if (g > r && g > b && (g - r) >= 6 && nexg > 0.05) {
           greenCount++;
         }
         if (lum < 60) {
@@ -163,12 +164,12 @@ function classifyFromFeatures(features: ImageFeatures): MLPredictionData {
   let suggestedSeverity: Severity = "high";
   let conf = 0.945;
 
-  if (greenRatio > 0.22) {
+  if (greenRatio > 0.08) {
     rawClass = "Vegetation_Moss";
     label = "Vegetation / Moss";
     mappedCategory = "vegetation";
     suggestedSeverity = "low";
-    conf = Math.min(0.98, 0.88 + greenRatio * 0.18);
+    conf = Math.min(0.98, 0.90 + greenRatio * 0.15);
   } else if (craterDelta > 10 || (darkRatio > 0.14 && craterDelta > 5)) {
     rawClass = "Pothole_Surface_Breakout";
     label = "Pothole";
