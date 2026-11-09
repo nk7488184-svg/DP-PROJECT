@@ -61,38 +61,87 @@ interface MLPredictionData {
 }
 
 interface ImageFeatures {
-  greenRatio: number;
-  darkRatio: number;
-  craterDelta: number;
-  edgeDensity: number;
-  asymmetry: number;
-  colorVariance: number;
+  greenRatio?: number;
+  greenExcess?: number;
+  chroma?: number;
+  craterDelta?: number;
+  centerDark?: number;
+  dxMean?: number;
+  dyMean?: number;
+  meanEdge?: number;
+  edgeVariance?: number;
+  directionalBias?: number;
+  asymmetryLR?: number;
+  asymmetryTB?: number;
+  maxAsymmetry?: number;
+  localStd?: number;
+  overallMean?: number;
+  ampV?: number;
+  ampH?: number;
+  crossingsV?: number;
+  crossingsH?: number;
+  rimNetworkCross?: boolean;
 }
+
+const CLASS_METADATA: Record<string, { label: string; mappedCategory: HazardCategory; suggestedSeverity: Severity }> = {
+  Vegetation_Moss: { label: "Vegetation & Moss", mappedCategory: "vegetation", suggestedSeverity: "low" },
+  Pothole_Surface_Breakout: { label: "Pothole", mappedCategory: "pothole", suggestedSeverity: "high" },
+  Longitudinal_Crack: { label: "Longitudinal Crack", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
+  Transverse_Crack: { label: "Transverse Crack", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
+  "Map(Block)_Cracking": { label: "Map / Block Cracking", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
+  Edge_Shoulder_Damage: { label: "Edge & Shoulder Damage", mappedCategory: "edge_damage", suggestedSeverity: "medium" },
+  Debris_on_road: { label: "Debris on Road", mappedCategory: "debris_on_road", suggestedSeverity: "medium" },
+  Iron_grid_damage: { label: "Drainage / Iron Grid", mappedCategory: "drainage_iron_grid", suggestedSeverity: "high" },
+  Broken_Staircase: { label: "Broken Curbside / Steps", mappedCategory: "broken_curb", suggestedSeverity: "high" },
+  Paver_Damage: { label: "Damaged Pavement / Pavers", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
+  Patch_Repair: { label: "Patch Repair", mappedCategory: "patch_deterioration", suggestedSeverity: "low" },
+  Raveling_Loose_Aggregate: { label: "Loose Aggregate / Rubble", mappedCategory: "loose_aggregate", suggestedSeverity: "medium" },
+  Rubble_Unpaved_surface: { label: "Rubble / Unpaved Surface", mappedCategory: "loose_aggregate", suggestedSeverity: "medium" },
+};
 
 function extractCanvasFeatures(canvas: HTMLCanvasElement): ImageFeatures {
   try {
     const ctx = canvas.getContext("2d");
-    if (!ctx) return { greenRatio: 0, darkRatio: 0, craterDelta: 0, edgeDensity: 0, asymmetry: 0, colorVariance: 0 };
+    if (!ctx) return {};
     const w = canvas.width;
     const h = canvas.height;
     const data = ctx.getImageData(0, 0, w, h).data;
 
     let greenCount = 0;
-    let darkCount = 0;
-    let leftLumTotal = 0;
-    let rightLumTotal = 0;
-    let centerLumTotal = 0;
-    let centerCount = 0;
-    let rimLumTotal = 0;
-    let rimCount = 0;
-    let edgeDiffTotal = 0;
-    let rSum = 0, gSum = 0, bSum = 0;
+    let rTotal = 0, gTotal = 0, bTotal = 0;
+    let chromaTotal = 0;
     let totalSamples = 0;
 
-    const step = Math.max(1, Math.floor((w * h) / 3000));
+    let lumSum = 0;
+    let lumSqSum = 0;
 
-    for (let y = 0; y < h; y += Math.max(1, Math.floor(Math.sqrt(step)))) {
-      for (let x = 0; x < w; x += Math.max(1, Math.floor(Math.sqrt(step)))) {
+    let centerDarkCount = 0;
+    let centerPatchLumSum = 0;
+    let centerPatchCount = 0;
+
+    let rimPatchLumSum = 0;
+    let rimPatchCount = 0;
+
+    let leftLumSum = 0, leftCount = 0;
+    let rightLumSum = 0, rightCount = 0;
+    let topLumSum = 0, topCount = 0;
+    let bottomLumSum = 0, bottomCount = 0;
+
+    let dxSum = 0, dxSqSum = 0, dxCount = 0;
+    let dySum = 0, dySqSum = 0, dyCount = 0;
+
+    let topDarkCount = 0, botDarkCount = 0, leftDarkCount = 0, rightDarkCount = 0;
+    let borderTopCount = 0, borderBotCount = 0, borderLeftCount = 0, borderRightCount = 0;
+
+    const colLum = new Float32Array(w);
+    const colSamples = new Int32Array(w);
+    const rowLum = new Float32Array(h);
+    const rowSamples = new Int32Array(h);
+
+    const step = Math.max(1, Math.floor(Math.sqrt((w * h) / 4000)));
+
+    for (let y = 0; y < h; y += step) {
+      for (let x = 0; x < w; x += step) {
         const i = (y * w + x) * 4;
         const r = data[i];
         const g = data[i + 1];
@@ -100,128 +149,317 @@ function extractCanvasFeatures(canvas: HTMLCanvasElement): ImageFeatures {
         const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
         totalSamples++;
-        rSum += r;
-        gSum += g;
-        bSum += b;
+        rTotal += r;
+        gTotal += g;
+        bTotal += b;
+        chromaTotal += (Math.abs(r - g) + Math.abs(g - b) + Math.abs(r - b)) / 2;
+
+        lumSum += lum;
+        lumSqSum += lum * lum;
+
+        colLum[x] += lum;
+        colSamples[x]++;
+        rowLum[y] += lum;
+        rowSamples[y]++;
 
         const nexg = (2 * g - r - b) / (r + g + b + 1);
-        if (g > r && g > b && (g - r) >= 6 && nexg > 0.05) {
+        if (g > r + 8 && g > b + 8 && nexg > 0.08) {
           greenCount++;
         }
-        if (lum < 60) {
-          darkCount++;
-        }
-        if (x < w / 2) {
-          leftLumTotal += lum;
-        } else {
-          rightLumTotal += lum;
+
+        if (x > w * 0.25 && x < w * 0.75 && y > h * 0.25 && y < h * 0.75) {
+          centerPatchLumSum += lum;
+          centerPatchCount++;
+          if (lum < 65) centerDarkCount++;
+        } else if (x < w * 0.12 || x > w * 0.88 || y < h * 0.12 || y > h * 0.88) {
+          rimPatchLumSum += lum;
+          rimPatchCount++;
         }
 
-        if (x > w * 0.3 && x < w * 0.7 && y > h * 0.3 && y < h * 0.7) {
-          centerLumTotal += lum;
-          centerCount++;
-        } else {
-          rimLumTotal += lum;
-          rimCount++;
+        if (x < w / 2) { leftLumSum += lum; leftCount++; }
+        else { rightLumSum += lum; rightCount++; }
+
+        if (y < h / 2) { topLumSum += lum; topCount++; }
+        else { bottomLumSum += lum; bottomCount++; }
+
+        if (y < 4) { borderTopCount++; if (lum < 50) topDarkCount++; }
+        if (y >= h - 4) { borderBotCount++; if (lum < 50) botDarkCount++; }
+        if (x < 4) { borderLeftCount++; if (lum < 50) leftDarkCount++; }
+        if (x >= w - 4) { borderRightCount++; if (lum < 50) rightDarkCount++; }
+
+        if (x + step < w) {
+          const nextI = (y * w + (x + step)) * 4;
+          const nextLum = 0.299 * data[nextI] + 0.587 * data[nextI + 1] + 0.114 * data[nextI + 2];
+          const d = Math.abs(lum - nextLum);
+          dxSum += d;
+          dxSqSum += d * d;
+          dxCount++;
         }
 
-        if (x + 1 < w) {
-          const nextR = data[i + 4];
-          const nextLum = 0.299 * nextR;
-          edgeDiffTotal += Math.abs(lum - nextLum);
+        if (y + step < h) {
+          const downI = ((y + step) * w + x) * 4;
+          const downLum = 0.299 * data[downI] + 0.587 * data[downI + 1] + 0.114 * data[downI + 2];
+          const d = Math.abs(lum - downLum);
+          dySum += d;
+          dySqSum += d * d;
+          dyCount++;
         }
       }
     }
 
     const n = totalSamples || 1;
-    const rimAvg = rimCount ? rimLumTotal / rimCount : 100;
-    const centerAvg = centerCount ? centerLumTotal / centerCount : 100;
+    const rMean = rTotal / n;
+    const gMean = gTotal / n;
+    const bMean = bTotal / n;
+    const chroma = chromaTotal / n;
+    const greenRatio = greenCount / n;
+    const greenExcess = Math.max(0, gMean - Math.max(rMean, bMean));
 
-    const rMean = rSum / n;
-    const gMean = gSum / n;
-    const bMean = bSum / n;
-    const colorVariance = Math.sqrt(((rMean - gMean) ** 2 + (gMean - bMean) ** 2 + (rMean - bMean) ** 2) / 3);
+    const overallMean = lumSum / n;
+    const localStd = Math.sqrt(Math.max(0, lumSqSum / n - overallMean * overallMean));
+
+    const centerAvg = centerPatchCount ? centerPatchLumSum / centerPatchCount : overallMean;
+    const rimAvg = rimPatchCount ? rimPatchLumSum / rimPatchCount : overallMean;
+    const craterDelta = Math.max(0, rimAvg - centerAvg);
+    const centerDark = centerPatchCount ? centerDarkCount / centerPatchCount : 0;
+
+    const dxMean = dxCount ? dxSum / dxCount : 0;
+    const dyMean = dyCount ? dySum / dyCount : 0;
+    const dxVar = dxCount ? Math.max(0, dxSqSum / dxCount - dxMean * dxMean) : 0;
+    const dyVar = dyCount ? Math.max(0, dySqSum / dyCount - dyMean * dyMean) : 0;
+    const edgeVariance = dxVar + dyVar;
+    const meanEdge = (dxMean + dyMean) / 2;
+    const directionalBias = Math.max(dxMean, dyMean) / (Math.min(dxMean, dyMean) + 0.05);
+
+    const leftMean = leftCount ? leftLumSum / leftCount : overallMean;
+    const rightMean = rightCount ? rightLumSum / rightCount : overallMean;
+    const topMean = topCount ? topLumSum / topCount : overallMean;
+    const bottomMean = bottomCount ? bottomLumSum / bottomCount : overallMean;
+    const asymmetryLR = Math.abs(leftMean - rightMean);
+    const asymmetryTB = Math.abs(topMean - bottomMean);
+    const maxAsymmetry = Math.max(asymmetryLR, asymmetryTB);
+
+    const colMeans: number[] = [];
+    for (let x = 0; x < w; x += step) {
+      if (colSamples[x] > 0) colMeans.push(colLum[x] / colSamples[x]);
+    }
+    const rowMeans: number[] = [];
+    for (let y = 0; y < h; y += step) {
+      if (rowSamples[y] > 0) rowMeans.push(rowLum[y] / rowSamples[y]);
+    }
+
+    const grandMeanCols = colMeans.length ? colMeans.reduce((a, b) => a + b, 0) / colMeans.length : overallMean;
+    const grandMeanRows = rowMeans.length ? rowMeans.reduce((a, b) => a + b, 0) / rowMeans.length : overallMean;
+
+    let crossingsV = 0;
+    let minV = 255, maxV = 0;
+    for (let i = 0; i < colMeans.length; i++) {
+      if (colMeans[i] < minV) minV = colMeans[i];
+      if (colMeans[i] > maxV) maxV = colMeans[i];
+      if (i > 0 && (colMeans[i - 1] > grandMeanCols) !== (colMeans[i] > grandMeanCols)) {
+        crossingsV++;
+      }
+    }
+    const ampV = maxV > minV ? maxV - minV : 0;
+
+    let crossingsH = 0;
+    let minH = 255, maxH = 0;
+    for (let i = 0; i < rowMeans.length; i++) {
+      if (rowMeans[i] < minH) minH = rowMeans[i];
+      if (rowMeans[i] > maxH) maxH = rowMeans[i];
+      if (i > 0 && (rowMeans[i - 1] > grandMeanRows) !== (rowMeans[i] > grandMeanRows)) {
+        crossingsH++;
+      }
+    }
+    const ampH = maxH > minH ? maxH - minH : 0;
+
+    const topDark = borderTopCount ? topDarkCount / borderTopCount : 0;
+    const botDark = borderBotCount ? botDarkCount / borderBotCount : 0;
+    const leftDark = borderLeftCount ? leftDarkCount / borderLeftCount : 0;
+    const rightDark = borderRightCount ? rightDarkCount / borderRightCount : 0;
+    const rimNetworkCross = (topDark > 0.005 || botDark > 0.005) && (leftDark > 0.005 || rightDark > 0.005);
 
     return {
-      greenRatio: greenCount / n,
-      darkRatio: darkCount / n,
-      craterDelta: Math.max(0, rimAvg - centerAvg),
-      edgeDensity: (edgeDiffTotal / n) / 100,
-      asymmetry: Math.abs((leftLumTotal / (n / 2 || 1)) - (rightLumTotal / (n / 2 || 1))),
-      colorVariance,
+      greenRatio,
+      greenExcess,
+      chroma,
+      craterDelta,
+      centerDark,
+      dxMean,
+      dyMean,
+      meanEdge,
+      edgeVariance,
+      directionalBias,
+      asymmetryLR,
+      asymmetryTB,
+      maxAsymmetry,
+      localStd,
+      overallMean,
+      ampV,
+      ampH,
+      crossingsV,
+      crossingsH,
+      rimNetworkCross,
     };
   } catch (e) {
-    return { greenRatio: 0, darkRatio: 0, craterDelta: 0, edgeDensity: 0, asymmetry: 0, colorVariance: 0 };
+    return {};
   }
 }
 
 function classifyFromFeatures(features: ImageFeatures): MLPredictionData {
-  const { greenRatio, darkRatio, craterDelta, edgeDensity, asymmetry, colorVariance } = features;
+  const greenRatio = features.greenRatio ?? 0;
+  const greenExcess = features.greenExcess ?? 0;
+  const chroma = features.chroma ?? 0;
+  const craterDelta = features.craterDelta ?? 0;
+  const centerDark = features.centerDark ?? 0;
+  const dxMean = features.dxMean ?? 0;
+  const dyMean = features.dyMean ?? 0;
+  const meanEdge = features.meanEdge ?? (dxMean + dyMean) / 2;
+  const edgeVariance = features.edgeVariance ?? 0;
+  const directionalBias = features.directionalBias ?? (Math.max(dxMean, dyMean) / (Math.min(dxMean, dyMean) + 0.05));
+  const asymmetryLR = features.asymmetryLR ?? 0;
+  const asymmetryTB = features.asymmetryTB ?? 0;
+  const maxAsymmetry = features.maxAsymmetry ?? Math.max(asymmetryLR, asymmetryTB);
+  const localStd = features.localStd ?? 0;
+  const overallMean = features.overallMean ?? 120;
+  const ampV = features.ampV ?? 0;
+  const ampH = features.ampH ?? 0;
+  const crossingsV = features.crossingsV ?? 0;
+  const crossingsH = features.crossingsH ?? 0;
+  const rimNetworkCross = !!features.rimNetworkCross;
 
-  let rawClass = "Pothole_Surface_Breakout";
-  let label = "Pothole";
-  let mappedCategory: HazardCategory = "pothole";
-  let suggestedSeverity: Severity = "high";
-  let conf = 0.945;
+  const scores: Record<string, number> = {
+    Vegetation_Moss: 0.0,
+    Pothole_Surface_Breakout: 0.0,
+    Longitudinal_Crack: 0.0,
+    Transverse_Crack: 0.0,
+    "Map(Block)_Cracking": 0.0,
+    Edge_Shoulder_Damage: 0.0,
+    Paver_Damage: 0.0,
+    Patch_Repair: 0.0,
+    Raveling_Loose_Aggregate: 0.0,
+    Rubble_Unpaved_surface: 0.0,
+    Broken_Staircase: 0.0,
+    Iron_grid_damage: 0.0,
+    Debris_on_road: 0.0,
+  };
 
-  if (greenRatio > 0.08) {
-    rawClass = "Vegetation_Moss";
-    label = "Vegetation / Moss";
-    mappedCategory = "vegetation";
-    suggestedSeverity = "low";
-    conf = Math.min(0.98, 0.90 + greenRatio * 0.15);
-  } else if (craterDelta > 10 || (darkRatio > 0.14 && craterDelta > 5)) {
-    rawClass = "Pothole_Surface_Breakout";
-    label = "Pothole";
-    mappedCategory = "pothole";
-    suggestedSeverity = "high";
-    conf = Math.min(0.98, 0.91 + (craterDelta / 120));
-  } else if (edgeDensity > 0.18) {
-    rawClass = "Longitudinal_Crack";
-    label = "Road Cracks";
-    mappedCategory = "road_cracks";
-    suggestedSeverity = "medium";
-    conf = 0.952;
-  } else if (asymmetry > 18) {
-    rawClass = "Edge_Shoulder_Damage";
-    label = "Edge & Shoulder Damage";
-    mappedCategory = "edge_damage";
-    suggestedSeverity = "medium";
-    conf = 0.935;
-  } else if (colorVariance > 60) {
-    rawClass = "Debris_on_road";
-    label = "Debris on Road";
-    mappedCategory = "debris_on_road";
-    suggestedSeverity = "medium";
-    conf = 0.958;
-  } else if (edgeDensity > 0.10) {
-    rawClass = "Paver_Damage";
-    label = "Damaged Pavement";
-    mappedCategory = "damaged_pavement";
-    suggestedSeverity = "medium";
-    conf = 0.925;
-  } else {
-    rawClass = "Pothole_Surface_Breakout";
-    label = "Pothole";
-    mappedCategory = "pothole";
-    suggestedSeverity = "high";
-    conf = 0.935;
+  // 1. Vegetation / Moss (chlorophyll green dominance)
+  if (greenRatio > 0.05 || (greenExcess > 5.0 && chroma > 5.0)) {
+    scores.Vegetation_Moss = 5.0 + greenRatio * 15.0 + greenExcess * 0.3;
   }
 
+  // 2. Iron Grid / Drainage Grate (multiple periodic grating bars)
+  if ((crossingsV >= 8 && ampV > 25.0) || (crossingsH >= 8 && ampH > 25.0)) {
+    scores.Iron_grid_damage = 5.0 + Math.min(4.0, Math.max(crossingsV, crossingsH) * 0.15) + meanEdge * 0.1;
+  }
+
+  // 3. Broken Staircase / Curbs (stepped horizontal elevation drop)
+  if (asymmetryTB > 8.0 && ampH > 15.0 && crossingsH >= 2 && crossingsV < 6) {
+    scores.Broken_Staircase = 4.8 + asymmetryTB * 0.15 + dyMean * 0.2;
+  }
+
+  // 4. Edge / Shoulder Damage (road boundary drop on left/right)
+  if (asymmetryLR > 12.0 && crossingsV < 4 && craterDelta < 15.0) {
+    scores.Edge_Shoulder_Damage = 4.8 + asymmetryLR * 0.18;
+  }
+
+  // 5. Pothole / Crater (round depression, dark core, low stripe count, not an edge-crossing network)
+  if (craterDelta > 10.0 && centerDark > 0.15 && directionalBias < 2.0 && !rimNetworkCross && crossingsV < 4 && crossingsH < 4) {
+    scores.Pothole_Surface_Breakout = 5.0 + Math.min(4.0, craterDelta * 0.1) + centerDark * 4.0;
+  }
+
+  // 6. Directional Cracks (single prominent cracks or crack network)
+  if (crossingsV < 6 && crossingsH < 6) {
+    if (directionalBias > 2.0 && meanEdge > 0.25) {
+      if (dxMean > dyMean) {
+        scores.Longitudinal_Crack = 4.8 + dxMean * 0.8;
+      } else {
+        scores.Transverse_Crack = 4.8 + dyMean * 0.8;
+      }
+    } else if ((rimNetworkCross || (meanEdge > 0.8 && edgeVariance > 5.0 && directionalBias <= 2.0)) && chroma < 4.0) {
+      scores["Map(Block)_Cracking"] = 4.9 + meanEdge * 0.5;
+    }
+  }
+
+  // 7. Debris on Road (genuine non-green chromatic object on road)
+  if (chroma > 6.0 && greenExcess < 4.0 && craterDelta < 12.0) {
+    scores.Debris_on_road = 4.8 + Math.min(4.0, chroma * 0.2);
+  }
+
+  // 8. Paver Damage (interlocking paver joints, low edge contrast, low color)
+  if (meanEdge > 0.2 && meanEdge < 2.0 && directionalBias < 2.0 && chroma < 3.0 && craterDelta < 6.0 && maxAsymmetry < 6.0 && localStd < 15.0) {
+    scores.Paver_Damage = 4.2 + meanEdge * 0.4;
+  }
+
+  // 9. Patch Repair (smooth bounded asphalt patch)
+  if (craterDelta > 3.0 && craterDelta < 15.0 && centerDark < 0.10 && localStd < 12.0 && meanEdge < 2.0 && chroma < 3.0) {
+    scores.Patch_Repair = 4.4 + craterDelta * 0.1;
+  }
+
+  // 10. Loose Aggregate / Rubble (uniform graininess across entire image)
+  if (localStd > 12.0 && meanEdge > 2.0 && directionalBias < 1.8 && craterDelta < 8.0 && chroma < 4.0) {
+    if (overallMean > 120.0) {
+      scores.Rubble_Unpaved_surface = 4.5 + localStd * 0.1;
+    } else {
+      scores.Raveling_Loose_Aggregate = 4.5 + localStd * 0.1;
+    }
+  }
+
+  // Fallback
+  const maxVal = Math.max(...Object.values(scores));
+  if (maxVal < 0.1) {
+    if (craterDelta > 3.0) {
+      scores.Pothole_Surface_Breakout = 1.0;
+    } else if (meanEdge > 1.0) {
+      scores["Map(Block)_Cracking"] = 1.0;
+    } else if (localStd > 8.0) {
+      scores.Raveling_Loose_Aggregate = 1.0;
+    } else {
+      scores.Paver_Damage = 1.0;
+    }
+  }
+
+  // Softmax
+  const expScores: Record<string, number> = {};
+  let totalExp = 0;
+  for (const [k, v] of Object.entries(scores)) {
+    const ev = Math.exp(v);
+    expScores[k] = ev;
+    totalExp += ev;
+  }
+
+  const sorted = Object.entries(expScores)
+    .map(([k, v]) => ({
+      rawClass: k,
+      prob: v / totalExp,
+    }))
+    .sort((a, b) => b.prob - a.prob);
+
+  const topPredictions = sorted.slice(0, 3).map((item) => {
+    const meta = CLASS_METADATA[item.rawClass] || { label: item.rawClass.replace(/_/g, " "), mappedCategory: "other" as HazardCategory, suggestedSeverity: "medium" as Severity };
+    return {
+      rawClass: item.rawClass,
+      label: meta.label,
+      confidence: Math.round(item.prob * 1000) / 1000,
+      confidencePercentage: `${(item.prob * 100).toFixed(1)}%`,
+    };
+  });
+
+  const best = topPredictions[0];
+  const bestMeta = CLASS_METADATA[best.rawClass] || { label: best.label, mappedCategory: "other" as HazardCategory, suggestedSeverity: "medium" as Severity };
+
   return {
-    rawClass,
-    label,
-    confidence: conf,
-    confidencePercentage: `${(conf * 100).toFixed(1)}%`,
-    mappedCategory,
-    suggestedSeverity,
-    topPredictions: [
-      { rawClass, label, confidence: conf, confidencePercentage: `${(conf * 100).toFixed(1)}%` },
-      { rawClass: "Map(Block)_Cracking", label: "Road Cracks", confidence: 0.87, confidencePercentage: "87.0%" },
-      { rawClass: "Debris_on_road", label: "Debris on Road", confidence: 0.81, confidencePercentage: "81.0%" },
-    ],
+    rawClass: best.rawClass,
+    label: bestMeta.label,
+    confidence: best.confidence,
+    confidencePercentage: best.confidencePercentage,
+    mappedCategory: bestMeta.mappedCategory,
+    suggestedSeverity: bestMeta.suggestedSeverity,
+    topPredictions,
   };
 }
+
 
 export default function ReportForm() {
   const [step, setStep] = useState(0);
