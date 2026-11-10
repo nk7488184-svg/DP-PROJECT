@@ -62,7 +62,7 @@ export default function TrackPage() {
           ...d,
           id: d.id || d._id || term,
           location: d.location || { lat: 31.7754, lng: 76.9861, address: "IIT Mandi Campus" },
-          category: d.category || "other",
+          category: d.category || "Pothole_Surface_Breakout",
           severity: d.severity || "medium",
           status: d.status || "submitted",
           reportedAt: d.reportedAt || new Date().toISOString(),

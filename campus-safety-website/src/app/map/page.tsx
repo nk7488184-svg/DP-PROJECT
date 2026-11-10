@@ -8,10 +8,7 @@ import { mockReports } from "@/lib/mock-data";
 import { Filter, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const categories: HazardCategory[] = [
-  "pothole", "damaged_pavement", "faded_markings",
-  "roadside_obstruction", "drainage_issue", "poor_lighting", "other",
-];
+const categories = Object.keys(categoryLabels) as HazardCategory[];
 
 export default function MapPage() {
   const [selectedCategories, setSelectedCategories] = useState<HazardCategory[]>([]);

@@ -24,44 +24,38 @@ const locations = [
 ];
 
 const categories: HazardCategory[] = [
-  "pothole",
-  "road_cracks",
-  "damaged_pavement",
-  "edge_damage",
-  "patch_deterioration",
-  "loose_aggregate",
-  "debris_on_road",
-  "vegetation",
-  "drainage_iron_grid",
-  "broken_curb",
-  "faded_markings",
-  "roadside_obstruction",
-  "drainage_issue",
-  "poor_lighting",
-  "driver_behavior",
-  "other",
+  "Pothole_Surface_Breakout",
+  "Longitudinal_Crack",
+  "Transverse_Crack",
+  "Map(Block)_Cracking",
+  "Edge_Shoulder_Damage",
+  "Patch_Repair",
+  "Paver_Damage",
+  "Raveling_Loose_Aggregate",
+  "Rubble_Unpaved_surface",
+  "Broken_Staircase",
+  "Debris_on_road",
+  "Vegetation_Moss",
+  "Iron_grid_damage",
 ];
 
 const severities = ["low", "medium", "high", "critical"] as const;
 const statuses = ["submitted", "under_review", "in_progress", "resolved"] as const;
 
 const titles: Record<HazardCategory, string[]> = {
-  pothole: ["Large pothole on road", "Deep pothole near drain", "Multiple potholes cluster"],
-  road_cracks: ["Longitudinal road crack", "Transverse road surface fracture", "Block cracking network"],
-  damaged_pavement: ["Cracked pavement section", "Broken sidewalk tiles", "Pavement sinking"],
-  edge_damage: ["Shoulder road breakdown", "Eroded road edge", "Curb slope degradation"],
-  patch_deterioration: ["Failing asphalt patch", "Deteriorated road repair", "Sunken patch trench"],
-  loose_aggregate: ["Loose gravel on asphalt", "Unpaved loose aggregate", "Scattered stone chips"],
-  debris_on_road: ["Fallen tree branch", "Construction debris", "Spilled construction stones"],
-  vegetation: ["Overgrown roadside grass", "Moss slippery road corner", "Bushes blocking view"],
-  drainage_iron_grid: ["Damaged iron culvert grid", "Broken stormwater drain grate", "Bent iron drain cover"],
-  broken_curb: ["Cracked concrete staircase", "Broken pedestrian steps", "Chipped roadside curb"],
-  faded_markings: ["Faded speed breaker markings", "Invisible crosswalk", "Missing lane markings"],
-  roadside_obstruction: ["Fallen tree branch", "Construction debris", "Abandoned vehicle"],
-  drainage_issue: ["Blocked drain overflowing", "Water logging area", "Open manhole cover"],
-  poor_lighting: ["Street light not working", "Dark stretch near hostel", "Flickering lamp post"],
-  driver_behavior: ["Over speeding vehicle", "Reckless driving near intersection", "Wrong-way driving", "Ignoring stop sign"],
-  other: ["Loose gravel on road", "Missing signage", "Damaged railing"],
+  Pothole_Surface_Breakout: ["Deep pothole on road", "Surface breakout near turn", "Expanding pothole crater"],
+  Longitudinal_Crack: ["Longitudinal road fissure", "Centerline asphalt crack", "Longitudinal fatigue crack"],
+  Transverse_Crack: ["Transverse road fracture", "Perpendicular surface crack", "Transverse thermal crack"],
+  "Map(Block)_Cracking": ["Alligator / Block cracking", "Interconnected network cracking", "Map cracking on road section"],
+  Edge_Shoulder_Damage: ["Shoulder road breakdown", "Eroded asphalt edge", "Curb slope degradation"],
+  Patch_Repair: ["Failing asphalt patch", "Deteriorated road repair", "Sunken patch trench"],
+  Paver_Damage: ["Broken sidewalk pavers", "Loose paver blocks", "Displaced interlocking bricks"],
+  Raveling_Loose_Aggregate: ["Loose aggregate on asphalt", "Dislodged gravel layer", "Surface raveling wear"],
+  Rubble_Unpaved_surface: ["Unpaved stony stretch", "Scattered rubble on road", "Rough unpaved pathway"],
+  Broken_Staircase: ["Cracked concrete staircase", "Broken pedestrian steps", "Chipped roadside curb"],
+  Debris_on_road: ["Fallen tree branch", "Construction debris on road", "Spilled construction stones"],
+  Vegetation_Moss: ["Moss slippery road corner", "Overgrown roadside vegetation", "Weeds cracking road shoulder"],
+  Iron_grid_damage: ["Damaged iron culvert grid", "Broken stormwater drain grate", "Bent iron drain cover"],
 };
 
 function seededRandom(seed: number) {
@@ -84,12 +78,12 @@ export function generateMockReports(count: number = 40): HazardReport[] {
     const sev = severities[Math.floor(seededRandom(i * 13 + 2) * severities.length)] as Severity;
     const stat = statuses[Math.floor(seededRandom(i * 19 + 3) * statuses.length)] as Status;
     const loc = locations[i % locations.length];
-    const catTitles = titles[cat] || titles.other;
+    const catTitles = titles[cat] || titles.Pothole_Surface_Breakout;
     const title = catTitles[Math.floor(seededRandom(i * 23 + 4) * catTitles.length)];
     const daysBack = Math.floor(seededRandom(i * 31 + 5) * 60);
 
     const sevWeight = { critical: 40, high: 30, medium: 20, low: 10 }[sev];
-    const catWeight = { pothole: 20, drainage_issue: 18, damaged_pavement: 15, roadside_obstruction: 12, poor_lighting: 10, faded_markings: 8, driver_behavior: 15, other: 5, road_cracks: 15, edge_damage: 15, patch_deterioration: 12, loose_aggregate: 12, debris_on_road: 15, vegetation: 10, drainage_iron_grid: 18, broken_curb: 15 }[cat] || 10;
+    const catWeight = 15;
     const ageBonus = Math.min(daysBack * 0.5, 20);
     const priorityScore = Math.min(Math.round(sevWeight + catWeight + ageBonus), 100);
 

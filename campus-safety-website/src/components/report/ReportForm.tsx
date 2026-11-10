@@ -31,17 +31,19 @@ const steps = [
 ];
 
 const categories: HazardCategory[] = [
-  "pothole",
-  "road_cracks",
-  "damaged_pavement",
-  "edge_damage",
-  "patch_deterioration",
-  "loose_aggregate",
-  "debris_on_road",
-  "vegetation",
-  "drainage_iron_grid",
-  "broken_curb",
-  "other",
+  "Broken_Staircase",
+  "Debris_on_road",
+  "Edge_Shoulder_Damage",
+  "Iron_grid_damage",
+  "Longitudinal_Crack",
+  "Map(Block)_Cracking",
+  "Patch_Repair",
+  "Paver_Damage",
+  "Pothole_Surface_Breakout",
+  "Raveling_Loose_Aggregate",
+  "Rubble_Unpaved_surface",
+  "Transverse_Crack",
+  "Vegetation_Moss",
 ];
 
 interface MLPredictionData {
@@ -70,43 +72,22 @@ interface MLPredictionData {
   }>;
 }
 
-interface ImageFeatures {
-  greenRatio?: number;
-  greenExcess?: number;
-  chroma?: number;
-  craterDelta?: number;
-  centerDark?: number;
-  dxMean?: number;
-  dyMean?: number;
-  meanEdge?: number;
-  edgeVariance?: number;
-  directionalBias?: number;
-  asymmetryLR?: number;
-  asymmetryTB?: number;
-  maxAsymmetry?: number;
-  localStd?: number;
-  overallMean?: number;
-  ampV?: number;
-  ampH?: number;
-  crossingsV?: number;
-  crossingsH?: number;
-  rimNetworkCross?: boolean;
-}
+export type ImageFeatures = Record<string, any>;
 
 const CLASS_METADATA: Record<string, { label: string; mappedCategory: HazardCategory; suggestedSeverity: Severity }> = {
-  Vegetation_Moss: { label: "Vegetation & Moss", mappedCategory: "vegetation", suggestedSeverity: "low" },
-  Pothole_Surface_Breakout: { label: "Pothole", mappedCategory: "pothole", suggestedSeverity: "high" },
-  Longitudinal_Crack: { label: "Longitudinal Crack", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
-  Transverse_Crack: { label: "Transverse Crack", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
-  "Map(Block)_Cracking": { label: "Map / Block Cracking", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
-  Edge_Shoulder_Damage: { label: "Edge & Shoulder Damage", mappedCategory: "edge_damage", suggestedSeverity: "medium" },
-  Debris_on_road: { label: "Debris on Road", mappedCategory: "debris_on_road", suggestedSeverity: "medium" },
-  Iron_grid_damage: { label: "Drainage / Iron Grid", mappedCategory: "drainage_iron_grid", suggestedSeverity: "high" },
-  Broken_Staircase: { label: "Broken Curbside / Steps", mappedCategory: "broken_curb", suggestedSeverity: "high" },
-  Paver_Damage: { label: "Damaged Pavement / Pavers", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
-  Patch_Repair: { label: "Patch Repair", mappedCategory: "patch_deterioration", suggestedSeverity: "low" },
-  Raveling_Loose_Aggregate: { label: "Loose Aggregate / Rubble", mappedCategory: "loose_aggregate", suggestedSeverity: "medium" },
-  Rubble_Unpaved_surface: { label: "Rubble / Unpaved Surface", mappedCategory: "loose_aggregate", suggestedSeverity: "medium" },
+  Broken_Staircase: { label: "Broken Staircase / Curbside", mappedCategory: "Broken_Staircase", suggestedSeverity: "high" },
+  Debris_on_road: { label: "Debris on Road", mappedCategory: "Debris_on_road", suggestedSeverity: "medium" },
+  Edge_Shoulder_Damage: { label: "Edge & Shoulder Damage", mappedCategory: "Edge_Shoulder_Damage", suggestedSeverity: "medium" },
+  Iron_grid_damage: { label: "Iron Grid / Drainage Grate", mappedCategory: "Iron_grid_damage", suggestedSeverity: "high" },
+  Longitudinal_Crack: { label: "Longitudinal Road Crack", mappedCategory: "Longitudinal_Crack", suggestedSeverity: "medium" },
+  "Map(Block)_Cracking": { label: "Map (Block) Cracking", mappedCategory: "Map(Block)_Cracking", suggestedSeverity: "high" },
+  Patch_Repair: { label: "Patch Repair Deterioration", mappedCategory: "Patch_Repair", suggestedSeverity: "low" },
+  Paver_Damage: { label: "Paver / Brick Road Damage", mappedCategory: "Paver_Damage", suggestedSeverity: "medium" },
+  Pothole_Surface_Breakout: { label: "Pothole & Surface Breakout", mappedCategory: "Pothole_Surface_Breakout", suggestedSeverity: "critical" },
+  Raveling_Loose_Aggregate: { label: "Raveling & Loose Aggregate", mappedCategory: "Raveling_Loose_Aggregate", suggestedSeverity: "low" },
+  Rubble_Unpaved_surface: { label: "Rubble & Unpaved Surface", mappedCategory: "Rubble_Unpaved_surface", suggestedSeverity: "medium" },
+  Transverse_Crack: { label: "Transverse Road Crack", mappedCategory: "Transverse_Crack", suggestedSeverity: "medium" },
+  Vegetation_Moss: { label: "Vegetation & Moss Overgrowth", mappedCategory: "Vegetation_Moss", suggestedSeverity: "low" },
 };
 
 function extractCanvasFeatures(canvas: HTMLCanvasElement): ImageFeatures {
@@ -625,7 +606,7 @@ export default function ReportForm() {
       // 1. Direct FastAPI ML server (port 8000) using multipart/form-data
       try {
         const c1 = new AbortController();
-        const t1 = setTimeout(() => c1.abort(), 3500);
+        const t1 = setTimeout(() => c1.abort(), 12000);
 
         let fRes: Response | null = null;
         if (typeof photoBase64 === "string" && photoBase64.startsWith("data:image")) {
@@ -671,11 +652,11 @@ export default function ReportForm() {
       // 2. Direct Next.js same-origin API route
       try {
         const c2 = new AbortController();
-        const t2 = setTimeout(() => c2.abort(), 3500);
+        const t2 = setTimeout(() => c2.abort(), 25000);
         const nextRes = await fetch("/api/classify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: photoBase64, features: activeFeatures }),
+          body: JSON.stringify({ image: photoBase64 }),
           signal: c2.signal,
         });
         clearTimeout(t2);
@@ -700,19 +681,10 @@ export default function ReportForm() {
         }
       } catch (backendErr) {}
 
-      // 4. Edge feature classifier fallback
-      if (activeFeatures) {
-        applyPrediction(classifyFromFeatures(activeFeatures));
-      } else {
-        setAnalysisError("ML inference service is temporarily offline. Tap to retry.");
-      }
+      setAnalysisError("ML inference service is initializing. Tap below to retry.");
     } catch (err) {
       console.warn("ML image analysis notice:", err);
-      if (activeFeatures) {
-        applyPrediction(classifyFromFeatures(activeFeatures));
-      } else {
-        setAnalysisError("Unable to analyze image. Please try again.");
-      }
+      setAnalysisError("Unable to analyze image. Please tap retry.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -738,7 +710,7 @@ export default function ReportForm() {
           img.onload = () => {
             const canvas = document.createElement("canvas");
             let { width, height } = img;
-            const maxDimension = 600;
+            const maxDimension = 900;
             if (width > maxDimension || height > maxDimension) {
               if (width > height) {
                 height = Math.round((height * maxDimension) / width);
@@ -753,11 +725,9 @@ export default function ReportForm() {
             const ctx = canvas.getContext("2d");
             if (ctx) {
               ctx.drawImage(img, 0, 0, width, height);
-              const feats = extractCanvasFeatures(canvas);
-              featuresRef.current = feats;
-              const compressed = canvas.toDataURL("image/jpeg", 0.6);
+              const compressed = canvas.toDataURL("image/jpeg", 0.92);
               setPhotos((prev) => [...prev, compressed]);
-              analyzePhoto(compressed, feats);
+              analyzePhoto(compressed);
             } else {
               setPhotos((prev) => [...prev, rawData]);
             }
@@ -795,9 +765,10 @@ export default function ReportForm() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     let assignedId = `RPT-${Math.floor(1000 + Math.random() * 9000)}`;
-    const finalCategory = category || mlResult?.mappedCategory || "other";
+    const finalCategory = category || mlResult?.mappedCategory || "Pothole_Surface_Breakout";
     const finalSeverity = mlResult?.suggestedSeverity || severity || "medium";
-    const title = `${finalCategory.replace("_", " ").toUpperCase()} reported via Web`;
+    const catLabel = categoryLabels[finalCategory as HazardCategory] || finalCategory.replace(/_/g, " ");
+    const title = `${catLabel} reported via Web`;
 
     const newReport: HazardReport = {
       id: assignedId,

@@ -34,44 +34,38 @@ const campusLocations = [
 ];
 
 const categories: HazardCategory[] = [
-  "pothole",
-  "road_cracks",
-  "damaged_pavement",
-  "edge_damage",
-  "patch_deterioration",
-  "loose_aggregate",
-  "debris_on_road",
-  "vegetation",
-  "drainage_iron_grid",
-  "broken_curb",
-  "faded_markings",
-  "roadside_obstruction",
-  "drainage_issue",
-  "poor_lighting",
-  "driver_behavior",
-  "other",
+  "Pothole_Surface_Breakout",
+  "Longitudinal_Crack",
+  "Transverse_Crack",
+  "Map(Block)_Cracking",
+  "Edge_Shoulder_Damage",
+  "Patch_Repair",
+  "Paver_Damage",
+  "Raveling_Loose_Aggregate",
+  "Rubble_Unpaved_surface",
+  "Broken_Staircase",
+  "Debris_on_road",
+  "Vegetation_Moss",
+  "Iron_grid_damage",
 ];
 
 const severities = ["low", "medium", "high", "critical"] as const;
 const statuses = ["submitted", "under_review", "in_progress", "resolved"] as const;
 
 const titles: Record<HazardCategory, string[]> = {
-  pothole: ["Large pothole on road", "Deep pothole near drain", "Multiple potholes cluster", "Expanding pothole"],
-  road_cracks: ["Longitudinal road crack", "Transverse road surface fracture", "Block cracking network"],
-  damaged_pavement: ["Cracked pavement section", "Broken sidewalk tiles", "Pavement sinking", "Eroded shoulder"],
-  edge_damage: ["Shoulder road breakdown", "Eroded road edge", "Curb slope degradation"],
-  patch_deterioration: ["Failing asphalt patch", "Deteriorated road repair", "Sunken patch trench"],
-  loose_aggregate: ["Loose gravel on asphalt", "Unpaved loose aggregate", "Scattered stone chips"],
-  debris_on_road: ["Fallen tree branch", "Construction debris", "Spilled construction stones"],
-  vegetation: ["Overgrown roadside grass", "Moss slippery road corner", "Bushes blocking view"],
-  drainage_iron_grid: ["Damaged iron culvert grid", "Broken stormwater drain grate", "Bent iron drain cover"],
-  broken_curb: ["Cracked concrete staircase", "Broken pedestrian steps", "Chipped roadside curb"],
-  faded_markings: ["Faded speed breaker markings", "Invisible crosswalk", "Missing lane markings", "Worn stop line"],
-  roadside_obstruction: ["Fallen tree branch", "Construction debris", "Abandoned vehicle", "Overgrown bushes"],
-  drainage_issue: ["Blocked drain overflowing", "Water logging area", "Open manhole cover", "Damaged culvert"],
-  poor_lighting: ["Street light not working", "Dark stretch near hostel", "Flickering lamp post", "Missing light fixture"],
-  driver_behavior: ["Over speeding vehicle", "Reckless driving near intersection", "Wrong-way driving", "Ignoring stop sign"],
-  other: ["Loose gravel on road", "Missing signage", "Damaged railing", "Uneven road surface"],
+  Pothole_Surface_Breakout: ["Deep pothole on road", "Surface breakout near turn", "Expanding pothole crater", "Multiple potholes cluster"],
+  Longitudinal_Crack: ["Longitudinal road fissure", "Centerline asphalt crack", "Longitudinal fatigue crack"],
+  Transverse_Crack: ["Transverse road fracture", "Perpendicular surface crack", "Transverse thermal crack"],
+  "Map(Block)_Cracking": ["Alligator / Block cracking", "Interconnected network cracking", "Map cracking on road section"],
+  Edge_Shoulder_Damage: ["Shoulder road breakdown", "Eroded asphalt edge", "Curb slope degradation"],
+  Patch_Repair: ["Failing asphalt patch", "Deteriorated road repair", "Sunken patch trench"],
+  Paver_Damage: ["Broken sidewalk pavers", "Loose paver blocks", "Displaced interlocking bricks"],
+  Raveling_Loose_Aggregate: ["Loose aggregate on asphalt", "Dislodged gravel layer", "Surface raveling wear"],
+  Rubble_Unpaved_surface: ["Unpaved stony stretch", "Scattered rubble on road", "Rough unpaved pathway"],
+  Broken_Staircase: ["Cracked concrete staircase", "Broken pedestrian steps", "Chipped roadside curb"],
+  Debris_on_road: ["Fallen tree branch", "Construction debris on road", "Spilled construction stones"],
+  Vegetation_Moss: ["Moss slippery road corner", "Overgrown roadside vegetation", "Weeds cracking road shoulder"],
+  Iron_grid_damage: ["Damaged iron culvert grid", "Broken stormwater drain grate", "Bent iron drain cover"],
 };
 
 function seededRandom(seed: number) {
@@ -120,9 +114,9 @@ function generateReports(): HazardReport[] {
   const hotspotLoc = campusLocations[0];
   generated.unshift({
     id: "RPT-0999",
-    title: "Reckless driving near intersection",
-    description: "Car was speeding above 60km/h near the pedestrian crossing.",
-    category: "driver_behavior",
+    title: "Deep pothole near intersection",
+    description: "Deep crater causing vehicle swerving and hazard.",
+    category: "Pothole_Surface_Breakout",
     severity: "critical",
     status: "submitted",
     location: hotspotLoc,
@@ -134,9 +128,9 @@ function generateReports(): HazardReport[] {
   });
   generated.unshift({
     id: "RPT-0998",
-    title: "Over speeding vehicle",
-    description: "Another speeding incident by a white sedan.",
-    category: "driver_behavior",
+    title: "Loose aggregate spread on road curve",
+    description: "Dislodged stones creating vehicle skidding risk.",
+    category: "Raveling_Loose_Aggregate",
     severity: "high",
     status: "under_review",
     location: hotspotLoc,
@@ -193,9 +187,9 @@ export const resolutionTimeData = [
 ];
 
 export const topHazardZones = [
-  { zone: "Hostel Road - Block A", count: 8, topCategory: "pothole", avgSeverity: "high" as const },
-  { zone: "Main Academic Block Road", count: 6, topCategory: "damaged_pavement", avgSeverity: "medium" as const },
-  { zone: "Library Junction", count: 5, topCategory: "drainage_issue", avgSeverity: "high" as const },
-  { zone: "South Campus Entrance", count: 4, topCategory: "poor_lighting", avgSeverity: "medium" as const },
-  { zone: "Kamand Bridge Road", count: 4, topCategory: "faded_markings", avgSeverity: "critical" as const },
+  { zone: "Hostel Road - Block A", count: 8, topCategory: "Pothole_Surface_Breakout", avgSeverity: "high" as const },
+  { zone: "Main Academic Block Road", count: 6, topCategory: "Paver_Damage", avgSeverity: "medium" as const },
+  { zone: "Library Junction", count: 5, topCategory: "Iron_grid_damage", avgSeverity: "high" as const },
+  { zone: "South Campus Entrance", count: 4, topCategory: "Longitudinal_Crack", avgSeverity: "medium" as const },
+  { zone: "Kamand Bridge Road", count: 4, topCategory: "Broken_Staircase", avgSeverity: "critical" as const },
 ];

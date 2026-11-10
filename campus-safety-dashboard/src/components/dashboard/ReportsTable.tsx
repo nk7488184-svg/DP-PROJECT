@@ -35,7 +35,7 @@ export default function ReportsTable() {
             id: r.id || r._id || `RPT-${Math.floor(Math.random() * 9000)}`,
             title: r.title || 'Hazard Report',
             description: r.description || '',
-            category: r.category || 'other',
+            category: r.category || 'Pothole_Surface_Breakout',
             severity: r.severity || 'medium',
             status: r.status || 'submitted',
             location: r.location || { lat: 31.7754, lng: 76.9861, address: 'IIT Mandi Campus' },
@@ -123,7 +123,7 @@ export default function ReportsTable() {
       // 1. Try FastAPI ML engine directly (port 8000, pre-warmed EfficientNetV2-S)
       try {
         const c1 = new AbortController();
-        const t1 = setTimeout(() => c1.abort(), 3500);
+        const t1 = setTimeout(() => c1.abort(), 12000);
 
         let fRes: Response | null = null;
         if (typeof imageSrc === 'string' && imageSrc.startsWith('data:image')) {
@@ -167,7 +167,7 @@ export default function ReportsTable() {
       if (!pred) {
         try {
           const c2 = new AbortController();
-          const t2 = setTimeout(() => c2.abort(), 3500);
+          const t2 = setTimeout(() => c2.abort(), 25000);
           const localRes = await fetch('/api/classify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

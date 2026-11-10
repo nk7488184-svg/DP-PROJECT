@@ -95,7 +95,7 @@ export default function NotificationPopover() {
             id: r.id || r._id || `RPT-${Math.floor(Math.random() * 9000)}`,
             title: r.title || "Hazard Report",
             description: r.description || "",
-            category: r.category || "other",
+            category: r.category || "Pothole_Surface_Breakout",
             severity: r.severity || "medium",
             status: r.status || "submitted",
             location: r.location || { lat: 31.7754, lng: 76.9861, address: "IIT Mandi Campus" },

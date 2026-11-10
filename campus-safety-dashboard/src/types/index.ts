@@ -1,24 +1,31 @@
 export type HazardCategory =
-  | "pothole"
-  | "road_cracks"
-  | "damaged_pavement"
-  | "edge_damage"
-  | "patch_deterioration"
-  | "loose_aggregate"
-  | "debris_on_road"
-  | "vegetation"
-  | "drainage_iron_grid"
-  | "broken_curb"
-  | "faded_markings"
-  | "roadside_obstruction"
-  | "drainage_issue"
-  | "poor_lighting"
-  | "driver_behavior"
-  | "other";
+  | "Broken_Staircase"
+  | "Debris_on_road"
+  | "Edge_Shoulder_Damage"
+  | "Iron_grid_damage"
+  | "Longitudinal_Crack"
+  | "Map(Block)_Cracking"
+  | "Patch_Repair"
+  | "Paver_Damage"
+  | "Pothole_Surface_Breakout"
+  | "Raveling_Loose_Aggregate"
+  | "Rubble_Unpaved_surface"
+  | "Transverse_Crack"
+  | "Vegetation_Moss";
 
 export type Severity = "low" | "medium" | "high" | "critical";
 
 export type Status = "submitted" | "under_review" | "in_progress" | "resolved";
+
+export interface MLPredictionItem {
+  class: string;
+  confidence: number;
+  rawClass?: string;
+  label?: string;
+  confidencePercentage?: string;
+  mappedCategory?: HazardCategory | string;
+  suggestedSeverity?: Severity | string;
+}
 
 export interface MLPrediction {
   filename?: string;
@@ -32,8 +39,8 @@ export interface MLPrediction {
   label: string;
   rawClass: string;
   confidencePercentage: string;
-  mappedCategory?: string;
-  suggestedSeverity?: string;
+  mappedCategory?: HazardCategory | string;
+  suggestedSeverity?: Severity | string;
   isLowConfidence?: boolean;
   topPredictions?: Array<{
     class?: string;
@@ -41,8 +48,8 @@ export interface MLPrediction {
     label: string;
     confidence: number;
     confidencePercentage: string;
-    mappedCategory?: string;
-    suggestedSeverity?: string;
+    mappedCategory?: HazardCategory | string;
+    suggestedSeverity?: Severity | string;
   }>;
 }
 
@@ -83,41 +90,51 @@ export interface CategoryData {
 }
 
 export const categoryLabels: Record<HazardCategory, string> = {
-  pothole: "Pothole",
-  road_cracks: "Road Cracks",
-  damaged_pavement: "Damaged Pavement",
-  edge_damage: "Edge & Shoulder Damage",
-  patch_deterioration: "Patch Repair",
-  loose_aggregate: "Loose Aggregate / Rubble",
-  debris_on_road: "Debris on Road",
-  vegetation: "Vegetation & Moss",
-  drainage_iron_grid: "Drainage / Iron Grid",
-  broken_curb: "Broken Curbside / Steps",
-  faded_markings: "Faded Markings",
-  roadside_obstruction: "Roadside Obstruction",
-  drainage_issue: "Drainage Issue",
-  poor_lighting: "Poor Lighting",
-  driver_behavior: "Driver Behavior",
-  other: "Other",
+  Broken_Staircase: "Broken Staircase / Curbside",
+  Debris_on_road: "Debris on Road",
+  Edge_Shoulder_Damage: "Edge & Shoulder Damage",
+  Iron_grid_damage: "Iron Grid / Drainage Grate",
+  Longitudinal_Crack: "Longitudinal Road Crack",
+  "Map(Block)_Cracking": "Map (Block) Cracking",
+  Patch_Repair: "Patch Repair Deterioration",
+  Paver_Damage: "Paver / Brick Road Damage",
+  Pothole_Surface_Breakout: "Pothole & Surface Breakout",
+  Raveling_Loose_Aggregate: "Raveling & Loose Aggregate",
+  Rubble_Unpaved_surface: "Rubble & Unpaved Surface",
+  Transverse_Crack: "Transverse Road Crack",
+  Vegetation_Moss: "Vegetation & Moss Overgrowth",
 };
 
 export const categoryColors: Record<HazardCategory, string> = {
-  pothole: "#ef4444",
-  road_cracks: "#f97316",
-  damaged_pavement: "#fb923c",
-  edge_damage: "#eab308",
-  patch_deterioration: "#a855f7",
-  loose_aggregate: "#64748b",
-  debris_on_road: "#d97706",
-  vegetation: "#10b981",
-  drainage_iron_grid: "#06b6d4",
-  broken_curb: "#f43f5e",
-  faded_markings: "#ca8a04",
-  roadside_obstruction: "#8b5cf6",
-  drainage_issue: "#3b82f6",
-  poor_lighting: "#0ea5e9",
-  driver_behavior: "#ec4899",
-  other: "#6b7280",
+  Broken_Staircase: "#f43f5e",
+  Debris_on_road: "#f59e0b",
+  Edge_Shoulder_Damage: "#eab308",
+  Iron_grid_damage: "#06b6d4",
+  Longitudinal_Crack: "#f97316",
+  "Map(Block)_Cracking": "#ea580c",
+  Patch_Repair: "#8b5cf6",
+  Paver_Damage: "#d946ef",
+  Pothole_Surface_Breakout: "#ef4444",
+  Raveling_Loose_Aggregate: "#64748b",
+  Rubble_Unpaved_surface: "#78716c",
+  Transverse_Crack: "#fb923c",
+  Vegetation_Moss: "#10b981",
+};
+
+export const categoryDefaultSeverity: Record<HazardCategory, Severity> = {
+  Pothole_Surface_Breakout: "critical",
+  Broken_Staircase: "high",
+  Iron_grid_damage: "high",
+  "Map(Block)_Cracking": "high",
+  Longitudinal_Crack: "medium",
+  Transverse_Crack: "medium",
+  Paver_Damage: "medium",
+  Edge_Shoulder_Damage: "medium",
+  Debris_on_road: "medium",
+  Rubble_Unpaved_surface: "medium",
+  Patch_Repair: "low",
+  Raveling_Loose_Aggregate: "low",
+  Vegetation_Moss: "low",
 };
 
 export const severityLabels: Record<Severity, string> = {
@@ -125,20 +142,6 @@ export const severityLabels: Record<Severity, string> = {
   medium: "Medium",
   high: "High",
   critical: "Critical",
-};
-
-export const severityColors: Record<Severity, string> = {
-  low: "#22c55e",
-  medium: "#eab308",
-  high: "#f97316",
-  critical: "#ef4444",
-};
-
-export const statusColors: Record<Status, string> = {
-  submitted: "#3b82f6",
-  under_review: "#eab308",
-  in_progress: "#8b5cf6",
-  resolved: "#22c55e",
 };
 
 export const statusLabels: Record<Status, string> = {

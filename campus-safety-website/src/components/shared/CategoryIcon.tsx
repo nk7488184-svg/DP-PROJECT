@@ -1,12 +1,8 @@
 import {
   CircleAlert,
   Construction,
-  Droplets,
-  Lightbulb,
-  PaintBucket,
   TreePine,
   HelpCircle,
-  Car,
   GitCommit,
   Layers,
   Wrench,
@@ -17,32 +13,29 @@ import {
 } from "lucide-react";
 import type { HazardCategory } from "@/types";
 
-const iconMap: Partial<Record<HazardCategory, React.ComponentType<{ className?: string }>>> = {
-  pothole: CircleAlert,
-  road_cracks: GitCommit,
-  damaged_pavement: Construction,
-  edge_damage: Layers,
-  patch_deterioration: Wrench,
-  loose_aggregate: Mountain,
-  debris_on_road: Trash2,
-  vegetation: TreePine,
-  drainage_iron_grid: Grid,
-  broken_curb: Footprints,
-  faded_markings: PaintBucket,
-  roadside_obstruction: TreePine,
-  drainage_issue: Droplets,
-  poor_lighting: Lightbulb,
-  driver_behavior: Car,
-  other: HelpCircle,
+const iconMap: Record<HazardCategory, React.ComponentType<{ className?: string }>> = {
+  Broken_Staircase: Footprints,
+  Debris_on_road: Trash2,
+  Edge_Shoulder_Damage: Layers,
+  Iron_grid_damage: Grid,
+  Longitudinal_Crack: GitCommit,
+  "Map(Block)_Cracking": Construction,
+  Patch_Repair: Wrench,
+  Paver_Damage: Layers,
+  Pothole_Surface_Breakout: CircleAlert,
+  Raveling_Loose_Aggregate: Mountain,
+  Rubble_Unpaved_surface: Mountain,
+  Transverse_Crack: GitCommit,
+  Vegetation_Moss: TreePine,
 };
 
 export default function CategoryIcon({
   category,
   className,
 }: {
-  category: HazardCategory;
+  category: HazardCategory | string;
   className?: string;
 }) {
-  const Icon = iconMap[category] || HelpCircle;
+  const Icon = (category && iconMap[category as HazardCategory]) || HelpCircle;
   return <Icon className={className ?? "w-5 h-5"} />;
 }
