@@ -37,6 +37,7 @@ export default function DashboardOverview() {
             reportedAt: r.reportedAt || new Date().toISOString(),
             updatedAt: r.updatedAt || new Date().toISOString(),
             priorityScore: r.priorityScore || 50,
+            mlPrediction: r.mlPrediction || undefined,
           }));
         }
         setReports(getAllMergedReports(backendItems));

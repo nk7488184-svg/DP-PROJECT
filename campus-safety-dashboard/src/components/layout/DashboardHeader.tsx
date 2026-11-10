@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, Bell, User, Shield, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import StaggeredMenu, { StaggeredMenuItem, StaggeredMenuSocialItem } from "@/components/ui/StaggeredMenu";
+import NotificationPopover from "./NotificationPopover";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Overview",
@@ -45,7 +46,7 @@ export default function DashboardHeader() {
 
   return (
     <>
-      <header className="h-16 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-card/75 backdrop-blur-md z-30 relative w-full max-w-full overflow-hidden">
+      <header className="h-16 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-card/75 backdrop-blur-md z-30 relative w-full max-w-full overflow-visible">
         {/* Left: Brand Logo & Section Breadcrumb */}
         <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center gap-2 group flex-shrink-0">
@@ -75,11 +76,8 @@ export default function DashboardHeader() {
             />
           </div>
 
-          {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-card-hover transition-colors text-muted hover:text-foreground">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-          </button>
+          {/* Notifications Popover */}
+          <NotificationPopover />
 
           {/* User Profile - hidden on mobile for clean fit */}
           <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-border">

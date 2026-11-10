@@ -48,26 +48,36 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
   const seenIds = new Set<string>();
   const merged: HazardReport[] = [];
 
-  for (const r of local) {
-    if (!seenIds.has(r.id)) {
-      seenIds.add(r.id);
-      merged.push(r);
-    }
-  }
-
+  // 1. First include freshly fetched reports from backend
   for (const r of backendReports) {
-    if (!seenIds.has(r.id)) {
+    if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
       merged.push(r);
     }
   }
 
-  for (const r of mockReports) {
-    if (!seenIds.has(r.id)) {
+  // 2. Include any local client-side reports
+  for (const r of local) {
+    if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
       merged.push(r);
     }
   }
+
+  // 3. Fallback to mock baseline reports
+  for (const r of mockReports) {
+    if (r && r.id && !seenIds.has(r.id)) {
+      seenIds.add(r.id);
+      merged.push(r);
+    }
+  }
+
+  // Sort by reportedAt descending (newest on top)
+  merged.sort((a, b) => {
+    const timeA = a.reportedAt ? new Date(a.reportedAt).getTime() : 0;
+    const timeB = b.reportedAt ? new Date(b.reportedAt).getTime() : 0;
+    return timeB - timeA;
+  });
 
   return merged;
 }
