@@ -29,20 +29,22 @@ export interface ImageFeatures {
 }
 
 export const CLASS_METADATA: Record<string, { label: string; mappedCategory: string; suggestedSeverity: string }> = {
-  Vegetation_Moss: { label: "Vegetation & Moss", mappedCategory: "vegetation", suggestedSeverity: "low" },
-  Pothole_Surface_Breakout: { label: "Pothole", mappedCategory: "pothole", suggestedSeverity: "high" },
-  Longitudinal_Crack: { label: "Longitudinal Crack", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
-  Transverse_Crack: { label: "Transverse Crack", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
-  "Map(Block)_Cracking": { label: "Map / Block Cracking", mappedCategory: "road_cracks", suggestedSeverity: "medium" },
-  Edge_Shoulder_Damage: { label: "Edge & Shoulder Damage", mappedCategory: "edge_damage", suggestedSeverity: "medium" },
-  Debris_on_road: { label: "Debris on Road", mappedCategory: "debris_on_road", suggestedSeverity: "medium" },
-  Iron_grid_damage: { label: "Drainage / Iron Grid", mappedCategory: "drainage_iron_grid", suggestedSeverity: "high" },
-  Broken_Staircase: { label: "Broken Curbside / Steps", mappedCategory: "broken_curb", suggestedSeverity: "high" },
-  Paver_Damage: { label: "Damaged Pavement / Pavers", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
-  Patch_Repair: { label: "Patch Repair", mappedCategory: "patch_deterioration", suggestedSeverity: "low" },
-  Raveling_Loose_Aggregate: { label: "Loose Aggregate / Rubble", mappedCategory: "loose_aggregate", suggestedSeverity: "medium" },
-  Rubble_Unpaved_surface: { label: "Rubble / Unpaved Surface", mappedCategory: "loose_aggregate", suggestedSeverity: "medium" },
+  Vegetation_Moss: { label: "Vegetation & Moss Overgrowth", mappedCategory: "roadside_obstruction", suggestedSeverity: "low" },
+  Pothole_Surface_Breakout: { label: "Pothole & Surface Breakout", mappedCategory: "pothole", suggestedSeverity: "high" },
+  Longitudinal_Crack: { label: "Longitudinal Road Crack", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
+  Transverse_Crack: { label: "Transverse Road Crack", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
+  "Map(Block)_Cracking": { label: "Map / Block Cracking", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
+  Edge_Shoulder_Damage: { label: "Edge & Shoulder Damage", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
+  Debris_on_road: { label: "Debris on Road", mappedCategory: "roadside_obstruction", suggestedSeverity: "medium" },
+  Iron_grid_damage: { label: "Drainage Iron Grid Damage", mappedCategory: "drainage_issue", suggestedSeverity: "high" },
+  Broken_Staircase: { label: "Broken Staircase / Curbside", mappedCategory: "roadside_obstruction", suggestedSeverity: "high" },
+  Paver_Damage: { label: "Paver / Brick Road Damage", mappedCategory: "damaged_pavement", suggestedSeverity: "medium" },
+  Patch_Repair: { label: "Patch Repair Deterioration", mappedCategory: "damaged_pavement", suggestedSeverity: "low" },
+  Raveling_Loose_Aggregate: { label: "Raveling & Loose Aggregate", mappedCategory: "roadside_obstruction", suggestedSeverity: "low" },
+  Rubble_Unpaved_surface: { label: "Rubble & Unpaved Surface", mappedCategory: "roadside_obstruction", suggestedSeverity: "low" },
 };
+
+const FASTAPI_URL = process.env.ML_API_URL || process.env.FASTAPI_URL || "http://127.0.0.1:8000";
 
 function classifyFromFeatures(features: ImageFeatures) {
   const greenRatio = features.greenRatio ?? 0;
@@ -98,101 +100,98 @@ function classifyFromFeatures(features: ImageFeatures) {
   }
 
   // 4. Edge / Shoulder Damage (road boundary drop on left/right)
-  if (asymmetryLR > 12.0 && crossingsV < 4 && craterDelta < 15.0) {
-    scores.Edge_Shoulder_Damage = 4.8 + asymmetryLR * 0.18;
+  if (asymmetryLR > 7.0 && maxAsymmetry > 8.0 && (crossingsV < 3 || crossingsH < 3)) {
+    scores.Edge_Shoulder_Damage = 4.8 + asymmetryLR * 0.15 + dxMean * 0.2;
   }
 
-  // 5. Pothole / Crater (round depression, dark core, low stripe count, not an edge-crossing network)
-  if (craterDelta > 10.0 && centerDark > 0.15 && directionalBias < 2.0 && !rimNetworkCross && crossingsV < 4 && crossingsH < 4) {
-    scores.Pothole_Surface_Breakout = 5.0 + Math.min(4.0, craterDelta * 0.1) + centerDark * 4.0;
+  // 5. Rubble / Unpaved Surface (broad high texture variance across whole frame)
+  if (localStd > 14.0 && edgeVariance > 18.0 && chroma < 12.0 && craterDelta < 6.0) {
+    scores.Rubble_Unpaved_surface = 4.6 + localStd * 0.12 + edgeVariance * 0.08;
   }
 
-  // 6. Directional Cracks (single prominent cracks or crack network)
-  if (crossingsV < 6 && crossingsH < 6) {
-    if (directionalBias > 2.0 && meanEdge > 0.25) {
-      if (dxMean > dyMean) {
-        scores.Longitudinal_Crack = 4.8 + dxMean * 0.8;
-      } else {
-        scores.Transverse_Crack = 4.8 + dyMean * 0.8;
-      }
-    } else if ((rimNetworkCross || (meanEdge > 0.8 && edgeVariance > 5.0 && directionalBias <= 2.0)) && chroma < 4.0) {
-      scores["Map(Block)_Cracking"] = 4.9 + meanEdge * 0.5;
-    }
+  // 6. Raveling / Loose Aggregate (fine gravel surface without deep crater)
+  if (meanEdge > 5.0 && edgeVariance > 12.0 && craterDelta < 5.0 && asymmetryLR < 6.0) {
+    scores.Raveling_Loose_Aggregate = 4.5 + meanEdge * 0.25;
   }
 
-  // 7. Debris on Road (genuine non-green chromatic object on road)
-  if (chroma > 6.0 && greenExcess < 4.0 && craterDelta < 12.0) {
-    scores.Debris_on_road = 4.8 + Math.min(4.0, chroma * 0.2);
+  // 7. Paver / Cobblestone Damage (bimodal periodic grid texture)
+  if (crossingsV >= 4 && crossingsH >= 4 && ampV > 12.0 && ampH > 12.0 && !scores.Iron_grid_damage) {
+    scores.Paver_Damage = 4.7 + (crossingsV + crossingsH) * 0.1;
   }
 
-  // 8. Paver Damage (interlocking paver joints, low edge contrast, low color)
-  if (meanEdge > 0.2 && meanEdge < 2.0 && directionalBias < 2.0 && chroma < 3.0 && craterDelta < 6.0 && maxAsymmetry < 6.0 && localStd < 15.0) {
-    scores.Paver_Damage = 4.2 + meanEdge * 0.4;
+  // 8. Patch Repair (asphalt color mismatch, square edge)
+  if (chroma < 8.0 && overallMean > 70 && overallMean < 160 && (asymmetryLR > 4.0 || asymmetryTB > 4.0) && craterDelta < 6.0) {
+    scores.Patch_Repair = 4.5 + maxAsymmetry * 0.1;
   }
 
-  // 9. Patch Repair (smooth bounded asphalt patch)
-  if (craterDelta > 3.0 && craterDelta < 15.0 && centerDark < 0.10 && localStd < 12.0 && meanEdge < 2.0 && chroma < 3.0) {
-    scores.Patch_Repair = 4.4 + craterDelta * 0.1;
+  // 9. Longitudinal Road Crack (strong vertical line)
+  if (directionalBias > 1.35 && dxMean > dyMean && dxMean > 5.0 && craterDelta < 7.0) {
+    scores.Longitudinal_Crack = 4.8 + dxMean * 0.2 + (directionalBias - 1.0) * 0.5;
   }
 
-  // 10. Loose Aggregate / Rubble (uniform graininess across entire image)
-  if (localStd > 12.0 && meanEdge > 2.0 && directionalBias < 1.8 && craterDelta < 8.0 && chroma < 4.0) {
-    if (overallMean > 120.0) {
-      scores.Rubble_Unpaved_surface = 4.5 + localStd * 0.1;
-    } else {
-      scores.Raveling_Loose_Aggregate = 4.5 + localStd * 0.1;
-    }
+  // 10. Transverse Road Crack (strong horizontal line across road)
+  if (directionalBias > 1.35 && dyMean > dxMean && dyMean > 5.0 && craterDelta < 7.0) {
+    scores.Transverse_Crack = 4.8 + dyMean * 0.2 + (directionalBias - 1.0) * 0.5;
   }
 
-  // Fallback
-  const maxVal = Math.max(...Object.values(scores));
-  if (maxVal < 0.1) {
-    if (craterDelta > 3.0) {
-      scores.Pothole_Surface_Breakout = 1.0;
-    } else if (meanEdge > 1.0) {
-      scores["Map(Block)_Cracking"] = 1.0;
-    } else if (localStd > 8.0) {
-      scores.Raveling_Loose_Aggregate = 1.0;
-    } else {
-      scores.Paver_Damage = 1.0;
-    }
+  // 11. Map / Block Cracking (network of interconnected hairline edges)
+  if (rimNetworkCross || (meanEdge > 7.0 && directionalBias <= 1.35 && localStd > 8.0 && craterDelta < 8.0)) {
+    scores["Map(Block)_Cracking"] = 4.7 + meanEdge * 0.2 + localStd * 0.08;
   }
 
-  // Calibrated ranking for top predictions
-  const sorted = Object.entries(scores)
-    .sort((a, b) => b[1] - a[1]);
+  // 12. Pothole / Surface Breakout (genuine dark bowl-like depression)
+  if ((centerDark > 7.0 && craterDelta > 6.0) || (craterDelta > 10.0)) {
+    scores.Pothole_Surface_Breakout = 5.0 + craterDelta * 0.25 + centerDark * 0.15;
+  }
 
-  const topPredictions = sorted.slice(0, 3).map(([rawClass, rawScore], rank) => {
-    const meta = CLASS_METADATA[rawClass] || { label: rawClass.replace(/_/g, " "), mappedCategory: "other", suggestedSeverity: "medium" };
-    let conf = 0.5;
-    if (rank === 0) {
-      conf = Math.min(0.985, Math.max(0.85, 0.85 + (rawScore / 25.0)));
-    } else if (rank === 1) {
-      conf = rawScore > 0.5 ? Math.min(0.82, Math.max(0.58, 0.58 + (rawScore / 35.0))) : 0.42;
-    } else {
-      conf = rawScore > 0.5 ? Math.min(0.62, Math.max(0.35, 0.35 + (rawScore / 45.0))) : 0.28;
-    }
+  // 13. Debris on Road (localized surface obstruction)
+  if (asymmetryLR > 5.0 && asymmetryTB > 5.0 && chroma > 4.0 && craterDelta < 7.0) {
+    scores.Debris_on_road = 4.5 + (asymmetryLR + asymmetryTB) * 0.1;
+  }
+
+  // Rank classes by score
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const bestClass = sorted[0][0];
+  const bestScore = sorted[0][1];
+
+  const top3 = sorted.slice(0, 3).map(([rawCls, sc], idx) => {
+    const meta = CLASS_METADATA[rawCls] || {
+      label: rawCls.replace(/_/g, " "),
+      mappedCategory: "other",
+      suggestedSeverity: "medium",
+    };
+
+    let p = 0.85;
+    if (idx === 0) p = Math.min(0.96, Math.max(0.72, 0.70 + (bestScore > 0 ? (sc / 20.0) * 0.25 : 0.15)));
+    else if (idx === 1) p = Math.min(0.65, Math.max(0.35, 0.30 + (sc / 20.0) * 0.25));
+    else p = Math.min(0.40, Math.max(0.15, 0.15 + (sc / 20.0) * 0.15));
+
     return {
-      rawClass,
+      class: rawCls,
+      rawClass: rawCls,
       label: meta.label,
-      confidence: Math.round(conf * 1000) / 1000,
-      confidencePercentage: `${(conf * 100).toFixed(1)}%`,
+      confidence: Math.round(p * 1000) / 1000,
+      confidencePercentage: `${Math.round(p * 1000) / 10}%`,
       mappedCategory: meta.mappedCategory,
       suggestedSeverity: meta.suggestedSeverity,
     };
   });
 
-  const best = topPredictions[0];
-  const bestMeta = CLASS_METADATA[best.rawClass] || { label: best.label, mappedCategory: "other", suggestedSeverity: "medium" };
-
+  const best = top3[0];
   return {
-    rawClass: best.rawClass,
-    label: bestMeta.label,
+    filename: "road.jpg",
+    prediction: best.rawClass,
     confidence: best.confidence,
+    low_confidence: best.confidence < 0.60,
+    top_predictions: top3.map(t => ({ class: t.class, confidence: t.confidence })),
+    success: true,
+    rawClass: best.rawClass,
+    label: best.label,
     confidencePercentage: best.confidencePercentage,
-    mappedCategory: bestMeta.mappedCategory,
-    suggestedSeverity: bestMeta.suggestedSeverity,
-    topPredictions,
+    mappedCategory: best.mappedCategory,
+    suggestedSeverity: best.suggestedSeverity,
+    topPredictions: top3,
+    isLowConfidence: best.confidence < 0.60,
   };
 }
 
@@ -206,50 +205,65 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "No image provided" }, { status: 400 });
     }
 
-    // 1. Try FastAPI ML engine if running (port 8000, ~15ms)
+    // 1. Try FastAPI ML engine (RD_API port 8000)
     if (image) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1800);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-        const fRes = await fetch("http://127.0.0.1:8000/api/v1/predict", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image }),
-          signal: controller.signal,
-        });
+        // Convert base64 to Blob and send multipart/form-data
+        let fRes: Response | null = null;
+        if (typeof image === "string" && image.startsWith("data:image")) {
+          const parts = image.split(";base64,");
+          if (parts.length === 2) {
+            const mimeType = parts[0].replace("data:", "") || "image/jpeg";
+            const buffer = Buffer.from(parts[1], "base64");
+            const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
+            const formData = new FormData();
+            formData.append("file", blob, "road.jpg");
+
+            fRes = await fetch(`${FASTAPI_URL}/predict`, {
+              method: "POST",
+              body: formData,
+              signal: controller.signal,
+            });
+          }
+        }
+
+        // If not base64 data URI, fallback to JSON body
+        if (!fRes) {
+          fRes = await fetch(`${FASTAPI_URL}/predict`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image }),
+            signal: controller.signal,
+          });
+        }
         clearTimeout(timeoutId);
 
-        if (fRes.ok) {
+        if (fRes && fRes.ok) {
           const data = await fRes.json();
-          if (data && data.success) {
+          if (data && (data.prediction || data.rawClass)) {
             return NextResponse.json({ success: true, data });
           }
         }
       } catch (fastApiErr) {
-        // FastAPI offline; fall through
+        // ML server unreachable; fall through to Python CLI or heuristic engine
       }
     }
 
-    // 2. If client provided high-fidelity canvas pixel features, classify with balanced multi-class engine
-    if (clientFeatures && typeof clientFeatures.greenRatio === "number") {
-      const pred = classifyFromFeatures(clientFeatures);
-      return NextResponse.json({ success: true, data: pred });
-    }
-
-    // 3. Try direct python classifier.py CLI if python environment is present
+    // 2. Direct Python classifier.py CLI fallback
     if (image) {
       try {
         const candidates = [
           path.resolve(process.cwd(), "..", "fastapi-backend", "classifier.py"),
           path.resolve(process.cwd(), "fastapi-backend", "classifier.py"),
           path.resolve("C:\\Users\\nk748\\OneDrive\\Desktop\\DP-PROJECT\\fastapi-backend\\classifier.py"),
-          path.resolve("C:\\Users\\nk748\\OneDrive\\Desktop\\RoadSentinel\\fastapi-backend\\classifier.py"),
+          path.resolve("C:\\Users\\nk748\\OneDrive\\Desktop\\RD_API\\RD_API\\classifier.py"),
           path.resolve("C:\\Users\\nk748\\OneDrive\\Desktop\\Backend\\classifier.py"),
         ];
 
         const scriptPath = candidates.find((p) => fs.existsSync(p));
-
         if (scriptPath) {
           const child = spawn("python", [scriptPath, "--stdin"]);
           let stdout = "";
@@ -258,7 +272,7 @@ export async function POST(req: NextRequest) {
             const timeout = setTimeout(() => {
               try { child.kill(); } catch (_) {}
               resolve(null);
-            }, 3000);
+            }, 4000);
 
             child.stdout.on("data", (d) => {
               stdout += d.toString();
@@ -286,16 +300,16 @@ export async function POST(req: NextRequest) {
             child.stdin.end();
           });
 
-          if (result && result.success) {
+          if (result && (result.prediction || result.rawClass)) {
             return NextResponse.json({ success: true, data: result });
           }
         }
       } catch (pyErr) {
-        // Python CLI not available; fall through
+        // Python CLI fallback error
       }
     }
 
-    // 4. Fallback classification with client features or default features
+    // 3. Fallback classification with client features
     const pred = classifyFromFeatures(clientFeatures || {});
     return NextResponse.json({ success: true, data: pred });
   } catch (err: any) {

@@ -21,18 +21,28 @@ export type Severity = "low" | "medium" | "high" | "critical";
 export type Status = "submitted" | "under_review" | "in_progress" | "resolved";
 
 export interface MLPrediction {
+  filename?: string;
+  prediction?: string;
+  confidence: number;
+  low_confidence?: boolean;
+  top_predictions?: Array<{
+    class: string;
+    confidence: number;
+  }>;
   label: string;
   rawClass: string;
-  confidence: number;
   confidencePercentage: string;
   mappedCategory?: string;
   suggestedSeverity?: string;
   isLowConfidence?: boolean;
   topPredictions?: Array<{
+    class?: string;
     rawClass: string;
     label: string;
     confidence: number;
     confidencePercentage: string;
+    mappedCategory?: string;
+    suggestedSeverity?: string;
   }>;
 }
 

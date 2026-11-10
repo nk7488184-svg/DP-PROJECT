@@ -45,14 +45,22 @@ const categories: HazardCategory[] = [
 ];
 
 interface MLPredictionData {
+  filename?: string;
+  prediction?: string;
+  confidence: number;
+  low_confidence?: boolean;
+  top_predictions?: Array<{
+    class: string;
+    confidence: number;
+  }>;
   label: string;
   rawClass: string;
-  confidence: number;
   confidencePercentage: string;
   mappedCategory?: HazardCategory;
   suggestedSeverity?: Severity;
   isLowConfidence?: boolean;
   topPredictions?: Array<{
+    class?: string;
     rawClass: string;
     label: string;
     confidence: number;
@@ -482,6 +490,7 @@ export default function ReportForm() {
   // ML Prediction state
   const [mlResult, setMlResult] = useState<MLPredictionData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const featuresRef = useRef<ImageFeatures | null>(null);
 
   const startCamera = async () => {
@@ -548,14 +557,61 @@ export default function ReportForm() {
     }
   };
 
-  const applyPrediction = useCallback((data: MLPredictionData) => {
-    setMlResult(data);
-    if (data.mappedCategory) {
-      setCategory(data.mappedCategory);
+  const applyPrediction = useCallback((data: any) => {
+    const rawClass = data.rawClass || data.prediction || (data.top_predictions?.[0]?.class) || "Pothole_Surface_Breakout";
+    const label = data.label || CLASS_METADATA[rawClass]?.label || rawClass.replace(/_/g, " ");
+    const conf = typeof data.confidence === "number" ? data.confidence : 0.85;
+    const confPct = data.confidencePercentage || `${Math.round(conf * 1000) / 10}%`;
+    const mapped = (data.mappedCategory || CLASS_METADATA[rawClass]?.mappedCategory || "other") as HazardCategory;
+    const sev = (data.suggestedSeverity || CLASS_METADATA[rawClass]?.suggestedSeverity || "medium") as Severity;
+    const isLow = typeof data.low_confidence === "boolean" ? data.low_confidence : (typeof data.isLowConfidence === "boolean" ? data.isLowConfidence : conf < 0.60);
+
+    const rawTops = data.topPredictions || data.top_predictions || [];
+    const formattedTops = rawTops.map((t: any) => {
+      const c = t.class || t.rawClass || rawClass;
+      const cConf = typeof t.confidence === "number" ? t.confidence : conf;
+      return {
+        class: c,
+        rawClass: c,
+        label: t.label || CLASS_METADATA[c]?.label || c.replace(/_/g, " "),
+        confidence: cConf,
+        confidencePercentage: t.confidencePercentage || `${Math.round(cConf * 1000) / 10}%`,
+        mappedCategory: (t.mappedCategory || CLASS_METADATA[c]?.mappedCategory || "other") as HazardCategory,
+        suggestedSeverity: (t.suggestedSeverity || CLASS_METADATA[c]?.suggestedSeverity || "medium") as Severity,
+      };
+    });
+
+    const normalizedData: MLPredictionData = {
+      filename: data.filename || "road.jpg",
+      prediction: rawClass,
+      rawClass,
+      label,
+      confidence: conf,
+      confidencePercentage: confPct,
+      mappedCategory: mapped,
+      suggestedSeverity: sev,
+      isLowConfidence: isLow,
+      low_confidence: isLow,
+      topPredictions: formattedTops.length > 0 ? formattedTops : [
+        {
+          rawClass,
+          label,
+          confidence: conf,
+          confidencePercentage: confPct,
+          mappedCategory: mapped,
+          suggestedSeverity: sev,
+        }
+      ],
+      top_predictions: formattedTops.map((t: any) => ({ class: t.rawClass, confidence: t.confidence })),
+    };
+
+    setMlResult(normalizedData);
+    setAnalysisError(null);
+    if (normalizedData.mappedCategory) {
+      setCategory(normalizedData.mappedCategory);
     }
-    // Auto-assign severity based strictly on ML model prediction
-    if (data.suggestedSeverity) {
-      setSeverity(data.suggestedSeverity);
+    if (normalizedData.suggestedSeverity) {
+      setSeverity(normalizedData.suggestedSeverity);
     }
   }, []);
 
@@ -564,21 +620,48 @@ export default function ReportForm() {
     if (!photoBase64 || isAnalyzing) return;
     if (typeof photoBase64 === "string" && photoBase64.startsWith("data:image/svg")) return;
     setIsAnalyzing(true);
+    setAnalysisError(null);
     try {
-      // 1. Direct FastAPI port 8000 (pre-warmed in memory, takes ~150ms)
+      // 1. Direct FastAPI ML server (port 8000) using multipart/form-data
       try {
         const c1 = new AbortController();
-        const t1 = setTimeout(() => c1.abort(), 1800);
-        const fRes = await fetch("http://127.0.0.1:8000/api/v1/predict", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: photoBase64 }),
-          signal: c1.signal,
-        });
+        const t1 = setTimeout(() => c1.abort(), 3500);
+
+        let fRes: Response | null = null;
+        if (typeof photoBase64 === "string" && photoBase64.startsWith("data:image")) {
+          const parts = photoBase64.split(";base64,");
+          if (parts.length === 2) {
+            const mimeType = parts[0].replace("data:", "") || "image/jpeg";
+            const byteCharacters = atob(parts[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+            const formData = new FormData();
+            formData.append("file", blob, "road.jpg");
+
+            fRes = await fetch("http://127.0.0.1:8000/predict", {
+              method: "POST",
+              body: formData,
+              signal: c1.signal,
+            });
+          }
+        }
+
+        if (!fRes) {
+          fRes = await fetch("http://127.0.0.1:8000/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: photoBase64 }),
+            signal: c1.signal,
+          });
+        }
         clearTimeout(t1);
-        if (fRes.ok) {
+
+        if (fRes && fRes.ok) {
           const body = await fRes.json();
-          if (body && body.success) {
+          if (body && (body.prediction || body.rawClass)) {
             applyPrediction(body);
             return;
           }
@@ -613,12 +696,22 @@ export default function ReportForm() {
         });
         if (res && res.success && res.data) {
           applyPrediction(res.data);
+          return;
         }
       } catch (backendErr) {}
+
+      // 4. Edge feature classifier fallback
+      if (activeFeatures) {
+        applyPrediction(classifyFromFeatures(activeFeatures));
+      } else {
+        setAnalysisError("ML inference service is temporarily offline. Tap to retry.");
+      }
     } catch (err) {
       console.warn("ML image analysis notice:", err);
       if (activeFeatures) {
         applyPrediction(classifyFromFeatures(activeFeatures));
+      } else {
+        setAnalysisError("Unable to analyze image. Please try again.");
       }
     } finally {
       setIsAnalyzing(false);
@@ -1017,145 +1110,204 @@ export default function ReportForm() {
 
             {/* AI Classification Feedback Banner */}
             {isAnalyzing && (
-              <div className="mt-5 p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-sm text-blue-700 animate-pulse">
-                <Loader2 className="w-4 h-4 animate-spin text-blue-600 shrink-0" />
-                <span>Analyzing hazard photo...</span>
+              <div className="mt-5 p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-center gap-3.5 text-sm text-blue-800 animate-pulse shadow-sm">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600 shrink-0" />
+                <div>
+                  <p className="font-semibold text-blue-900">Analyzing Road Image with EfficientNetV2-S...</p>
+                  <p className="text-xs text-blue-700/80">Scanning road surface texture, cracking patterns, and potential hazards.</p>
+                </div>
+              </div>
+            )}
+
+            {analysisError && !isAnalyzing && (
+              <div className="mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between text-xs text-rose-700">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>{analysisError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => photos[0] && analyzePhoto(photos[0])}
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded font-medium flex items-center gap-1 shrink-0 ml-2 shadow-xs transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3" /> Retry Analysis
+                </button>
               </div>
             )}
 
             {mlResult && !isAnalyzing && (
-              <div className="mt-5 p-4 sm:p-5 bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-blue-50/40 border border-emerald-200/90 rounded-2xl text-left shadow-sm">
+              <div className="mt-5 p-4 sm:p-5 bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-blue-50/40 border border-emerald-200/90 rounded-2xl text-left shadow-sm space-y-3.5">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3 pb-2.5 border-b border-emerald-200/70">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-emerald-200/70">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
-                        AI Damage Classification
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 uppercase tracking-wide">
-                          Top 3 Predictions
-                        </span>
+                      <h4 className="text-sm font-bold text-emerald-950 flex items-center gap-2">
+                        Detected Hazard Category:
+                        <span className="text-primary font-extrabold">{mlResult.label}</span>
                       </h4>
                       <p className="text-xs text-emerald-800/80">
-                        Model detected multiple candidate signatures. Tap any card to select it.
+                        Select from the top 3 model predictions below to configure your report.
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => photos[0] && analyzePhoto(photos[0])}
-                    className="text-xs text-emerald-700 hover:text-emerald-950 font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg hover:bg-emerald-100/60 transition-colors"
+                    className="text-xs text-emerald-700 hover:text-emerald-950 font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-100/70 transition-colors border border-emerald-200/60"
                     title="Re-run AI classification"
                   >
-                    <RefreshCw className="w-3 h-3" />
-                    <span className="hidden sm:inline">Re-classify</span>
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Re-analyze</span>
                   </button>
                 </div>
 
-                {/* All 3 Predictions Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {(mlResult.topPredictions && mlResult.topPredictions.length > 0
-                    ? mlResult.topPredictions.slice(0, 3)
-                    : [
-                        {
-                          rawClass: mlResult.rawClass,
-                          label: mlResult.label,
-                          confidence: mlResult.confidence,
-                          confidencePercentage: mlResult.confidencePercentage,
-                          mappedCategory: mlResult.mappedCategory,
-                          suggestedSeverity: mlResult.suggestedSeverity,
-                        },
-                      ]
-                  ).map((pred, idx) => {
-                    const isSelected = (pred.mappedCategory && category === pred.mappedCategory) || (!category && idx === 0);
-                    const rankLabels = ["#1 Top Match", "#2 Likely Match", "#3 Alternative Match"];
-                    const rankPillStyles = [
-                      "bg-emerald-600 text-white",
-                      "bg-blue-600/90 text-white",
-                      "bg-slate-600/90 text-white",
-                    ];
-                    const confPercentNum = Math.min(100, Math.max(0, Math.round((pred.confidence || 0) * 100)));
-
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          if (pred.mappedCategory) {
-                            setCategory(pred.mappedCategory as HazardCategory);
-                          }
-                          if (pred.suggestedSeverity) {
-                            setSeverity(pred.suggestedSeverity as Severity);
-                          }
-                        }}
-                        className={`relative p-3 rounded-xl text-left transition-all border ${
-                          isSelected
-                            ? "bg-white border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
-                            : "bg-white/80 hover:bg-white border-emerald-100 hover:border-emerald-300 shadow-xs hover:shadow"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1 mb-2">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${rankPillStyles[idx] || "bg-gray-500 text-white"}`}>
-                            {rankLabels[idx] || `#${idx + 1}`}
-                          </span>
-                          {isSelected ? (
-                            <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                              <Check className="w-3 h-3 text-emerald-600" /> Active
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-muted hover:text-emerald-700">Select ↗</span>
-                          )}
-                        </div>
-
-                        <p className="text-sm font-bold text-foreground leading-snug line-clamp-1 mb-1.5">
-                          {pred.label}
-                        </p>
-
-                        <div className="space-y-1 mb-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted text-[11px]">Confidence</span>
-                            <span className="font-extrabold text-foreground text-xs">
-                              {pred.confidencePercentage}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                idx === 0
-                                  ? "bg-emerald-500"
-                                  : idx === 1
-                                  ? "bg-blue-500"
-                                  : "bg-amber-500"
-                              }`}
-                              style={{ width: `${confPercentNum}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between text-[11px] text-muted pt-1.5 border-t border-gray-100">
-                          <span className="truncate">
-                            {pred.mappedCategory ? categoryLabels[pred.mappedCategory as HazardCategory] || pred.mappedCategory : "Other"}
-                          </span>
-                          {pred.suggestedSeverity && (
-                            <span className="font-semibold capitalize text-[10px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-700">
-                              {pred.suggestedSeverity}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                {/* Primary Result Summary Pill / Severity Banner */}
+                <div className="p-3 bg-white/90 rounded-xl border border-emerald-200/80 flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted">Primary Severity:</span>
+                    {severity === "high" || severity === "critical" ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                        <span className="w-2 h-2 rounded-full bg-rose-600"></span> High Priority Hazard
+                      </span>
+                    ) : severity === "medium" ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        <span className="w-2 h-2 rounded-full bg-amber-600"></span> Moderate Hazard
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600"></span> Low / Minimal Hazard
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-muted">Model Confidence:</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-600 text-white shadow-xs">
+                      {mlResult.confidencePercentage}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Footer summary */}
-                <div className="mt-3 pt-2.5 border-t border-emerald-200/60 flex items-center justify-between text-xs text-emerald-900">
+                {/* Low Confidence Warning */}
+                {(mlResult.isLowConfidence || mlResult.low_confidence) && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Low confidence prediction.</p>
+                      <p className="text-amber-800/90 mt-0.5">Please upload a clearer road image for better results or select the correct hazard category manually.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Top 3 Predictions Interactive Cards */}
+                <div>
+                  <p className="text-xs font-semibold text-emerald-950 uppercase tracking-wider mb-2">
+                    Top 3 Ranked Predictions
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {(mlResult.topPredictions && mlResult.topPredictions.length > 0
+                      ? mlResult.topPredictions.slice(0, 3)
+                      : [
+                          {
+                            rawClass: mlResult.rawClass,
+                            label: mlResult.label,
+                            confidence: mlResult.confidence,
+                            confidencePercentage: mlResult.confidencePercentage,
+                            mappedCategory: mlResult.mappedCategory,
+                            suggestedSeverity: mlResult.suggestedSeverity,
+                          },
+                        ]
+                    ).map((pred, idx) => {
+                      const isSelected = (pred.mappedCategory && category === pred.mappedCategory) || (!category && idx === 0);
+                      const rankLabels = ["#1 Top Match", "#2 Alternative Match", "#3 Candidate Match"];
+                      const rankPillStyles = [
+                        "bg-emerald-600 text-white",
+                        "bg-blue-600 text-white",
+                        "bg-slate-600 text-white",
+                      ];
+                      const confPercentNum = Math.min(100, Math.max(0, Math.round((pred.confidence || 0) * 100)));
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            if (pred.mappedCategory) {
+                              setCategory(pred.mappedCategory as HazardCategory);
+                            }
+                            if (pred.suggestedSeverity) {
+                              setSeverity(pred.suggestedSeverity as Severity);
+                            }
+                          }}
+                          className={`relative p-3 rounded-xl text-left transition-all border ${
+                            isSelected
+                              ? "bg-white border-emerald-500 shadow-md ring-2 ring-emerald-500/20"
+                              : "bg-white/80 hover:bg-white border-emerald-100 hover:border-emerald-300 shadow-xs hover:shadow"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-2">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${rankPillStyles[idx] || "bg-gray-500 text-white"}`}>
+                              {rankLabels[idx] || `#${idx + 1}`}
+                            </span>
+                            {isSelected ? (
+                              <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-0.5 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                <Check className="w-3 h-3 text-emerald-600" /> Active
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted hover:text-emerald-700">Select ↗</span>
+                            )}
+                          </div>
+
+                          <p className="text-sm font-bold text-foreground leading-snug line-clamp-1 mb-1.5">
+                            {pred.label}
+                          </p>
+
+                          <div className="space-y-1 mb-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted text-[11px]">Confidence</span>
+                              <span className="font-extrabold text-foreground text-xs">
+                                {pred.confidencePercentage}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  idx === 0
+                                    ? "bg-emerald-500"
+                                    : idx === 1
+                                    ? "bg-blue-500"
+                                    : "bg-amber-500"
+                                }`}
+                                style={{ width: `${confPercentNum}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] text-muted pt-1.5 border-t border-gray-100">
+                            <span className="truncate">
+                              {pred.mappedCategory ? categoryLabels[pred.mappedCategory as HazardCategory] || pred.mappedCategory : "Other"}
+                            </span>
+                            {pred.suggestedSeverity && (
+                              <span className="font-semibold capitalize text-[10px] px-1.5 py-0.2 rounded bg-gray-100 text-gray-700">
+                                {pred.suggestedSeverity}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer disclaimer and summary */}
+                <div className="pt-2 border-t border-emerald-200/60 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-xs text-emerald-900">
                   <span className="text-[11px] text-emerald-800">
                     Selected Category: <strong className="font-bold capitalize">{category ? categoryLabels[category] || category : mlResult.label}</strong>
                   </span>
-                  <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
-                    Severity: <strong className="capitalize">{severity}</strong>
+                  <span className="text-[10px] text-emerald-800/80 italic">
+                    AI confidence is an automated estimate and not a guaranteed determination.
                   </span>
                 </div>
               </div>

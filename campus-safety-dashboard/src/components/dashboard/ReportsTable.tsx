@@ -7,7 +7,7 @@ import { getAllMergedReports, updateLocalReport } from "@/lib/localReportsStore"
 import { categoryLabels, type HazardCategory, type Status, type Severity, type HazardReport } from "@/types";
 import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
-import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Image as ImageIcon, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchFromApi } from "@/lib/api";
 
@@ -120,20 +120,46 @@ export default function ReportsTable() {
     try {
       let pred: any = null;
 
-      // 1. Try FastAPI ML engine directly (port 8000, pre-warmed model, ~150ms)
+      // 1. Try FastAPI ML engine directly (port 8000, pre-warmed EfficientNetV2-S)
       try {
         const c1 = new AbortController();
-        const t1 = setTimeout(() => c1.abort(), 1800);
-        const fRes = await fetch('http://127.0.0.1:8000/api/v1/predict', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: imageSrc }),
-          signal: c1.signal,
-        });
+        const t1 = setTimeout(() => c1.abort(), 3500);
+
+        let fRes: Response | null = null;
+        if (typeof imageSrc === 'string' && imageSrc.startsWith('data:image')) {
+          const parts = imageSrc.split(';base64,');
+          if (parts.length === 2) {
+            const mimeType = parts[0].replace('data:', '') || 'image/jpeg';
+            const byteCharacters = atob(parts[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const blob = new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+            const formData = new FormData();
+            formData.append('file', blob, 'road.jpg');
+
+            fRes = await fetch('http://127.0.0.1:8000/predict', {
+              method: 'POST',
+              body: formData,
+              signal: c1.signal,
+            });
+          }
+        }
+
+        if (!fRes) {
+          fRes = await fetch('http://127.0.0.1:8000/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imageSrc }),
+            signal: c1.signal,
+          });
+        }
         clearTimeout(t1);
-        if (fRes.ok) {
+
+        if (fRes && fRes.ok) {
           const body = await fRes.json();
-          if (body && body.success) pred = body;
+          if (body && (body.prediction || body.rawClass)) pred = body;
         }
       } catch (fErr) {}
 
@@ -410,36 +436,84 @@ export default function ReportsTable() {
                     <span>Analyzing hazard photo...</span>
                   </div>
                 ) : selected.mlPrediction ? (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> AI Classification
+                  <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> AI Road Hazard Prediction
                       </span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        {selected.mlPrediction.confidencePercentage} Confidence
+                        {selected.mlPrediction.confidencePercentage || `${Math.round((selected.mlPrediction.confidence || 0) * 100)}%`} Confidence
                       </span>
                     </div>
-                    <p className="text-sm font-bold text-foreground">
-                      {selected.mlPrediction.label}
-                    </p>
-                    <p className="text-xs text-muted font-mono mt-0.5">
-                      Detected: {selected.mlPrediction.label}
-                    </p>
-                    {selected.mlPrediction.topPredictions && selected.mlPrediction.topPredictions.length > 1 && (
-                      <div className="mt-2.5 pt-2 border-t border-emerald-500/20 flex flex-wrap gap-2 text-xs">
-                        <span className="text-muted">Top Predictions:</span>
-                        {selected.mlPrediction.topPredictions.map((top, idx) => (
-                          <span key={idx} className="text-muted">
-                            {top.label}: <strong className="text-foreground">{top.confidencePercentage}</strong>
-                          </span>
-                        ))}
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-foreground">
+                          {selected.mlPrediction.label}
+                        </p>
+                        <p className="text-[11px] text-muted font-mono mt-0.5">
+                          Signature: {selected.mlPrediction.rawClass}
+                        </p>
+                      </div>
+                      {/* Visual Severity Indicator */}
+                      {selected.mlPrediction.suggestedSeverity === "high" || selected.mlPrediction.suggestedSeverity === "critical" ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span> High Priority
+                        </span>
+                      ) : selected.mlPrediction.suggestedSeverity === "medium" ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Moderate
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Low / Repaired
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Low Confidence Alert */}
+                    {(selected.mlPrediction.low_confidence || selected.mlPrediction.isLowConfidence) && (
+                      <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2 text-xs text-amber-300">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-amber-300">Low confidence prediction</p>
+                          <p className="text-[11px] text-amber-400/80">Please upload a clearer road image for better results or review carefully.</p>
+                        </div>
                       </div>
                     )}
-                    <div className="mt-2 pt-2 border-t border-emerald-500/20 flex justify-end">
+
+                    {/* Top 3 Predictions */}
+                    {selected.mlPrediction.topPredictions && selected.mlPrediction.topPredictions.length > 0 && (
+                      <div className="pt-2 border-t border-emerald-500/20 space-y-1.5">
+                        <p className="text-[11px] font-semibold text-muted uppercase">Top Ranked Signatures:</p>
+                        <div className="space-y-1">
+                          {selected.mlPrediction.topPredictions.slice(0, 3).map((top, idx) => {
+                            const confPct = Math.round((top.confidence || 0) * 100);
+                            return (
+                              <div key={idx} className="bg-black/20 p-1.5 rounded-lg border border-border/50 text-xs">
+                                <div className="flex justify-between items-center mb-1">
+                                  <span className="font-medium text-foreground">{top.label || top.rawClass}</span>
+                                  <span className="font-bold text-emerald-400">{top.confidencePercentage || `${confPct}%`}</span>
+                                </div>
+                                <div className="w-full bg-muted/20 rounded-full h-1 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${idx === 0 ? "bg-emerald-500" : idx === 1 ? "bg-blue-500" : "bg-amber-500"}`}
+                                    style={{ width: `${confPct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[10px] text-muted">
+                      <span className="italic">AI confidence is an automated estimate</span>
                       <button
                         type="button"
                         onClick={() => selected.images?.[0] && runOnDemandAnalysis(selected.id, selected.images[0])}
-                        className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                        className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold"
                       >
                         <RefreshCw className="w-3 h-3" /> Re-classify Photo
                       </button>
