@@ -18,8 +18,10 @@ import {
   CheckCircle2,
   ExternalLink,
   ShieldAlert,
+  BarChart3,
+  PieChart,
 } from "lucide-react";
-import { fetchFromFastApi, getFastApiWsUrl } from "@/lib/api";
+import { fetchFromFastApi, getFastApiWsUrl, FASTAPI_BASE, fetchRecentTelemetry } from "@/lib/api";
 
 interface ProcessedTelemetry {
   vehicle_count: number;
@@ -90,6 +92,14 @@ export default function TrafficRadarPage() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [selectedBreach, setSelectedBreach] = useState<BreachRecord | null>(null);
+  const [extraAnalytics, setExtraAnalytics] = useState<{
+    total_vehicles_observed: number;
+    total_violations: number;
+    compliance_rate_pct: number;
+    peak_violation_hour: string;
+    speed_distribution: Record<string, number>;
+    vehicle_type_breakdown: Record<string, number>;
+  } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   // Fallback initial sample data if backend is offline
@@ -125,19 +135,30 @@ export default function TrafficRadarPage() {
 
   const loadAllData = async () => {
     try {
-      const statsRes = await fetchFromFastApi("/api/v1/telemetry/stats");
+      // 1. Fetch consolidated recent telemetry & breaches
+      const recentRes = await fetchRecentTelemetry(120, selectedNode).catch(() => null);
+      if (recentRes?.success) {
+        if (recentRes.analytics) setExtraAnalytics(recentRes.analytics);
+        if (recentRes.stats) setStats(recentRes.stats);
+        if (recentRes.breaches && recentRes.breaches.length > 0) {
+          setBreaches(recentRes.breaches as any);
+        }
+      }
+
+      // 2. Fallbacks and granular queries
+      const statsRes = await fetchFromFastApi("/api/v1/telemetry/stats").catch(() => null);
       if (statsRes?.data) setStats(statsRes.data);
 
-      const latestRes = await fetchFromFastApi(`/api/v1/telemetry/latest?device_id=${selectedNode}`);
+      const latestRes = await fetchFromFastApi(`/api/v1/telemetry/latest?device_id=${selectedNode}`).catch(() => null);
       if (latestRes?.data) setTelemetry(latestRes.data);
 
-      const histRes = await fetchFromFastApi(`/api/v1/telemetry/history?device_id=${selectedNode}&limit=12`);
+      const histRes = await fetchFromFastApi(`/api/v1/telemetry/history?device_id=${selectedNode}&limit=12`).catch(() => null);
       if (histRes?.data) setHistory(histRes.data);
 
-      const breachesRes = await fetchFromFastApi("/api/v1/telemetry/breaches?limit=15");
-      if (breachesRes?.data) setBreaches(breachesRes.data);
+      const breachesRes = await fetchFromFastApi("/api/v1/telemetry/breaches?limit=15").catch(() => null);
+      if (breachesRes?.data && breachesRes.data.length > 0) setBreaches(breachesRes.data);
 
-      const alRes = await fetchFromFastApi("/api/v1/telemetry/active-learning");
+      const alRes = await fetchFromFastApi("/api/v1/telemetry/active-learning").catch(() => null);
       if (alRes?.data) setActiveLearningQueue(alRes.data);
     } catch {
       if (!telemetry) setTelemetry(fallbackTelemetry);
@@ -447,6 +468,78 @@ export default function TrafficRadarPage() {
         </div>
       </div>
 
+      {/* Consolidated Traffic Telemetry & Velocity Distribution Analytics */}
+      {extraAnalytics && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Velocity Distribution */}
+          <div className="bg-sidebar border border-border rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                <span>Speed Distribution</span>
+              </h4>
+              <span className="text-[10px] text-muted font-mono">Past 2 Hours</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(extraAnalytics.speed_distribution || {}).map(([bucket, count]) => (
+                <div key={bucket} className="bg-card/70 border border-border/60 rounded-xl p-2.5">
+                  <span className="text-[10px] text-muted block font-medium">{bucket}</span>
+                  <span className="text-sm font-bold font-mono text-foreground">{count} <span className="text-[10px] font-normal text-muted">passes</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Vehicle Classification Breakdown */}
+          <div className="bg-sidebar border border-border rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Car className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Vehicle Fleet Split</span>
+              </h4>
+              <span className="text-[10px] text-muted font-mono">YOLOv8 Classified</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(extraAnalytics.vehicle_type_breakdown || {}).length > 0 ? (
+                Object.entries(extraAnalytics.vehicle_type_breakdown).map(([vtype, count]) => (
+                  <div key={vtype} className="flex items-center justify-between bg-card/70 border border-border/60 rounded-xl px-3 py-2 flex-1 min-w-[100px]">
+                    <span className="text-xs font-medium text-foreground">{vtype}</span>
+                    <span className="text-xs font-bold font-mono text-primary">{count}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-muted p-2">Monitoring incoming traffic passes...</div>
+              )}
+            </div>
+          </div>
+
+          {/* Compliance & Rush-Hour Peak */}
+          <div className="bg-sidebar border border-border rounded-2xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Safety Compliance & Trends</span>
+              </h4>
+              <span className="text-[10px] text-emerald-400 font-semibold font-mono">Live Ingestion</span>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center bg-card/70 border border-border/60 rounded-xl p-2.5">
+                <span className="text-muted">Compliance Rate</span>
+                <span className="font-bold text-emerald-400 font-mono text-sm">
+                  {extraAnalytics.compliance_rate_pct}%
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-card/70 border border-border/60 rounded-xl p-2.5">
+                <span className="text-muted">Peak Violation Hour</span>
+                <span className="font-bold text-red-400 font-mono text-sm">
+                  {extraAnalytics.peak_violation_hour}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Speed Breaches & Server-Side Machine Learning Vision Feed with HSRP Plate Display */}
       <div className="bg-sidebar border border-border rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -474,6 +567,7 @@ export default function TrafficRadarPage() {
                 <th className="p-3">Clocked Speed</th>
                 <th className="p-3">Vehicle Type (PCE)</th>
                 <th className="p-3 text-center">Vehicle Number Plate (ALPR)</th>
+                <th className="p-3">Snapshot</th>
                 <th className="p-3">OCR Confidence</th>
                 <th className="p-3">Active Learning Queue</th>
               </tr>
@@ -481,7 +575,7 @@ export default function TrafficRadarPage() {
             <tbody className="divide-y divide-border">
               {breaches.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-muted">
+                  <td colSpan={9} className="p-6 text-center text-muted">
                     No speed breaches logged yet. Vehicles are currently traveling within the posted limit.
                   </td>
                 </tr>
@@ -513,6 +607,21 @@ export default function TrafficRadarPage() {
                         </div>
                         <span className="font-extrabold tracking-widest text-zinc-950">{b.license_plate}</span>
                       </div>
+                    </td>
+                    {/* Camera Snapshot Thumbnail */}
+                    <td className="p-3">
+                      {b.image_url ? (
+                        <div className="flex items-center gap-1.5">
+                          <img
+                            src={b.image_url.startsWith('http') ? b.image_url : `${FASTAPI_BASE}${b.image_url}`}
+                            alt="Snapshot"
+                            className="w-10 h-7 object-cover rounded border border-border"
+                          />
+                          <Camera className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                      ) : (
+                        <span className="text-muted text-[10px]">No Photo</span>
+                      )}
                     </td>
                     <td className="p-3">
                       <span
@@ -560,6 +669,28 @@ export default function TrafficRadarPage() {
                 ✕ Close
               </button>
             </div>
+
+            {/* Camera Evidence Snapshot */}
+            {selectedBreach.image_url ? (
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black/60">
+                <img
+                  src={
+                    selectedBreach.image_url.startsWith("http")
+                      ? selectedBreach.image_url
+                      : `${FASTAPI_BASE}${selectedBreach.image_url}`
+                  }
+                  alt={`Evidence Snapshot ${selectedBreach.breach_id}`}
+                  className="w-full h-48 object-cover rounded-xl"
+                  onError={(e) => {
+                    // Hide if file not found
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+                <div className="absolute top-2 left-2 px-2.5 py-1 rounded bg-black/80 text-red-400 font-mono text-[11px] font-bold backdrop-blur-sm border border-red-500/30">
+                  RADAR CLOCKED: {selectedBreach.speed_kmh} km/h (Limit: {selectedBreach.posted_limit_kmh} km/h)
+                </div>
+              </div>
+            ) : null}
 
             {/* Official HSRP Plate Header */}
             <div className="p-4 bg-card rounded-xl border border-border flex flex-col items-center justify-center space-y-2">

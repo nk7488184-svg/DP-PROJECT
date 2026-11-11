@@ -38,6 +38,7 @@ app.add_middleware(
 evidence_dir = os.path.join(os.path.dirname(__file__), "storage", "evidence")
 os.makedirs(evidence_dir, exist_ok=True)
 app.mount("/evidence", StaticFiles(directory=evidence_dir), name="evidence")
+app.mount("/media", StaticFiles(directory=evidence_dir), name="media")
 
 # Register Routers
 app.include_router(telemetry_router)

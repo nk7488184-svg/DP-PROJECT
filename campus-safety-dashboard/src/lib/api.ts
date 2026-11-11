@@ -107,3 +107,51 @@ export function getFastApiWsUrl(path: string = '/ws/telemetry'): string {
   const host = FASTAPI_BASE.replace(/^https?:\/\//, '');
   return `${wsProto}://${host}${cleanPath}`;
 }
+
+export async function fetchRecentTelemetry(minutes: number = 120, deviceId?: string) {
+  const params = new URLSearchParams({ minutes: minutes.toString() });
+  if (deviceId) {
+    params.append('device_id', deviceId);
+  }
+  return fetchFromFastApi<{
+    success: boolean;
+    window_minutes: number;
+    summaries: Array<{
+      timestamp: string;
+      avg_speed: number;
+      vehicle_count: number;
+      flow_rate_vph: number;
+      speed_85th_percentile: number;
+      congestion_status: string;
+      overspeed_count: number;
+      device_id: string;
+      road_name: string;
+    }>;
+    breaches: Array<{
+      breach_id: string;
+      timestamp: string;
+      speed: number;
+      speed_kmh: number;
+      posted_limit: number;
+      delta_over_limit: number;
+      plate_text: string;
+      license_plate: string;
+      image_url?: string;
+      vehicle_type: string;
+      severity: string;
+      ocr_confidence: number;
+      fine_suppressed: boolean;
+      device_id: string;
+      road_name: string;
+    }>;
+    analytics: {
+      total_vehicles_observed: number;
+      total_violations: number;
+      compliance_rate_pct: number;
+      peak_violation_hour: string;
+      speed_distribution: Record<string, number>;
+      vehicle_type_breakdown: Record<string, number>;
+    };
+    stats: any;
+  }>(`/api/v1/telemetry/recent?${params.toString()}`);
+}

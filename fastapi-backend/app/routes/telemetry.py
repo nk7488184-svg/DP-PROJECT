@@ -1,12 +1,134 @@
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+from datetime import datetime, timezone, timedelta
 from app.models import RawTelemetryPayload, SpeedBreachPayload, ProcessedTrafficAnalytics, ProcessedBreachRecord
-from app.analytics import compute_traffic_analytics
+from app.analytics import compute_traffic_analytics, parse_iso_or_now
 from app.ml_pipeline import process_speed_breach
 from app.database import db
 from app.websocket_manager import manager
 
 router = APIRouter(prefix="/api/v1/telemetry", tags=["Traffic Telemetry & Enforcement"])
+
+@router.get("/recent", summary="Get recent traffic summaries and overspeed breach events")
+async def get_recent_telemetry(
+    minutes: int = Query(120, ge=1, le=1440, description="Lookback window in minutes"),
+    device_id: Optional[str] = None
+):
+    """
+    Returns aggregated telemetry summaries and overspeed breach events within the last `minutes`
+    for the admin dashboard charts and violation tables.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(minutes=minutes)
+
+    # 1. Filter and format summaries
+    all_summaries = db.telemetry_history
+    if device_id:
+        all_summaries = [s for s in all_summaries if s.device_id == device_id]
+
+    recent_summaries = []
+    speed_buckets = {"<20 km/h": 0, "20-35 km/h": 0, "35-50 km/h": 0, ">50 km/h": 0}
+    total_vehicles = 0
+    total_overspeed = 0
+
+    for s in all_summaries:
+        s_dt = parse_iso_or_now(s.window_end or s.calculated_at)
+        if s_dt >= cutoff:
+            recent_summaries.append({
+                "timestamp": s.window_end or s.calculated_at,
+                "avg_speed": round(s.average_speed_kmh, 1),
+                "vehicle_count": s.vehicle_count,
+                "flow_rate_vph": s.flow_rate_vph,
+                "speed_85th_percentile": s.speed_85th_percentile,
+                "congestion_status": s.congestion_status,
+                "overspeed_count": s.overspeed_count,
+                "device_id": s.device_id,
+                "road_name": s.road_name,
+            })
+            total_vehicles += s.vehicle_count
+            total_overspeed += s.overspeed_count
+
+            # Speed distribution bucket
+            sp = s.average_speed_kmh
+            if sp < 20:
+                speed_buckets["<20 km/h"] += s.vehicle_count
+            elif sp <= 35:
+                speed_buckets["20-35 km/h"] += s.vehicle_count
+            elif sp <= 50:
+                speed_buckets["35-50 km/h"] += s.vehicle_count
+            else:
+                speed_buckets[">50 km/h"] += s.vehicle_count
+
+    # If recent_summaries is empty (e.g. fresh startup), return last 10 entries so UI always has data
+    if not recent_summaries and all_summaries:
+        for s in all_summaries[-10:]:
+            recent_summaries.append({
+                "timestamp": s.window_end or s.calculated_at,
+                "avg_speed": round(s.average_speed_kmh, 1),
+                "vehicle_count": s.vehicle_count,
+                "flow_rate_vph": s.flow_rate_vph,
+                "speed_85th_percentile": s.speed_85th_percentile,
+                "congestion_status": s.congestion_status,
+                "overspeed_count": s.overspeed_count,
+                "device_id": s.device_id,
+                "road_name": s.road_name,
+            })
+            total_vehicles += s.vehicle_count
+
+    # 2. Filter and format breaches
+    all_breaches = db.breaches
+    if device_id:
+        all_breaches = [b for b in all_breaches if b.device_id == device_id]
+
+    recent_breaches = []
+    vehicle_types: Dict[str, int] = {}
+    hour_counts: Dict[str, int] = {}
+
+    for b in all_breaches:
+        b_dt = parse_iso_or_now(b.timestamp)
+        if b_dt >= cutoff or len(recent_breaches) < 10:
+            recent_breaches.append({
+                "breach_id": b.breach_id,
+                "timestamp": b.timestamp,
+                "speed": round(b.speed_kmh, 1),
+                "speed_kmh": round(b.speed_kmh, 1),
+                "posted_limit": b.posted_limit_kmh,
+                "delta_over_limit": round(b.delta_over_limit, 1),
+                "plate_text": b.license_plate,
+                "license_plate": b.license_plate,
+                "image_url": b.image_url,
+                "vehicle_type": b.vehicle_type,
+                "severity": b.severity,
+                "ocr_confidence": round(b.ocr_confidence * 100, 1),
+                "fine_suppressed": b.fine_suppressed,
+                "device_id": b.device_id,
+                "road_name": b.road_name,
+            })
+            # Category counters
+            vt = b.vehicle_type or "Unknown"
+            vehicle_types[vt] = vehicle_types.get(vt, 0) + 1
+            # Peak violation hour
+            hr_str = b_dt.strftime("%H:00")
+            hour_counts[hr_str] = hour_counts.get(hr_str, 0) + 1
+
+    peak_hour = max(hour_counts, key=hour_counts.get) if hour_counts else "N/A"
+    compliance_rate = round(100.0 - (total_overspeed / max(1, total_vehicles) * 100.0), 1)
+
+    return {
+        "success": True,
+        "window_minutes": minutes,
+        "summaries": recent_summaries,
+        "breaches": recent_breaches,
+        "analytics": {
+            "total_vehicles_observed": total_vehicles,
+            "total_violations": len(recent_breaches),
+            "compliance_rate_pct": compliance_rate,
+            "peak_violation_hour": peak_hour,
+            "speed_distribution": speed_buckets,
+            "vehicle_type_breakdown": vehicle_types,
+        },
+        "stats": db.get_summary_stats()
+    }
 
 @router.post("/summary", response_model=dict, summary="Ingest periodic raw telemetry from Raspberry Pi")
 async def ingest_telemetry_summary(payload: RawTelemetryPayload, background_tasks: BackgroundTasks):
