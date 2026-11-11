@@ -84,7 +84,7 @@ interface ActiveLearningItem {
 }
 
 export default function TrafficRadarPage() {
-  const [selectedNode, setSelectedNode] = useState<string>("RPI4_NORTH_GATE");
+  const [selectedNode, setSelectedNode] = useState<string>("RPI4_CAMERA_UNIT_01");
   const [telemetry, setTelemetry] = useState<ProcessedTelemetry | null>(null);
   const [history, setHistory] = useState<ProcessedTelemetry[]>([]);
   const [breaches, setBreaches] = useState<BreachRecord[]>([]);
@@ -123,15 +123,15 @@ export default function TrafficRadarPage() {
     radar_occupancy_pct: 18.5,
     congestion_index: 0.86,
     fine_suppression_active: false,
-    device_id: "RPI4_NORTH_GATE",
-    road_name: "North Campus Main Gate Road",
+    device_id: "RPI4_CAMERA_UNIT_01",
+    road_name: "Campus Test Corridor",
     window_start: new Date(Date.now() - 300000).toISOString(),
     window_end: new Date().toISOString(),
     window_duration_seconds: 300,
     is_peak_hour: false,
     calculated_at: new Date().toISOString(),
-    latitude: 31.7816,
-    longitude: 76.9972,
+    latitude: 0.0,
+    longitude: 0.0,
   };
 
   const loadAllData = async () => {
@@ -274,15 +274,10 @@ export default function TrafficRadarPage() {
             </span>
           </div>
 
-          <select
-            value={selectedNode}
-            onChange={(e) => setSelectedNode(e.target.value)}
-            className="bg-card border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            <option value="RPI4_NORTH_GATE">Node 1: North Campus Main Gate (30 km/h)</option>
-            <option value="RPI4_SOUTH_ACADEMIC">Node 2: South Campus Academic Block (35 km/h)</option>
-            <option value="RPI4_HOSTEL_ROAD">Node 3: Chandra Taal Hostel Road (25 km/h)</option>
-          </select>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-medium text-foreground">
+            <Camera className="w-3.5 h-3.5 text-primary" />
+            <span>Single-Camera Radar Unit (Active)</span>
+          </div>
 
           <button
             onClick={handleTriggerTestBurst}
@@ -570,7 +565,7 @@ export default function TrafficRadarPage() {
               <tr>
                 <th className="p-3">Breach ID</th>
                 <th className="p-3">Timestamp</th>
-                <th className="p-3">Location / Road</th>
+                <th className="p-3">Sensing Unit</th>
                 <th className="p-3">Clocked Speed</th>
                 <th className="p-3">Vehicle Type (PCE)</th>
                 <th className="p-3 text-center">Vehicle Number Plate (ALPR)</th>
@@ -597,7 +592,7 @@ export default function TrafficRadarPage() {
                     <td className="p-3 text-muted" suppressHydrationWarning>
                       {new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
-                    <td className="p-3 text-foreground font-medium">{b.road_name}</td>
+                    <td className="p-3 text-foreground font-medium">Unit 01 (Radar+Cam)</td>
                     <td className="p-3 font-mono">
                       <span className="text-red-400 font-bold">{b.speed_kmh} km/h</span>
                       <span className="text-[10px] text-muted ml-1.5">(+{b.delta_over_limit} over)</span>
@@ -729,8 +724,8 @@ export default function TrafficRadarPage() {
                 <span className="font-mono font-bold text-red-500">+{selectedBreach.delta_over_limit} km/h Over</span>
               </div>
               <div className="flex justify-between py-1 border-b border-border/40">
-                <span className="text-muted">Location</span>
-                <span className="text-foreground font-medium">{selectedBreach.road_name}</span>
+                <span className="text-muted">Capturing Sensor</span>
+                <span className="text-foreground font-medium">Single Edge Unit (RPi-4 + Camera 3)</span>
               </div>
               <div className="flex justify-between py-1 border-b border-border/40">
                 <span className="text-muted">Vehicle Classification</span>

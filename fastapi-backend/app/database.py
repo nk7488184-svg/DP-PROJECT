@@ -103,7 +103,7 @@ def _generate_synthetic_evidence_image(disk_path: str, plate: str, speed: float,
 
         # 4. Telemetry OSD Header & Footer (as captured by RPi sensor edge node)
         draw.rectangle([0, 0, w, 28], fill=(15, 18, 24))
-        draw.text((12, 8), f"RPi-4 RADAR [NODE: {node_id}] | ROAD: {road_name}", fill=(200, 210, 225))
+        draw.text((12, 8), "RPi-4 CAMERA SENSING UNIT 01 | RADAR SPEED ENFORCEMENT", fill=(200, 210, 225))
         
         draw.rectangle([0, h - 28, w, h], fill=(15, 18, 24))
         draw.text((12, h - 20), f"TIMESTAMP: {timestamp_str[:19].replace('T', ' ')} IST", fill=(200, 210, 225))
@@ -139,69 +139,30 @@ class TelemetryStore:
         self.breaches: List[ProcessedBreachRecord] = []
         self.active_learning_queue: List[ActiveLearningSample] = []
         self.nodes: Dict[str, dict] = {
-            "RPI4_NORTH_GATE": {
-                "device_id": "RPI4_NORTH_GATE",
-                "name": "North Campus Main Gate Sensor",
-                "location": "North Campus Gate, IIT Mandi",
-                "latitude": 31.7816,
-                "longitude": 76.9972,
+            "RPI4_CAMERA_UNIT_01": {
+                "device_id": "RPI4_CAMERA_UNIT_01",
+                "name": "Edge Roadside Sensing Unit (Radar + Camera)",
+                "location": "Campus Test Corridor",
                 "posted_limit": 20.0,
                 "status": "online",
-                "last_seen": "2026-11-11T18:25:00+05:30",
+                "last_seen": "2026-11-11T23:55:00+05:30",
                 "firmware": "v2.4-c++17-radar",
                 "radar_model": "HLK-LD2415H 24GHz",
-                "network": "4G LTE (Tailscale 100.84.12.5)",
-            },
-            "RPI4_SOUTH_ACADEMIC": {
-                "device_id": "RPI4_SOUTH_ACADEMIC",
-                "name": "South Campus Academic Block Road",
-                "location": "Near A16 / Academic Complex",
-                "latitude": 31.7754,
-                "longitude": 76.9861,
-                "posted_limit": 20.0,
-                "status": "online",
-                "last_seen": "2026-11-11T18:25:00+05:30",
-                "firmware": "v2.4-c++17-radar",
-                "radar_model": "HLK-LD2415H 24GHz",
-                "network": "4G LTE (Tailscale 100.84.12.6)",
-            },
-            "RPI4_HOSTEL_ROAD": {
-                "device_id": "RPI4_HOSTEL_ROAD",
-                "name": "Chandra Taal Hostel Road",
-                "location": "Hostel Zone Access Loop",
-                "latitude": 31.7768,
-                "longitude": 76.9882,
-                "posted_limit": 20.0,
-                "status": "online",
-                "last_seen": "2026-11-11T18:25:00+05:30",
-                "firmware": "v2.4-c++17-radar",
-                "radar_model": "HLK-LD2415H 24GHz",
-                "network": "4G LTE (Tailscale 100.84.12.7)",
+                "camera_model": "Raspberry Pi Camera Module 3 (Single Camera Setup)",
+                "network": "Wi-Fi / 4G LTE",
             }
         }
         self._seed_nov11_full_day()
 
     # ──────────────────────────────────────────────────────────────────
     # FULL-DAY SYNTHETIC SEED: November 11 2026, 00:00 IST → 23:55 IST
-    # 288 five-minute windows × 2 nodes = 576 telemetry records
-    # ~28 speed breach events with realistic plate OCR
+    # 288 five-minute windows for the single camera sensing node
     # ──────────────────────────────────────────────────────────────────
     def _seed_nov11_full_day(self):
         """
         Generates a complete 24-hour synthetic dataset for November 11, 2026
-        that mirrors realistic IIT Mandi campus traffic patterns recorded by
-        two HLK-LD2415H 24 GHz Doppler radar + Pi Camera Module 3 nodes.
-
-        Traffic profile (IST):
-          00:00–05:59  Night      – very low traffic (2-6 vehicles / 5 min)
-          06:00–07:59  Early AM   – gradual ramp-up
-          08:00–10:30  Morning    – PEAK (classes, staff arrival)
-          10:30–12:00  Late AM    – moderate
-          12:00–14:00  Lunch      – secondary peak
-          14:00–16:30  Afternoon  – moderate
-          17:00–19:30  Evening    – PEAK (hostel return, dinner)
-          19:30–21:00  Post-peak  – tapering
-          21:00–23:59  Late night – low
+        from a single Raspberry Pi 4 edge sensing unit (HLK-LD2415H 24 GHz
+        Doppler radar + Camera Module 3) stationed along the campus test corridor.
         """
         IST = timezone(timedelta(hours=5, minutes=30))
         # Start of day: Nov 11 2026 00:00 IST
@@ -209,21 +170,13 @@ class TelemetryStore:
 
         NODES = [
             {
-                "device_id": "RPI4_NORTH_GATE",
-                "road_name": "North Campus Main Gate Road",
+                "device_id": "RPI4_CAMERA_UNIT_01",
+                "road_name": "Campus Test Corridor",
                 "posted_limit": 20.0,
-                "lat": 31.7816,
-                "lng": 76.9972,
-                "base_factor": 1.0,   # traffic multiplier
-            },
-            {
-                "device_id": "RPI4_SOUTH_ACADEMIC",
-                "road_name": "South Campus Academic Complex Road",
-                "posted_limit": 20.0,
-                "lat": 31.7754,
-                "lng": 76.9861,
-                "base_factor": 1.25,
-            },
+                "lat": 0.0,
+                "lng": 0.0,
+                "base_factor": 1.0,
+            }
         ]
 
         breach_counter = 1000

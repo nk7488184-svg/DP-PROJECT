@@ -32,10 +32,10 @@ except ImportError:
 # Configuration (Can also be overridden via command-line flags)
 # ---------------------------------------------------------------------------
 DEFAULT_BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
-DEFAULT_DEVICE_ID = os.environ.get("DEVICE_ID", "RPI4_NORTH_GATE")
-DEFAULT_ROAD_NAME = os.environ.get("ROAD_NAME", "North Campus Main Gate Road")
-DEFAULT_POSTED_LIMIT = float(os.environ.get("POSTED_LIMIT", "30.0"))
-DEFAULT_OVERSPEED_THRESHOLD = float(os.environ.get("OVERSPEED_THRESHOLD", "35.0"))
+DEFAULT_DEVICE_ID = os.environ.get("DEVICE_ID", "RPI4_CAMERA_UNIT_01")
+DEFAULT_ROAD_NAME = os.environ.get("ROAD_NAME", "Campus Test Corridor")
+DEFAULT_POSTED_LIMIT = float(os.environ.get("POSTED_LIMIT", "20.0"))
+DEFAULT_OVERSPEED_THRESHOLD = float(os.environ.get("OVERSPEED_THRESHOLD", "24.0"))
 DEFAULT_POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL", "2.0"))   # seconds between radar reads
 DEFAULT_SUMMARY_INTERVAL = int(os.environ.get("SUMMARY_INTERVAL", "60")) # seconds per aggregated summary
 
