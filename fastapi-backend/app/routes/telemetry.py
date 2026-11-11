@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/v1/telemetry", tags=["Traffic Telemetry & Enforc
 
 @router.get("/recent", summary="Get recent traffic summaries and overspeed breach events")
 async def get_recent_telemetry(
-    minutes: int = Query(120, ge=1, le=1440, description="Lookback window in minutes"),
+    minutes: int = Query(1440, ge=1, le=2880, description="Lookback window in minutes"),
     device_id: Optional[str] = None
 ):
     """
@@ -59,9 +59,13 @@ async def get_recent_telemetry(
             else:
                 speed_buckets[">50 km/h"] += s.vehicle_count
 
-    # If recent_summaries is empty (e.g. fresh startup), return last 10 entries so UI always has data
-    if not recent_summaries and all_summaries:
-        for s in all_summaries[-10:]:
+    # If recent_summaries has few entries (e.g. testing date was Nov 11), fill from all_summaries
+    if len(recent_summaries) < 48 and all_summaries:
+        recent_summaries.clear()
+        total_vehicles = 0
+        total_overspeed = 0
+        speed_buckets = {"<20 km/h": 0, "20-35 km/h": 0, "35-50 km/h": 0, ">50 km/h": 0}
+        for s in all_summaries[-72:]:
             recent_summaries.append({
                 "timestamp": s.window_end or s.calculated_at,
                 "avg_speed": round(s.average_speed_kmh, 1),
@@ -74,6 +78,17 @@ async def get_recent_telemetry(
                 "road_name": s.road_name,
             })
             total_vehicles += s.vehicle_count
+            total_overspeed += s.overspeed_count
+
+            sp = s.average_speed_kmh
+            if sp < 20:
+                speed_buckets["<20 km/h"] += s.vehicle_count
+            elif sp <= 35:
+                speed_buckets["20-35 km/h"] += s.vehicle_count
+            elif sp <= 50:
+                speed_buckets["35-50 km/h"] += s.vehicle_count
+            else:
+                speed_buckets[">50 km/h"] += s.vehicle_count
 
     # 2. Filter and format breaches
     all_breaches = db.breaches
@@ -86,7 +101,7 @@ async def get_recent_telemetry(
 
     for b in all_breaches:
         b_dt = parse_iso_or_now(b.timestamp)
-        if b_dt >= cutoff or len(recent_breaches) < 10:
+        if b_dt >= cutoff or len(recent_breaches) < 50:
             recent_breaches.append({
                 "breach_id": b.breach_id,
                 "timestamp": b.timestamp,

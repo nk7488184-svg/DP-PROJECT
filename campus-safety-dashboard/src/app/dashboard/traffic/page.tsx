@@ -20,6 +20,7 @@ import {
   ShieldAlert,
   BarChart3,
   PieChart,
+  Calendar,
 } from "lucide-react";
 import { fetchFromFastApi, getFastApiWsUrl, FASTAPI_BASE, fetchRecentTelemetry } from "@/lib/api";
 
@@ -246,7 +247,13 @@ export default function TrafficRadarPage() {
               <Radio className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Edge Radar Telemetry & Enforcement</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-bold text-foreground">Edge Radar Telemetry & Enforcement</h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold">
+                  <Calendar className="w-3 h-3" />
+                  Testing Date: 11 Nov 2026 (24-Hour Continuous Field Run)
+                </span>
+              </div>
               <p className="text-xs text-muted mt-0.5">
                 Raspberry Pi 4 (2GB) Zero-AI State Machine + HLK-LD2415H 24GHz Doppler Radar Telemetry Ingestion
               </p>
@@ -448,7 +455,7 @@ export default function TrafficRadarPage() {
                   <div key={idx} className="p-3 flex items-center justify-between hover:bg-card/40 transition-colors">
                     <div>
                       <span className="font-mono font-bold text-foreground">{h.device_id}</span>
-                      <span className="text-muted ml-2">
+                      <span className="text-muted ml-2" suppressHydrationWarning>
                         {new Date(h.calculated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </span>
                     </div>
@@ -587,7 +594,7 @@ export default function TrafficRadarPage() {
                     className="hover:bg-card/60 transition-colors cursor-pointer"
                   >
                     <td className="p-3 font-mono font-bold text-foreground">{b.breach_id}</td>
-                    <td className="p-3 text-muted">
+                    <td className="p-3 text-muted" suppressHydrationWarning>
                       {new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td className="p-3 text-foreground font-medium">{b.road_name}</td>
@@ -731,7 +738,7 @@ export default function TrafficRadarPage() {
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted">Timestamp</span>
-                <span className="text-foreground font-mono">{new Date(selectedBreach.timestamp).toLocaleString()}</span>
+                <span className="text-foreground font-mono" suppressHydrationWarning>{new Date(selectedBreach.timestamp).toLocaleString()}</span>
               </div>
             </div>
 
