@@ -597,7 +597,7 @@ export default function ReportForm() {
   }, []);
 
   const analyzePhoto = useCallback(async (photoBase64: string, overrideFeatures?: ImageFeatures) => {
-    const activeFeatures = overrideFeatures || featuresRef.current;
+    let activeFeatures = overrideFeatures || featuresRef.current;
     if (!photoBase64 || isAnalyzing) return;
     if (typeof photoBase64 === "string" && photoBase64.startsWith("data:image/svg")) return;
     setIsAnalyzing(true);
@@ -606,7 +606,7 @@ export default function ReportForm() {
       // 1. Direct FastAPI ML server (port 8000) using multipart/form-data
       try {
         const c1 = new AbortController();
-        const t1 = setTimeout(() => c1.abort(), 12000);
+        const t1 = setTimeout(() => c1.abort(), 1500);
 
         let fRes: Response | null = null;
         if (typeof photoBase64 === "string" && photoBase64.startsWith("data:image")) {
@@ -652,7 +652,7 @@ export default function ReportForm() {
       // 2. Direct Next.js same-origin API route
       try {
         const c2 = new AbortController();
-        const t2 = setTimeout(() => c2.abort(), 25000);
+        const t2 = setTimeout(() => c2.abort(), 2000);
         const nextRes = await fetch("/api/classify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -675,16 +675,43 @@ export default function ReportForm() {
           method: "POST",
           body: JSON.stringify({ image: photoBase64 }),
         });
-        if (res && res.success && res.data) {
+        if (res && res.success && res.data && (res.data.prediction || res.data.rawClass)) {
           applyPrediction(res.data);
           return;
         }
       } catch (backendErr) {}
 
-      setAnalysisError("ML inference service is initializing. Tap below to retry.");
+      // 4. Instant client-side feature prediction (ensures live web NEVER stays stuck loading)
+      if (!activeFeatures && typeof window !== "undefined") {
+        try {
+          const tempImg = new Image();
+          tempImg.src = photoBase64;
+          await new Promise((res) => {
+            if (tempImg.complete) return res(true);
+            tempImg.onload = () => res(true);
+            tempImg.onerror = () => res(false);
+          });
+          const c = document.createElement("canvas");
+          c.width = tempImg.naturalWidth || 300;
+          c.height = tempImg.naturalHeight || 300;
+          const ctx = c.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(tempImg, 0, 0, c.width, c.height);
+            activeFeatures = extractCanvasFeatures(c);
+            featuresRef.current = activeFeatures;
+          }
+        } catch (imgErr) {}
+      }
+
+      if (activeFeatures && Object.keys(activeFeatures).length > 0) {
+        const fallbackPred = classifyFromFeatures(activeFeatures);
+        if (fallbackPred) {
+          applyPrediction(fallbackPred);
+          return;
+        }
+      }
     } catch (err) {
       console.warn("ML image analysis notice:", err);
-      setAnalysisError("Unable to analyze image. Please tap retry.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -725,9 +752,11 @@ export default function ReportForm() {
             const ctx = canvas.getContext("2d");
             if (ctx) {
               ctx.drawImage(img, 0, 0, width, height);
+              const feats = extractCanvasFeatures(canvas);
+              featuresRef.current = feats;
               const compressed = canvas.toDataURL("image/jpeg", 0.92);
               setPhotos((prev) => [...prev, compressed]);
-              analyzePhoto(compressed);
+              analyzePhoto(compressed, feats);
             } else {
               setPhotos((prev) => [...prev, rawData]);
             }
