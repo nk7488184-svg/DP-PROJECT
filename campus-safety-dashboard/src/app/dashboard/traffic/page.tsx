@@ -109,19 +109,19 @@ export default function TrafficRadarPage() {
     flow_rate_vph: 264.0,
     approaching_count: 14,
     receding_count: 8,
-    average_speed_kmh: 33.6,
-    speed_85th_percentile: 39.9,
-    median_speed_kmh: 31.8,
-    speed_std_dev: 6.52,
-    max_speed_kmh: 48.2,
-    min_speed_kmh: 25.1,
-    posted_limit_kmh: 30.0,
-    overspeed_count: 6,
-    violation_rate_percentage: 27.2,
+    average_speed_kmh: 17.2,
+    speed_85th_percentile: 19.8,
+    median_speed_kmh: 16.5,
+    speed_std_dev: 3.42,
+    max_speed_kmh: 24.5,
+    min_speed_kmh: 11.0,
+    posted_limit_kmh: 20.0,
+    overspeed_count: 3,
+    violation_rate_percentage: 13.6,
     extreme_overspeed_count: 0,
     congestion_status: "Free Flow",
-    radar_occupancy_pct: 21.5,
-    congestion_index: 1.12,
+    radar_occupancy_pct: 18.5,
+    congestion_index: 0.86,
     fine_suppression_active: false,
     device_id: "RPI4_NORTH_GATE",
     road_name: "North Campus Main Gate Road",
@@ -215,7 +215,7 @@ export default function TrafficRadarPage() {
   const handleTriggerTestBurst = async () => {
     setIsSimulating(true);
     try {
-      const speeds = [26.5, 31.0, 34.2, 29.8, 42.1, 38.5, 27.2, 33.0, 49.5, 31.2];
+      const speeds = [16.5, 18.0, 19.2, 17.8, 24.1, 26.5, 18.2, 19.0, 31.5, 17.2];
       await fetchFromFastApi("/api/v1/telemetry/summary", {
         method: "POST",
         body: JSON.stringify({
@@ -224,8 +224,8 @@ export default function TrafficRadarPage() {
           speed_array: speeds,
           approaching_count: 6,
           receding_count: 4,
-          radar_occupancy_pct: 24.0,
-          posted_speed_limit: selectedNode === "RPI4_NORTH_GATE" ? 30.0 : 35.0,
+          radar_occupancy_pct: 18.0,
+          posted_speed_limit: 20.0,
           road_name: selectedNode === "RPI4_NORTH_GATE" ? "North Campus Main Gate Road" : "South Campus Academic Complex Road",
         }),
       });

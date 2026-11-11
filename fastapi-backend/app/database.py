@@ -145,7 +145,7 @@ class TelemetryStore:
                 "location": "North Campus Gate, IIT Mandi",
                 "latitude": 31.7816,
                 "longitude": 76.9972,
-                "posted_limit": 30.0,
+                "posted_limit": 20.0,
                 "status": "online",
                 "last_seen": "2026-11-11T18:25:00+05:30",
                 "firmware": "v2.4-c++17-radar",
@@ -158,7 +158,7 @@ class TelemetryStore:
                 "location": "Near A16 / Academic Complex",
                 "latitude": 31.7754,
                 "longitude": 76.9861,
-                "posted_limit": 35.0,
+                "posted_limit": 20.0,
                 "status": "online",
                 "last_seen": "2026-11-11T18:25:00+05:30",
                 "firmware": "v2.4-c++17-radar",
@@ -171,7 +171,7 @@ class TelemetryStore:
                 "location": "Hostel Zone Access Loop",
                 "latitude": 31.7768,
                 "longitude": 76.9882,
-                "posted_limit": 25.0,
+                "posted_limit": 20.0,
                 "status": "online",
                 "last_seen": "2026-11-11T18:25:00+05:30",
                 "firmware": "v2.4-c++17-radar",
@@ -211,7 +211,7 @@ class TelemetryStore:
             {
                 "device_id": "RPI4_NORTH_GATE",
                 "road_name": "North Campus Main Gate Road",
-                "posted_limit": 30.0,
+                "posted_limit": 20.0,
                 "lat": 31.7816,
                 "lng": 76.9972,
                 "base_factor": 1.0,   # traffic multiplier
@@ -219,7 +219,7 @@ class TelemetryStore:
             {
                 "device_id": "RPI4_SOUTH_ACADEMIC",
                 "road_name": "South Campus Academic Complex Road",
-                "posted_limit": 35.0,
+                "posted_limit": 20.0,
                 "lat": 31.7754,
                 "lng": 76.9861,
                 "base_factor": 1.25,
@@ -272,23 +272,36 @@ class TelemetryStore:
                 vc_raw = base_count * factor + _det_gauss(seed_base + "_vc", 0, 2.0)
                 vehicle_count = max(1, int(round(vc_raw)))
 
-                # Mean speed: lower during congestion (peak), higher at night
+                # Mean speed: Hilly terrain (IIT Mandi, Kamand) with 20 km/h limit.
+                # Average speeds stay around 14-19 km/h. Vehicles rarely exceed 42-45 km/h.
                 if is_peak and base_count > 18:
-                    mean_speed = limit * 0.78 + _det_gauss(seed_base + "_sp", 0, 1.5)
+                    mean_speed = 14.8 + _det_gauss(seed_base + "_sp", 0, 1.0)
                 elif total_min < 360:
-                    mean_speed = limit * 1.15 + _det_gauss(seed_base + "_sp", 0, 2.0)
+                    mean_speed = 18.2 + _det_gauss(seed_base + "_sp", 0, 1.4)
                 else:
-                    mean_speed = limit * 0.92 + _det_gauss(seed_base + "_sp", 0, 2.5)
+                    mean_speed = 16.5 + _det_gauss(seed_base + "_sp", 0, 1.2)
 
-                mean_speed = max(8.0, mean_speed)
-                std_dev = abs(_det_gauss(seed_base + "_sd", 5.0, 1.5))
-                std_dev = max(1.5, min(std_dev, 12.0))
+                mean_speed = max(8.0, min(22.0, mean_speed))
+                std_dev = abs(_det_gauss(seed_base + "_sd", 3.8, 0.8))
+                std_dev = max(1.5, min(std_dev, 6.0))
 
-                # Generate individual speed samples
+                # Generate individual speed samples with strict hilly constraints:
+                # Normal traffic: 12-22 km/h
+                # Occasional overspeeders: 24-42 km/h
+                # Hard limit: strictly capped <= 45.0 km/h (never above 45 usually, strictly no one > 50)
                 speeds = []
                 for vi in range(vehicle_count):
                     s = _det_gauss(f"{seed_base}_v{vi}", mean_speed, std_dev)
-                    s = max(5.0, round(s, 1))
+                    # ~3% occasional reckless speeder in hilly stretch (e.g. going 28 - 44 km/h)
+                    r_speed = _det_hash(f"{seed_base}_reck{vi}")
+                    if r_speed < 0.025:
+                        s = 33.0 + _det_hash(f"{seed_base}_fast{vi}") * 11.5  # 33.0 to 44.5 km/h
+                    elif r_speed < 0.08:
+                        s = 23.0 + _det_hash(f"{seed_base}_med{vi}") * 8.0    # 23.0 to 31.0 km/h
+
+                    s = max(6.0, round(s, 1))
+                    if s > 45.0:
+                        s = 43.0 + round(_det_hash(f"{seed_base}_cap{vi}") * 1.8, 1)  # max 44.8 km/h
                     speeds.append(s)
 
                 speeds.sort()
@@ -300,26 +313,24 @@ class TelemetryStore:
                 min_sp = round(min(speeds), 1)
 
                 overspeed = sum(1 for s in speeds if s > limit)
-                extreme = sum(1 for s in speeds if s > limit + 30)
+                extreme = sum(1 for s in speeds if s > limit + 20)
                 viol_pct = round(overspeed / max(1, vehicle_count) * 100.0, 1)
 
                 approaching = int(round(vehicle_count * (0.50 + _det_hash(seed_base + "_dir") * 0.10)))
                 receding = max(0, vehicle_count - approaching)
 
                 ci = round(avg_speed / limit, 2)
-                occ = round(min(95.0, vehicle_count * 1.8 + _det_gauss(seed_base + "_occ", 0, 3)), 1)
+                occ = round(min(90.0, vehicle_count * 1.6 + _det_gauss(seed_base + "_occ", 0, 2)), 1)
                 occ = max(1.0, occ)
 
-                if ci < 0.4:
-                    cong = "Gridlock"
-                elif ci < 0.6:
+                if ci < 0.5:
                     cong = "Heavy Congestion"
-                elif ci < 0.85:
+                elif ci < 0.75:
                     cong = "Moderate"
                 else:
                     cong = "Free Flow"
 
-                fine_supp = ci < 0.4
+                fine_supp = ci < 0.35
                 flow_vph = round(vehicle_count * 12.0, 1)  # 5 min → 1 hour
 
                 self.telemetry_history.append(
@@ -354,21 +365,23 @@ class TelemetryStore:
                     )
                 )
 
-                # ── Breach events for over-speed vehicles ──
+                # ── Breach events for vehicles exceeding 20 km/h limit ──
                 for vi, sp in enumerate(speeds):
                     if sp <= limit:
                         continue
                     delta = round(sp - limit, 1)
-                    # Only capture significant overspeeds to keep ~30-45 breaches/day:
-                    #   delta < 5  → skip entirely (radar tolerance margin)
-                    #   delta 5-10 → capture ~6 % (borderline)
-                    #   delta 10-18→ capture ~25 %
-                    #   delta > 18 → capture 100 % (serious violation, always record)
-                    if delta < 5:
+                    # Hilly road realistic violation captures (total ~40-55 breaches/day):
+                    #   delta < 4.0  (20-23.9 km/h) → radar tolerance, ignored
+                    #   delta 4.0-8.0 (24-27.9 km/h) → capture ~3 %
+                    #   delta 8.0-15.0 (28-34.9 km/h) → capture ~10 %
+                    #   delta >= 15.0 (35-44.5 km/h) → capture ~22 %
+                    if delta < 4.0:
                         continue
-                    elif delta < 10 and _det_hash(f"{seed_base}_br{vi}") > 0.06:
+                    elif delta < 8.0 and _det_hash(f"{seed_base}_br{vi}") > 0.03:
                         continue
-                    elif delta < 18 and _det_hash(f"{seed_base}_br{vi}") > 0.25:
+                    elif delta < 15.0 and _det_hash(f"{seed_base}_br{vi}") > 0.10:
+                        continue
+                    elif _det_hash(f"{seed_base}_fastbr{vi}") > 0.22:
                         continue
 
                     breach_counter += 1
@@ -383,13 +396,14 @@ class TelemetryStore:
                     ocr_conf = min(ocr_conf, 0.99)
                     al_routed = ocr_conf < 0.75
 
-                    if delta > 25:
+                    # Severity on a 20 km/h hill road:
+                    if delta > 16:      # >= 36.1 km/h (nearly 2x limit)
                         severity = "critical"
-                    elif delta > 15:
+                    elif delta > 10:    # 30.1 - 36.0 km/h
                         severity = "high"
-                    elif delta > 8:
+                    elif delta > 5:     # 25.1 - 30.0 km/h
                         severity = "moderate"
-                    else:
+                    else:               # 23.0 - 25.0 km/h
                         severity = "low"
 
                     # Generate real evidence snapshot image file on disk
@@ -444,9 +458,45 @@ class TelemetryStore:
         for nid in self.nodes:
             self.nodes[nid]["last_seen"] = final_ts
 
-        print(f"[Seed] Full-day synthetic data loaded: "
+        # ── Export structured JSON dataset to file for easy viewing & inspection ──
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            storage_json = os.path.join(base_dir, "storage", "synthetic_field_test_nov11.json")
+            root_json = os.path.join(os.path.dirname(base_dir), "synthetic_field_test_2026-11-11.json")
+            os.makedirs(os.path.join(base_dir, "storage"), exist_ok=True)
+
+            export_data = {
+                "metadata": {
+                    "test_date": "2026-11-11",
+                    "location": "IIT Mandi Kamand Campus (Hilly Mountainous Roads)",
+                    "posted_speed_limit_kmh": 20.0,
+                    "max_speed_observed_kmh": max((b.speed_kmh for b in self.breaches), default=44.8),
+                    "total_telemetry_windows": len(self.telemetry_history),
+                    "total_vehicles_observed": sum(t.vehicle_count for t in self.telemetry_history),
+                    "total_speed_breaches": len(self.breaches),
+                    "active_learning_samples_queued": len(self.active_learning_queue),
+                    "radar_model": "HLK-LD2415H 24GHz Doppler Radar",
+                    "camera_sensor": "Raspberry Pi Camera Module 3 (1080p)",
+                    "evidence_photos_directory": "storage/evidence/"
+                },
+                "nodes": self.nodes,
+                "breaches": [b.model_dump() for b in self.breaches],
+                "telemetry_history_sample": [t.model_dump() for t in self.telemetry_history[:24]]
+            }
+
+            with open(storage_json, "w", encoding="utf-8") as f:
+                json.dump(export_data, f, indent=2)
+
+            with open(root_json, "w", encoding="utf-8") as f:
+                json.dump(export_data, f, indent=2)
+
+            print(f"[Seed Export] Saved full synthetic dataset to:\n  - {storage_json}\n  - {root_json}")
+        except Exception as e:
+            print(f"[Seed Export Notice] {e}")
+
+        print(f"[Seed] Hilly 20 km/h terrain data loaded: "
               f"{len(self.telemetry_history)} telemetry windows, "
-              f"{len(self.breaches)} breach events, "
+              f"{len(self.breaches)} breach events (max {max((b.speed_kmh for b in self.breaches), default=0):.1f} km/h), "
               f"{len(self.active_learning_queue)} active-learning samples "
               f"(Nov 11, 2026 00:00–23:55 IST)")
 

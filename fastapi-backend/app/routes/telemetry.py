@@ -27,7 +27,7 @@ async def get_recent_telemetry(
         all_summaries = [s for s in all_summaries if s.device_id == device_id]
 
     recent_summaries = []
-    speed_buckets = {"<20 km/h": 0, "20-35 km/h": 0, "35-50 km/h": 0, ">50 km/h": 0}
+    speed_buckets = {"<15 km/h": 0, "15-20 km/h": 0, "21-30 km/h": 0, "31-45 km/h": 0}
     total_vehicles = 0
     total_overspeed = 0
 
@@ -48,23 +48,23 @@ async def get_recent_telemetry(
             total_vehicles += s.vehicle_count
             total_overspeed += s.overspeed_count
 
-            # Speed distribution bucket
+            # Speed distribution bucket (Hilly 20 km/h zones)
             sp = s.average_speed_kmh
-            if sp < 20:
-                speed_buckets["<20 km/h"] += s.vehicle_count
-            elif sp <= 35:
-                speed_buckets["20-35 km/h"] += s.vehicle_count
-            elif sp <= 50:
-                speed_buckets["35-50 km/h"] += s.vehicle_count
+            if sp < 15:
+                speed_buckets["<15 km/h"] += s.vehicle_count
+            elif sp <= 20:
+                speed_buckets["15-20 km/h"] += s.vehicle_count
+            elif sp <= 30:
+                speed_buckets["21-30 km/h"] += s.vehicle_count
             else:
-                speed_buckets[">50 km/h"] += s.vehicle_count
+                speed_buckets["31-45 km/h"] += s.vehicle_count
 
     # If recent_summaries has few entries (e.g. testing date was Nov 11), fill from all_summaries
     if len(recent_summaries) < 48 and all_summaries:
         recent_summaries.clear()
         total_vehicles = 0
         total_overspeed = 0
-        speed_buckets = {"<20 km/h": 0, "20-35 km/h": 0, "35-50 km/h": 0, ">50 km/h": 0}
+        speed_buckets = {"<15 km/h": 0, "15-20 km/h": 0, "21-30 km/h": 0, "31-45 km/h": 0}
         for s in all_summaries[-72:]:
             recent_summaries.append({
                 "timestamp": s.window_end or s.calculated_at,
@@ -81,14 +81,14 @@ async def get_recent_telemetry(
             total_overspeed += s.overspeed_count
 
             sp = s.average_speed_kmh
-            if sp < 20:
-                speed_buckets["<20 km/h"] += s.vehicle_count
-            elif sp <= 35:
-                speed_buckets["20-35 km/h"] += s.vehicle_count
-            elif sp <= 50:
-                speed_buckets["35-50 km/h"] += s.vehicle_count
+            if sp < 15:
+                speed_buckets["<15 km/h"] += s.vehicle_count
+            elif sp <= 20:
+                speed_buckets["15-20 km/h"] += s.vehicle_count
+            elif sp <= 30:
+                speed_buckets["21-30 km/h"] += s.vehicle_count
             else:
-                speed_buckets[">50 km/h"] += s.vehicle_count
+                speed_buckets["31-45 km/h"] += s.vehicle_count
 
     # 2. Filter and format breaches
     all_breaches = db.breaches
