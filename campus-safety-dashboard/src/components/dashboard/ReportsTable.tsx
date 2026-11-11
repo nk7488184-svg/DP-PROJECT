@@ -32,7 +32,7 @@ export default function ReportsTable() {
         let backendItems: HazardReport[] = [];
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
           backendItems = res.data.map((r: any) => ({
-            id: r.id || r._id || `RPT-${Math.floor(Math.random() * 9000)}`,
+            id: r.id || r._id || `RPT-${Date.now().toString(36)}`,
             title: r.title || 'Hazard Report',
             description: r.description || '',
             category: r.category || 'Pothole_Surface_Breakout',
@@ -367,7 +367,7 @@ export default function ReportsTable() {
                         <span className="truncate max-w-[180px]">{report.location.address}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted text-xs whitespace-nowrap">
+                    <td className="px-4 py-3 text-muted text-xs whitespace-nowrap" suppressHydrationWarning>
                       {new Date(report.reportedAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -569,7 +569,7 @@ export default function ReportsTable() {
               </div>
               <div>
                 <p className="text-xs text-muted">Reported</p>
-                <p className="text-foreground">{new Date(selected.reportedAt).toLocaleString()}</p>
+                <p className="text-foreground" suppressHydrationWarning>{new Date(selected.reportedAt).toLocaleString()}</p>
               </div>
 
               {/* Admin Severity Editor (Admin can modify severity, defaults to ML predicted) */}
