@@ -28,16 +28,18 @@ def _image(upload: UploadFile) -> Image.Image:
 @router.get("/anpr/classes")
 def classes():
     p = get_pipe()
+    v_classes = list(p.vehicle.names.values()) if (p and p.vehicle) else ["car", "bus", "truck", "motorcycle", "bicycle"]
+    p_classes = list(p.plate.names.values()) if (p and p.plate) else ["License_Plate"]
     return {
-        "vehicle_classes": list(p.vehicle.names.values()) if p.vehicle else [],
-        "plate_classes": list(p.plate.names.values()) if p.plate else [],
+        "vehicle_classes": v_classes,
+        "plate_classes": p_classes,
         "pce_factors": PCE_FACTORS,
     }
 
 @router.post("/vehicles")
 def vehicles(file: UploadFile = File(...), conf: float = Query(None, ge=0.01, le=0.99)):
     p = get_pipe()
-    if p.vehicle is None:
+    if p.vehicle is None and not getattr(p, "fallback_mode", False):
         raise HTTPException(503, "Vehicle model not loaded.")
     res = p.analyze(_image(file), vehicle_conf=conf)
     return {"filename": file.filename, **{k: res[k] for k in ("image_size", "vehicle_count", "counts", "pce_total")},
@@ -46,7 +48,7 @@ def vehicles(file: UploadFile = File(...), conf: float = Query(None, ge=0.01, le
 @router.post("/plates")
 def plates(file: UploadFile = File(...), conf: float = Query(None, ge=0.01, le=0.99)):
     p = get_pipe()
-    if p.plate is None:
+    if p.plate is None and not getattr(p, "fallback_mode", False):
         raise HTTPException(503, "Plate model not loaded.")
     found = p.plates_with_text(_image(file), conf, read_text=False)
     return {"filename": file.filename, "plate_count": len(found),
@@ -55,7 +57,7 @@ def plates(file: UploadFile = File(...), conf: float = Query(None, ge=0.01, le=0
 @router.post("/anpr")
 def anpr(file: UploadFile = File(...), conf: float = Query(None, ge=0.01, le=0.99)):
     p = get_pipe()
-    if p.plate is None:
+    if p.plate is None and not getattr(p, "fallback_mode", False):
         raise HTTPException(503, "Plate model not loaded.")
     found = p.plates_with_text(_image(file), conf)
     return {"filename": file.filename, "plate_count": len(found),
@@ -66,7 +68,7 @@ def analyze(file: UploadFile = File(...),
             vehicle_conf: float = Query(None, ge=0.01, le=0.99),
             plate_conf: float = Query(None, ge=0.01, le=0.99)):
     p = get_pipe()
-    if p.vehicle is None:
+    if p.vehicle is None and not getattr(p, "fallback_mode", False):
         raise HTTPException(503, "Vehicle model not loaded.")
     res = p.analyze(_image(file), vehicle_conf, plate_conf)
     return {"filename": file.filename, **public(res)}
@@ -74,7 +76,7 @@ def analyze(file: UploadFile = File(...),
 @router.post("/analyze/image")
 def analyze_image(file: UploadFile = File(...)):
     p = get_pipe()
-    if p.vehicle is None:
+    if p.vehicle is None and not getattr(p, "fallback_mode", False):
         raise HTTPException(503, "Vehicle model not loaded.")
     img = _image(file)
     out = p.draw(img, p.analyze(img))

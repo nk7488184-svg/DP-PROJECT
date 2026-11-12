@@ -21,8 +21,10 @@ import {
   BarChart3,
   PieChart,
   Calendar,
+  Brain,
 } from "lucide-react";
 import { fetchFromFastApi, getFastApiWsUrl, FASTAPI_BASE, fetchRecentTelemetry } from "@/lib/api";
+import MlVisionLabModal from "@/components/dashboard/MlVisionLabModal";
 
 interface ProcessedTelemetry {
   vehicle_count: number;
@@ -93,6 +95,7 @@ export default function TrafficRadarPage() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [selectedBreach, setSelectedBreach] = useState<BreachRecord | null>(null);
+  const [isMlLabOpen, setIsMlLabOpen] = useState<boolean>(false);
   const [extraAnalytics, setExtraAnalytics] = useState<{
     total_vehicles_observed: number;
     total_violations: number;
@@ -125,11 +128,11 @@ export default function TrafficRadarPage() {
     fine_suppression_active: false,
     device_id: "RPI4_CAMERA_UNIT_01",
     road_name: "Campus Test Corridor",
-    window_start: new Date(Date.now() - 300000).toISOString(),
-    window_end: new Date().toISOString(),
+    window_start: "2026-11-11T20:55:00+05:30",
+    window_end: "2026-11-11T21:00:00+05:30",
     window_duration_seconds: 300,
     is_peak_hour: false,
-    calculated_at: new Date().toISOString(),
+    calculated_at: "2026-11-11T21:00:00+05:30",
     latitude: 0.0,
     longitude: 0.0,
   };
@@ -251,11 +254,15 @@ export default function TrafficRadarPage() {
                 <h1 className="text-2xl font-bold text-foreground">Edge Radar Telemetry & Enforcement</h1>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold">
                   <Calendar className="w-3 h-3" />
-                  Testing Date: 11 Nov 2026 (24-Hour Continuous Field Run)
+                  Field Test: 11 Nov 2026 (3:00 PM – 9:00 PM IST Operational Window)
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[11px] font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  Server / Node Offline (@ 11:14 PM IST)
                 </span>
               </div>
               <p className="text-xs text-muted mt-0.5">
-                Raspberry Pi 4 (2GB) Zero-AI State Machine + HLK-LD2415H 24GHz Doppler Radar Telemetry Ingestion
+                Raspberry Pi 5 (1GB RAM Optimization) + HLK-LD2415H 24GHz Doppler Radar Telemetry Ingestion
               </p>
             </div>
           </div>
@@ -275,8 +282,9 @@ export default function TrafficRadarPage() {
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-medium text-foreground">
-            <Camera className="w-3.5 h-3.5 text-primary" />
-            <span>Single-Camera Radar Unit (Active)</span>
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            <Camera className="w-3.5 h-3.5 text-muted" />
+            <span>Unit 01 (Offline since 23:14 IST)</span>
           </div>
 
           <button
@@ -287,6 +295,54 @@ export default function TrafficRadarPage() {
             <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? "animate-spin" : ""}`} />
             <span>{isSimulating ? "Ingesting..." : "Simulate Pi Telemetry"}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Nov 11 Field Test Summary & Offline Status Alert */}
+      <div className="bg-gradient-to-r from-red-950/30 via-sidebar to-amber-950/20 border border-red-500/30 rounded-2xl p-5 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0 mt-0.5">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="font-bold text-foreground text-sm">Nov 11 Field Test Run (3:00 PM – 9:00 PM IST)</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30">
+                  Node Offline Since 11:14 PM IST
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  72 Telemetry Windows Captured
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  39 HSRP Plates Preserved
+                </span>
+              </div>
+              <p className="text-xs text-muted leading-relaxed">
+                Single edge node (<b className="text-foreground">RPI4_CAMERA_UNIT_01</b>) was actively deployed on the Campus Test Corridor from <b>3:00 PM to 9:00 PM IST on November 11, 2026</b>.
+                At <b>11:14 PM IST</b>, the camera CSI ribbon cable disconnected and the edge server transitioned to offline state.
+                All 39 overspeeding breaches with synthetic Indian HSRP license plates remain preserved for safety audit.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end lg:self-center flex-shrink-0 flex-wrap">
+            <button
+              onClick={() => setIsMlLabOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-xs font-semibold transition-all shadow-sm"
+            >
+              <Brain className="w-3.5 h-3.5" />
+              <span>Launch AI Vision &amp; Safety Lab</span>
+            </button>
+            <a
+              href={`${FASTAPI_BASE}/api/v1/telemetry/field-test`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-sidebar hover:bg-card border border-border text-foreground rounded-lg text-xs font-semibold transition-colors shadow-sm"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-primary" />
+              <span>Inspect Raw Audit JSON</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -798,6 +854,9 @@ export default function TrafficRadarPage() {
           </div>
         )}
       </div>
+
+      {/* Interactive AI Vision & Safety ML Lab Modal */}
+      <MlVisionLabModal isOpen={isMlLabOpen} onClose={() => setIsMlLabOpen(false)} />
     </div>
   );
 }

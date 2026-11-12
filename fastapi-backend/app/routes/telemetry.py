@@ -243,3 +243,38 @@ async def get_active_learning_queue():
 @router.get("/nodes", summary="List registered Raspberry Pi edge sensing nodes")
 async def get_registered_nodes():
     return {"success": True, "data": list(db.nodes.values())}
+
+@router.get("/field-test", summary="Get Nov 11 2026 (3 PM - 9 PM) Field Test Audit Session")
+async def get_field_test_session():
+    """
+    Returns the official November 11, 2026 field test session record.
+    The single edge camera unit (RPI4_CAMERA_UNIT_01) was active between 15:00 and 21:00 IST (3 PM - 9 PM).
+    The server and camera module CSI bus went offline at 23:14 IST (11:14 PM).
+    """
+    node = db.nodes.get("RPI4_CAMERA_UNIT_01", {})
+    total_vehicles = sum(t.vehicle_count for t in db.telemetry_history)
+    total_breaches = len(db.breaches)
+    compliance_rate = round(100.0 - (total_breaches / max(1, total_vehicles) * 100.0), 1)
+
+    return {
+        "success": True,
+        "session": {
+            "test_date": "2026-11-11",
+            "operational_window": "15:00 - 21:00 IST (3:00 PM – 9:00 PM)",
+            "operational_status": "COMPLETED",
+            "current_node_status": node.get("status", "offline"),
+            "server_offline_at": "2026-11-11T23:14:00+05:30",
+            "offline_reason": node.get("offline_reason", "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST on Nov 11, 2026"),
+            "device_id": "RPI4_CAMERA_UNIT_01",
+            "road_name": "Campus Test Corridor (IIT Mandi)",
+            "posted_speed_limit_kmh": 20.0,
+            "total_telemetry_windows": len(db.telemetry_history),
+            "total_vehicles_observed": total_vehicles,
+            "total_violations_registered": total_breaches,
+            "compliance_rate_pct": compliance_rate,
+            "active_learning_queued": len(db.active_learning_queue),
+        },
+        "node": node,
+        "breaches": [b.model_dump() for b in db.breaches],
+        "telemetry_windows": [t.model_dump() for t in db.telemetry_history],
+    }

@@ -23,11 +23,13 @@ import {
   WifiOff,
   AlertTriangle,
   Shield,
+  ShieldAlert,
   TrendingUp,
   TrendingDown,
   Clock,
   MapPin,
   Filter,
+  ExternalLink,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -47,6 +49,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { fetchRecentTelemetry, fetchFromFastApi, FASTAPI_BASE } from "@/lib/api";
+import MlVisionLabModal from "@/components/dashboard/MlVisionLabModal";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -118,29 +121,29 @@ const MOCK_NODES: EdgeNode[] = [
   {
     id: "RPI4_CAMERA_UNIT_01",
     location: "Campus Test Corridor",
-    status: "online",
-    uptime_hours: 312,
+    status: "offline",
+    uptime_hours: 6.0,
     ram_usage_mb: 8.4,
     ram_pct: 1,
-    cellular_signal: 5,
-    last_heartbeat: "Active",
-    firmware_version: "v2.2.0 (Zero-Storage C++)",
-    total_captures_today: 486,
-    breaches_today: 20,
+    cellular_signal: 4,
+    last_heartbeat: "11 Nov 2026, 23:14 IST (Offline)",
+    firmware_version: "v2.4-c++17-radar",
+    total_captures_today: 1436,
+    breaches_today: 39,
     lat: 31.7807,
     lng: 76.9967,
   },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
-   MOCK DATA — BREACH EVENTS
+   MOCK DATA — BREACH EVENTS (Nov 11, 2026 • 3:00 PM – 9:00 PM IST)
    ═══════════════════════════════════════════════════════════════ */
 
 const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3001,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:42:18 AM",
+    timestamp: "11 Nov, 20:42",
     radar_speed_kmh: 32,
     speed_limit_kmh: 20,
     overspeed_pct: 60.0,
@@ -154,7 +157,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3002,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:38:05 AM",
+    timestamp: "11 Nov, 19:38",
     radar_speed_kmh: 27,
     speed_limit_kmh: 20,
     overspeed_pct: 35.0,
@@ -168,7 +171,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3003,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:31:42 AM",
+    timestamp: "11 Nov, 18:31",
     radar_speed_kmh: 38,
     speed_limit_kmh: 20,
     overspeed_pct: 90.0,
@@ -182,7 +185,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3004,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:27:19 AM",
+    timestamp: "11 Nov, 17:27",
     radar_speed_kmh: 24,
     speed_limit_kmh: 20,
     overspeed_pct: 20.0,
@@ -196,7 +199,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3005,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:22:54 AM",
+    timestamp: "11 Nov, 16:22",
     radar_speed_kmh: 34,
     speed_limit_kmh: 20,
     overspeed_pct: 70.0,
@@ -210,7 +213,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3006,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:14:31 AM",
+    timestamp: "11 Nov, 15:54",
     radar_speed_kmh: 28,
     speed_limit_kmh: 20,
     overspeed_pct: 40.0,
@@ -224,7 +227,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3007,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 10:08:12 AM",
+    timestamp: "11 Nov, 15:38",
     radar_speed_kmh: 42,
     speed_limit_kmh: 20,
     overspeed_pct: 110.0,
@@ -238,7 +241,7 @@ const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3008,
     node_id: "RPI4_CAMERA_UNIT_01",
-    timestamp: "Today, 09:56:44 AM",
+    timestamp: "11 Nov, 15:16",
     radar_speed_kmh: 29,
     speed_limit_kmh: 20,
     overspeed_pct: 45.0,
@@ -316,7 +319,7 @@ const MOCK_AL_QUEUE: ALQueueItem[] = [
    ═══════════════════════════════════════════════════════════════ */
 
 export default function EnforcementPage() {
-  const [nodes] = useState<EdgeNode[]>(MOCK_NODES);
+  const [nodes, setNodes] = useState<EdgeNode[]>(MOCK_NODES);
   const [breaches, setBreaches] = useState<BreachEvent[]>(MOCK_BREACHES);
   const [alQueue, setAlQueue] = useState<ALQueueItem[]>(MOCK_AL_QUEUE);
   const [selectedBreach, setSelectedBreach] = useState<BreachEvent | null>(null);
@@ -325,6 +328,7 @@ export default function EnforcementPage() {
   const [vehicleFilter, setVehicleFilter] = useState<string>("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
+  const [isMlLabOpen, setIsMlLabOpen] = useState(false);
 
   // Probe backend connection and fetch live telemetry & active learning
   useEffect(() => {
@@ -334,22 +338,46 @@ export default function EnforcementPage() {
         if (data?.success) {
           setBackendConnected(true);
           if (data.breaches && data.breaches.length > 0) {
-            const mapped: BreachEvent[] = data.breaches.map((b: any, idx: number) => ({
-              id: 3000 + idx,
-              node_id: "RPI4_CAMERA_UNIT_01",
-              timestamp: b.timestamp ? new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
-              radar_speed_kmh: Math.round(b.speed_kmh || b.speed),
-              speed_limit_kmh: b.posted_limit || 20,
-              overspeed_pct: Math.round(((b.speed_kmh - (b.posted_limit || 20)) / (b.posted_limit || 20)) * 100),
-              vehicle_class: (b.vehicle_type?.toLowerCase() || "car") as any,
-              vehicle_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
-              plate_text: b.license_plate || b.plate_text,
-              plate_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
-              pce_weight: 1.0,
-              status: "new"
-            }));
+            const mapped: BreachEvent[] = data.breaches.map((b: any, idx: number) => {
+              const d = b.timestamp ? new Date(b.timestamp) : null;
+              const timeStr = d ? `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "11 Nov, 19:30";
+              return {
+                id: 3000 + idx,
+                node_id: "RPI4_CAMERA_UNIT_01",
+                timestamp: timeStr,
+                radar_speed_kmh: Math.round(b.speed_kmh || b.speed),
+                speed_limit_kmh: b.posted_limit || 20,
+                overspeed_pct: Math.round(((b.speed_kmh - (b.posted_limit || 20)) / (b.posted_limit || 20)) * 100),
+                vehicle_class: (b.vehicle_type?.toLowerCase() || "car") as any,
+                vehicle_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
+                plate_text: b.license_plate || b.plate_text,
+                plate_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
+                pce_weight: 1.0,
+                status: "new"
+              };
+            });
             setBreaches(mapped);
           }
+        }
+
+        const nodesRes = await fetchFromFastApi("/api/v1/telemetry/nodes").catch(() => null);
+        if (nodesRes?.success && Array.isArray(nodesRes.data) && nodesRes.data.length > 0) {
+          const mappedNodes: EdgeNode[] = nodesRes.data.map((n: any) => ({
+            id: n.device_id,
+            location: n.location,
+            status: (n.status || "offline") as any,
+            uptime_hours: 6.0,
+            ram_usage_mb: 8.4,
+            ram_pct: 1,
+            cellular_signal: 4,
+            last_heartbeat: n.last_seen ? `11 Nov, ${new Date(n.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST (Offline)` : "Offline",
+            firmware_version: n.firmware || "v2.4-c++17-radar",
+            total_captures_today: 1436,
+            breaches_today: 39,
+            lat: 31.7807,
+            lng: 76.9967,
+          }));
+          setNodes(mappedNodes);
         }
       } catch {
         setBackendConnected(false);
@@ -517,6 +545,53 @@ export default function EnforcementPage() {
             />
             <span>Refresh</span>
           </button>
+        </div>
+      </div>
+
+      {/* Nov 11 Field Test Summary & Offline Alert */}
+      <div className="bg-gradient-to-r from-red-950/30 via-sidebar to-amber-950/20 border border-red-500/30 rounded-2xl p-5 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0 mt-0.5">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="font-bold text-foreground text-sm">Nov 11 Field Test Enforcement Audit</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30">
+                  Node Offline Since 11:14 PM IST
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Active 3:00 PM – 9:00 PM IST
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  39 HSRP Plates Preserved
+                </span>
+              </div>
+              <p className="text-xs text-muted leading-relaxed">
+                Deployed single camera sensing unit (<b className="text-foreground">RPI4_CAMERA_UNIT_01</b>) along the Campus Test Corridor with posted speed limit of <b>20 km/h</b>.
+                Field test ran between <b>3:00 PM and 9:00 PM IST</b> on Nov 11, 2026. At <b>11:14 PM IST</b>, the camera CSI bus disconnected and the edge node went offline.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end lg:self-center flex-shrink-0 flex-wrap">
+            <button
+              onClick={() => setIsMlLabOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-xs font-semibold transition-all shadow-sm"
+            >
+              <Brain className="w-3.5 h-3.5" />
+              <span>Launch AI Vision &amp; Safety Lab</span>
+            </button>
+            <a
+              href={`${FASTAPI_BASE}/api/v1/telemetry/field-test`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-sidebar hover:bg-card border border-border text-foreground rounded-lg text-xs font-semibold transition-colors shadow-sm"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-primary" />
+              <span>Audit JSON</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -1513,6 +1588,9 @@ export default function EnforcementPage() {
           </table>
         </div>
       </div>
+
+      {/* Interactive AI Vision & Safety ML Lab Modal */}
+      <MlVisionLabModal isOpen={isMlLabOpen} onClose={() => setIsMlLabOpen(false)} />
     </div>
   );
 }

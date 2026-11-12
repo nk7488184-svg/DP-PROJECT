@@ -141,11 +141,14 @@ class TelemetryStore:
         self.nodes: Dict[str, dict] = {
             "RPI4_CAMERA_UNIT_01": {
                 "device_id": "RPI4_CAMERA_UNIT_01",
-                "name": "Edge Roadside Sensing Unit (Radar + Camera)",
+                "name": "Edge Roadside Sensing Unit (Radar + Camera Module 3)",
                 "location": "Campus Test Corridor",
                 "posted_limit": 20.0,
-                "status": "online",
-                "last_seen": "2026-11-11T23:55:00+05:30",
+                "status": "offline",
+                "last_seen": "2026-11-11T23:14:00+05:30",
+                "offline_since": "2026-11-11T23:14:00+05:30",
+                "offline_reason": "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST on Nov 11, 2026",
+                "field_test_active_window": "Nov 11, 2026 15:00 - 21:00 IST (Operational)",
                 "firmware": "v2.4-c++17-radar",
                 "radar_model": "HLK-LD2415H 24GHz",
                 "camera_model": "Raspberry Pi Camera Module 3 (Single Camera Setup)",
@@ -155,14 +158,16 @@ class TelemetryStore:
         self._seed_nov11_full_day()
 
     # ──────────────────────────────────────────────────────────────────
-    # FULL-DAY SYNTHETIC SEED: November 11 2026, 00:00 IST → 23:55 IST
-    # 288 five-minute windows for the single camera sensing node
+    # FIELD TEST SYNTHETIC SEED: November 11 2026, 15:00 IST → 21:00 IST (3 PM - 9 PM)
+    # 72 five-minute windows for the single camera sensing node
+    # Server goes offline at 23:14 IST (11:14 PM)
     # ──────────────────────────────────────────────────────────────────
     def _seed_nov11_full_day(self):
         """
-        Generates a complete 24-hour synthetic dataset for November 11, 2026
+        Generates synthetic dataset for the November 11, 2026 Field Test (3:00 PM - 9:00 PM IST)
         from a single Raspberry Pi 4 edge sensing unit (HLK-LD2415H 24 GHz
         Doppler radar + Camera Module 3) stationed along the campus test corridor.
+        Node was operational between 15:00 and 21:00, then server went offline at 23:14 IST.
         """
         IST = timezone(timedelta(hours=5, minutes=30))
         # Start of day: Nov 11 2026 00:00 IST
@@ -181,8 +186,9 @@ class TelemetryStore:
 
         breach_counter = 1000
 
-        # ── Generate 288 five-minute windows (00:00 → 23:55) ──
-        for win_idx in range(288):
+        # ── Generate 72 five-minute windows (15:00 IST / 3 PM → 21:00 IST / 9 PM) ──
+        # win_idx 180 corresponds to 15:00 (3 PM), win_idx 251 corresponds to 20:55-21:00 (9 PM)
+        for win_idx in range(180, 252):
             w_start = day_start + timedelta(minutes=5 * win_idx)
             w_end = w_start + timedelta(minutes=5)
             ist_hour = w_start.hour
@@ -323,18 +329,18 @@ class TelemetryStore:
                     if sp <= limit:
                         continue
                     delta = round(sp - limit, 1)
-                    # Hilly road realistic violation captures (total ~40-55 breaches/day):
-                    #   delta < 4.0  (20-23.9 km/h) → radar tolerance, ignored
-                    #   delta 4.0-8.0 (24-27.9 km/h) → capture ~3 %
-                    #   delta 8.0-15.0 (28-34.9 km/h) → capture ~10 %
-                    #   delta >= 15.0 (35-44.5 km/h) → capture ~22 %
-                    if delta < 4.0:
+                    # Hilly road violation captures across 6-hour field test (~20-25 total breaches):
+                    #   delta < 3.0 (20-22.9 km/h) → radar tolerance, ignored
+                    #   delta 3.0-7.0 (23-26.9 km/h) → capture ~12 %
+                    #   delta 7.0-14.0 (27-33.9 km/h) → capture ~35 %
+                    #   delta >= 14.0 (34-44.8 km/h) → capture ~70 %
+                    if delta < 3.0:
                         continue
-                    elif delta < 8.0 and _det_hash(f"{seed_base}_br{vi}") > 0.03:
+                    elif delta < 7.0 and _det_hash(f"{seed_base}_br{vi}") > 0.12:
                         continue
-                    elif delta < 15.0 and _det_hash(f"{seed_base}_br{vi}") > 0.10:
+                    elif delta < 14.0 and _det_hash(f"{seed_base}_br{vi}") > 0.35:
                         continue
-                    elif _det_hash(f"{seed_base}_fastbr{vi}") > 0.22:
+                    elif _det_hash(f"{seed_base}_fastbr{vi}") > 0.70:
                         continue
 
                     breach_counter += 1
@@ -406,10 +412,15 @@ class TelemetryStore:
         self.breaches.sort(key=lambda b: b.timestamp, reverse=True)
         self.active_learning_queue.sort(key=lambda a: a.timestamp, reverse=True)
 
-        # Update node last_seen to the final window
-        final_ts = (day_start + timedelta(hours=23, minutes=55)).isoformat()
+        # Node status set to offline after 11 PM (at 23:14 IST)
+        # Operational period was 15:00 - 21:00 (3 PM - 9 PM) on Nov 11, 2026
+        offline_ts = datetime(2026, 11, 11, 23, 14, 0, tzinfo=IST).isoformat()
         for nid in self.nodes:
-            self.nodes[nid]["last_seen"] = final_ts
+            self.nodes[nid]["status"] = "offline"
+            self.nodes[nid]["last_seen"] = offline_ts
+            self.nodes[nid]["offline_since"] = offline_ts
+            self.nodes[nid]["offline_reason"] = "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST on Nov 11, 2026"
+            self.nodes[nid]["field_test_active_window"] = "Nov 11, 2026, 3:00 PM – 9:00 PM IST (Operational)"
 
         # ── Export structured JSON dataset to file for easy viewing & inspection ──
         try:
@@ -421,7 +432,11 @@ class TelemetryStore:
             export_data = {
                 "metadata": {
                     "test_date": "2026-11-11",
-                    "location": "IIT Mandi Kamand Campus (Hilly Mountainous Roads)",
+                    "operational_window": "3:00 PM – 9:00 PM IST (15:00 – 21:00)",
+                    "server_offline_at": "2026-11-11T23:14:00+05:30 (11:14 PM IST)",
+                    "node_status": "OFFLINE (CSI bus disconnected after 11 PM)",
+                    "offline_reason": "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST",
+                    "location": "IIT Mandi Kamand Campus (Campus Test Corridor)",
                     "posted_speed_limit_kmh": 20.0,
                     "max_speed_observed_kmh": max((b.speed_kmh for b in self.breaches), default=44.8),
                     "total_telemetry_windows": len(self.telemetry_history),
@@ -434,7 +449,7 @@ class TelemetryStore:
                 },
                 "nodes": self.nodes,
                 "breaches": [b.model_dump() for b in self.breaches],
-                "telemetry_history_sample": [t.model_dump() for t in self.telemetry_history[:24]]
+                "telemetry_history": [t.model_dump() for t in self.telemetry_history]
             }
 
             with open(storage_json, "w", encoding="utf-8") as f:
@@ -447,11 +462,10 @@ class TelemetryStore:
         except Exception as e:
             print(f"[Seed Export Notice] {e}")
 
-        print(f"[Seed] Hilly 20 km/h terrain data loaded: "
-              f"{len(self.telemetry_history)} telemetry windows, "
+        print(f"[Seed] Hilly 20 km/h field test data loaded: "
+              f"{len(self.telemetry_history)} telemetry windows (15:00-21:00 IST), "
               f"{len(self.breaches)} breach events (max {max((b.speed_kmh for b in self.breaches), default=0):.1f} km/h), "
-              f"{len(self.active_learning_queue)} active-learning samples "
-              f"(Nov 11, 2026 00:00–23:55 IST)")
+              f"{len(self.active_learning_queue)} active-learning samples; node offline at 23:14 IST.")
 
     def add_telemetry(self, item: ProcessedTrafficAnalytics):
         self.telemetry_history.append(item)

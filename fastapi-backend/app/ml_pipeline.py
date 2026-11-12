@@ -145,16 +145,18 @@ def process_speed_breach(payload: SpeedBreachPayload) -> Tuple[ProcessedBreachRe
     """
     breach_id = f"BREACH-{uuid.uuid4().hex[:8].upper()}"
     timestamp = payload.timestamp or datetime.now(timezone.utc).isoformat()
-    posted_limit = payload.posted_limit_kmh or 35.0
+    posted_limit = payload.posted_limit_kmh or 20.0
     delta = round(payload.speed_kmh - posted_limit, 1)
 
-    # Calculate severity rating
-    if delta >= 30.0:
+    # Calculate severity rating on 20 km/h hilly road:
+    if delta >= 16.0:      # >= 36.1 km/h
         severity = "critical"
-    elif delta >= 15.0:
+    elif delta >= 10.0:    # 30.1 - 36.0 km/h
         severity = "high"
-    else:
+    elif delta >= 5.0:     # 25.1 - 30.0 km/h
         severity = "moderate"
+    else:                  # 20.1 - 25.0 km/h
+        severity = "low"
 
     # Save evidence image
     image_url = None
