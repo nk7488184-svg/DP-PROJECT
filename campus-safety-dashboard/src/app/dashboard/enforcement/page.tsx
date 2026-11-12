@@ -46,6 +46,7 @@ import {
   Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { fetchRecentTelemetry, fetchFromFastApi, FASTAPI_BASE } from "@/lib/api";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -115,64 +116,19 @@ interface ALQueueItem {
 
 const MOCK_NODES: EdgeNode[] = [
   {
-    id: "PI-KMD-001",
-    location: "Kamand Valley Main Gate",
+    id: "RPI4_CAMERA_UNIT_01",
+    location: "Campus Test Corridor",
     status: "online",
     uptime_hours: 312,
-    ram_usage_mb: 572,
-    ram_pct: 28,
-    cellular_signal: 4,
-    last_heartbeat: "32s ago",
-    firmware_version: "v2.1.4",
+    ram_usage_mb: 8.4,
+    ram_pct: 1,
+    cellular_signal: 5,
+    last_heartbeat: "Active",
+    firmware_version: "v2.2.0 (Zero-Storage C++)",
     total_captures_today: 486,
-    breaches_today: 23,
-    lat: 31.7754,
-    lng: 76.9861,
-  },
-  {
-    id: "PI-KMD-002",
-    location: "North Campus Academic Block",
-    status: "online",
-    uptime_hours: 288,
-    ram_usage_mb: 448,
-    ram_pct: 22,
-    cellular_signal: 3,
-    last_heartbeat: "1m ago",
-    firmware_version: "v2.1.4",
-    total_captures_today: 391,
-    breaches_today: 14,
-    lat: 31.7768,
-    lng: 76.9873,
-  },
-  {
-    id: "PI-KMD-003",
-    location: "South Campus Entry Curve",
-    status: "offline",
-    uptime_hours: 0,
-    ram_usage_mb: 0,
-    ram_pct: 0,
-    cellular_signal: 0 as 1,
-    last_heartbeat: "3h 14m ago",
-    firmware_version: "v2.1.3",
-    total_captures_today: 0,
-    breaches_today: 0,
-    lat: 31.7739,
-    lng: 76.9848,
-  },
-  {
-    id: "PI-KMD-004",
-    location: "Hostel Zone Speed Breaker",
-    status: "degraded",
-    uptime_hours: 156,
-    ram_usage_mb: 1124,
-    ram_pct: 55,
-    cellular_signal: 2,
-    last_heartbeat: "4m ago",
-    firmware_version: "v2.1.2",
-    total_captures_today: 407,
-    breaches_today: 10,
-    lat: 31.7745,
-    lng: 76.9855,
+    breaches_today: 20,
+    lat: 31.7807,
+    lng: 76.9967,
   },
 ];
 
@@ -183,114 +139,114 @@ const MOCK_NODES: EdgeNode[] = [
 const MOCK_BREACHES: BreachEvent[] = [
   {
     id: 3001,
-    node_id: "PI-KMD-001",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:42:18 AM",
-    radar_speed_kmh: 67,
-    speed_limit_kmh: 40,
-    overspeed_pct: 67.5,
+    radar_speed_kmh: 32,
+    speed_limit_kmh: 20,
+    overspeed_pct: 60.0,
     vehicle_class: "car",
-    vehicle_confidence: 94,
-    plate_text: "HP12AB3456",
-    plate_confidence: 91,
+    vehicle_confidence: 96,
+    plate_text: "HP 33 B 4921",
+    plate_confidence: 96,
     pce_weight: 1.0,
     status: "new",
   },
   {
     id: 3002,
-    node_id: "PI-KMD-002",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:38:05 AM",
-    radar_speed_kmh: 82,
-    speed_limit_kmh: 50,
-    overspeed_pct: 64.0,
+    radar_speed_kmh: 27,
+    speed_limit_kmh: 20,
+    overspeed_pct: 35.0,
     vehicle_class: "truck",
     vehicle_confidence: 88,
-    plate_text: "HP06C7890",
-    plate_confidence: 76,
-    pce_weight: 3.5,
+    plate_text: "HP 65 A 1084",
+    plate_confidence: 92,
+    pce_weight: 3.0,
     status: "new",
   },
   {
     id: 3003,
-    node_id: "PI-KMD-001",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:31:42 AM",
-    radar_speed_kmh: 91,
-    speed_limit_kmh: 40,
-    overspeed_pct: 127.5,
-    vehicle_class: "bus",
-    vehicle_confidence: 96,
-    plate_text: "HP34D1234",
-    plate_confidence: 83,
-    pce_weight: 3.0,
+    radar_speed_kmh: 38,
+    speed_limit_kmh: 20,
+    overspeed_pct: 90.0,
+    vehicle_class: "motorcycle",
+    vehicle_confidence: 95,
+    plate_text: "HP 01 BG 7733",
+    plate_confidence: 94,
+    pce_weight: 0.5,
     status: "reviewed",
   },
   {
     id: 3004,
-    node_id: "PI-KMD-004",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:27:19 AM",
-    radar_speed_kmh: 58,
-    speed_limit_kmh: 25,
-    overspeed_pct: 132.0,
+    radar_speed_kmh: 24,
+    speed_limit_kmh: 20,
+    overspeed_pct: 20.0,
     vehicle_class: "motorcycle",
-    vehicle_confidence: 79,
-    plate_text: null,
-    plate_confidence: null,
+    vehicle_confidence: 89,
+    plate_text: "HP 28 T 3319",
+    plate_confidence: 88,
     pce_weight: 0.5,
     status: "new",
   },
   {
     id: 3005,
-    node_id: "PI-KMD-002",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:22:54 AM",
-    radar_speed_kmh: 73,
-    speed_limit_kmh: 50,
-    overspeed_pct: 46.0,
+    radar_speed_kmh: 34,
+    speed_limit_kmh: 20,
+    overspeed_pct: 70.0,
     vehicle_class: "car",
     vehicle_confidence: 97,
-    plate_text: "HP12EF5678",
+    plate_text: "HP 31 E 8840",
     plate_confidence: 95,
     pce_weight: 1.0,
     status: "exported",
   },
   {
     id: 3006,
-    node_id: "PI-KMD-001",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:14:31 AM",
-    radar_speed_kmh: 55,
-    speed_limit_kmh: 40,
-    overspeed_pct: 37.5,
+    radar_speed_kmh: 28,
+    speed_limit_kmh: 20,
+    overspeed_pct: 40.0,
     vehicle_class: "auto_rickshaw",
-    vehicle_confidence: 72,
-    plate_text: "HP99G0001",
-    plate_confidence: 68,
+    vehicle_confidence: 84,
+    plate_text: "HP 34 C 1209",
+    plate_confidence: 82,
     pce_weight: 1.5,
     status: "flagged",
   },
   {
     id: 3007,
-    node_id: "PI-KMD-004",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 10:08:12 AM",
-    radar_speed_kmh: 64,
-    speed_limit_kmh: 25,
-    overspeed_pct: 156.0,
+    radar_speed_kmh: 42,
+    speed_limit_kmh: 20,
+    overspeed_pct: 110.0,
     vehicle_class: "car",
-    vehicle_confidence: 91,
-    plate_text: "HR26DK8822",
-    plate_confidence: 89,
+    vehicle_confidence: 93,
+    plate_text: "HP 02 A 5567",
+    plate_confidence: 91,
     pce_weight: 1.0,
     status: "new",
   },
   {
     id: 3008,
-    node_id: "PI-KMD-002",
+    node_id: "RPI4_CAMERA_UNIT_01",
     timestamp: "Today, 09:56:44 AM",
-    radar_speed_kmh: 71,
-    speed_limit_kmh: 50,
-    overspeed_pct: 42.0,
+    radar_speed_kmh: 29,
+    speed_limit_kmh: 20,
+    overspeed_pct: 45.0,
     vehicle_class: "truck",
     vehicle_confidence: 85,
-    plate_text: "PB10HJ4455",
-    plate_confidence: 74,
-    pce_weight: 3.5,
+    plate_text: "CH 01 BG 7733",
+    plate_confidence: 86,
+    pce_weight: 3.0,
     status: "reviewed",
   },
 ];
@@ -300,11 +256,11 @@ const MOCK_BREACHES: BreachEvent[] = [
    ═══════════════════════════════════════════════════════════════ */
 
 const MOCK_VEHICLE_STATS: VehicleStats[] = [
-  { vehicle_class: "Car", count: 798, pce_total: 798, avg_speed: 44, breach_rate: 18.2 },
-  { vehicle_class: "Bus", count: 189, pce_total: 567, avg_speed: 38, breach_rate: 12.7 },
-  { vehicle_class: "Truck", count: 156, pce_total: 546, avg_speed: 35, breach_rate: 22.4 },
-  { vehicle_class: "Motorcycle", count: 97, pce_total: 48.5, avg_speed: 48, breach_rate: 31.9 },
-  { vehicle_class: "Auto Rickshaw", count: 44, pce_total: 66, avg_speed: 32, breach_rate: 6.8 },
+  { vehicle_class: "Car", count: 312, pce_total: 312, avg_speed: 18.4, breach_rate: 4.8 },
+  { vehicle_class: "Bus", count: 42, pce_total: 126, avg_speed: 16.2, breach_rate: 2.3 },
+  { vehicle_class: "Truck", count: 38, pce_total: 114, avg_speed: 15.8, breach_rate: 5.2 },
+  { vehicle_class: "Motorcycle", count: 86, pce_total: 43.0, avg_speed: 21.4, breach_rate: 8.1 },
+  { vehicle_class: "Auto Rickshaw", count: 24, pce_total: 36, avg_speed: 16.0, breach_rate: 2.1 },
 ];
 
 const PIE_COLORS = ["#10b981", "#0ea5e9", "#a855f7", "#f59e0b", "#ef4444"];
@@ -315,43 +271,23 @@ const PIE_COLORS = ["#10b981", "#0ea5e9", "#a855f7", "#f59e0b", "#ef4444"];
 
 const MOCK_V85: V85Location[] = [
   {
-    location: "Kamand Valley Main Gate",
-    speed_limit: 40,
-    v85_speed: 58,
+    location: "Campus Test Corridor",
+    speed_limit: 20,
+    v85_speed: 22.4,
     total_vehicles: 486,
-    breach_count: 89,
-    breach_rate: 18.3,
+    breach_count: 20,
+    breach_rate: 4.1,
     hourly_data: [
-      { hour: "00:00", v85: 42, count: 8, limit: 40 },
-      { hour: "04:00", v85: 45, count: 12, limit: 40 },
-      { hour: "08:00", v85: 62, count: 68, limit: 40 },
-      { hour: "10:00", v85: 58, count: 74, limit: 40 },
-      { hour: "12:00", v85: 55, count: 56, limit: 40 },
-      { hour: "14:00", v85: 54, count: 48, limit: 40 },
-      { hour: "16:00", v85: 61, count: 71, limit: 40 },
-      { hour: "18:00", v85: 56, count: 65, limit: 40 },
-      { hour: "20:00", v85: 48, count: 42, limit: 40 },
-      { hour: "22:00", v85: 44, count: 24, limit: 40 },
-    ],
-  },
-  {
-    location: "North Campus Academic Block",
-    speed_limit: 50,
-    v85_speed: 64,
-    total_vehicles: 391,
-    breach_count: 54,
-    breach_rate: 13.8,
-    hourly_data: [
-      { hour: "00:00", v85: 48, count: 5, limit: 50 },
-      { hour: "04:00", v85: 50, count: 8, limit: 50 },
-      { hour: "08:00", v85: 68, count: 52, limit: 50 },
-      { hour: "10:00", v85: 64, count: 61, limit: 50 },
-      { hour: "12:00", v85: 59, count: 45, limit: 50 },
-      { hour: "14:00", v85: 57, count: 38, limit: 50 },
-      { hour: "16:00", v85: 66, count: 58, limit: 50 },
-      { hour: "18:00", v85: 62, count: 54, limit: 50 },
-      { hour: "20:00", v85: 52, count: 35, limit: 50 },
-      { hour: "22:00", v85: 49, count: 18, limit: 50 },
+      { hour: "00:00", v85: 18, count: 6, limit: 20 },
+      { hour: "04:00", v85: 17, count: 8, limit: 20 },
+      { hour: "08:00", v85: 23, count: 64, limit: 20 },
+      { hour: "10:00", v85: 22, count: 72, limit: 20 },
+      { hour: "12:00", v85: 21, count: 54, limit: 20 },
+      { hour: "14:00", v85: 21, count: 48, limit: 20 },
+      { hour: "16:00", v85: 23, count: 68, limit: 20 },
+      { hour: "18:00", v85: 22, count: 62, limit: 20 },
+      { hour: "20:00", v85: 19, count: 40, limit: 20 },
+      { hour: "22:00", v85: 18, count: 22, limit: 20 },
     ],
   },
 ];
@@ -390,24 +326,43 @@ export default function EnforcementPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
 
-  // Probe backend connection
+  // Probe backend connection and fetch live telemetry & active learning
   useEffect(() => {
-    async function checkBackend() {
+    async function loadData() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/healthz", { mode: "cors" });
-        if (res.ok) setBackendConnected(true);
+        const data = await fetchRecentTelemetry(1440);
+        if (data?.success) {
+          setBackendConnected(true);
+          if (data.breaches && data.breaches.length > 0) {
+            const mapped: BreachEvent[] = data.breaches.map((b: any, idx: number) => ({
+              id: 3000 + idx,
+              node_id: "RPI4_CAMERA_UNIT_01",
+              timestamp: b.timestamp ? new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
+              radar_speed_kmh: Math.round(b.speed_kmh || b.speed),
+              speed_limit_kmh: b.posted_limit || 20,
+              overspeed_pct: Math.round(((b.speed_kmh - (b.posted_limit || 20)) / (b.posted_limit || 20)) * 100),
+              vehicle_class: (b.vehicle_type?.toLowerCase() || "car") as any,
+              vehicle_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
+              plate_text: b.license_plate || b.plate_text,
+              plate_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
+              pce_weight: 1.0,
+              status: "new"
+            }));
+            setBreaches(mapped);
+          }
+        }
       } catch {
         setBackendConnected(false);
       }
     }
-    checkBackend();
+    loadData();
   }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/healthz");
-      if (res.ok) setBackendConnected(true);
+      const data = await fetchRecentTelemetry(1440);
+      if (data?.success) setBackendConnected(true);
     } catch {
       /* keep state */
     }
@@ -793,9 +748,12 @@ export default function EnforcementPage() {
                     </td>
                     <td className="py-3 px-3">
                       {b.plate_text ? (
-                        <span className="font-mono text-[11px] font-semibold text-foreground bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-700">
-                          {b.plate_text}
-                        </span>
+                        <div className="inline-flex items-center bg-white text-zinc-950 border border-zinc-700 rounded shadow-sm px-2 py-0.5 font-mono font-black text-[11px] tracking-wider select-all">
+                          <div className="flex flex-col items-center justify-center pr-1 mr-1 border-r border-zinc-400 text-[7px] leading-tight text-blue-700 font-bold">
+                            <span>IND</span>
+                          </div>
+                          <span>{b.plate_text}</span>
+                        </div>
                       ) : (
                         <span className="text-[10px] text-muted italic">No plate</span>
                       )}
@@ -944,8 +902,12 @@ export default function EnforcementPage() {
                 {selectedBreach.plate_text ? (
                   <>
                     <div className="flex items-center justify-between">
-                      <div className="bg-zinc-900 border border-zinc-600 rounded-lg px-3 py-2 font-mono text-base font-bold text-foreground tracking-wider">
-                        {selectedBreach.plate_text}
+                      <div className="inline-flex items-center bg-white text-zinc-950 border-2 border-zinc-900 rounded-lg shadow px-3 py-1.5 font-mono font-black text-sm tracking-widest select-all">
+                        <div className="flex flex-col items-center justify-center pr-1.5 mr-1.5 border-r border-zinc-400 text-[8px] leading-tight text-blue-700 font-bold">
+                          <span>🇮🇳</span>
+                          <span>IND</span>
+                        </div>
+                        <span>{selectedBreach.plate_text}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[10px] text-muted block">OCR Confidence</span>

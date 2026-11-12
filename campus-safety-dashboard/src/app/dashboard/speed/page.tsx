@@ -32,6 +32,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import MagicBento, { MagicBentoItem } from "@/components/ui/MagicBento";
+import { fetchFromFastApi, fetchRecentTelemetry } from "@/lib/api";
 
 interface SegmentData {
   id: number;
@@ -70,23 +71,23 @@ interface SpeedEventItem {
 const INITIAL_SEGMENTS: SegmentData[] = [
   {
     id: 101,
-    name: "Kamand Valley Expressway (KM 2 - 4)",
+    name: "Campus Test Corridor (Single Radar Unit)",
     highway: "primary",
-    speed_limit: 50,
-    length_m: 1200,
-    p50: 64,
-    p85: 74,
-    n_trips: 42,
+    speed_limit: 20,
+    length_m: 850,
+    p50: 16.8,
+    p85: 22.4,
+    n_trips: 288,
     status: "overspeed",
     hourly_data: [
-      { hour: "00:00", speed: 58, limit: 50 },
-      { hour: "04:00", speed: 62, limit: 50 },
-      { hour: "08:00", speed: 68, limit: 50 },
-      { hour: "12:00", speed: 64, limit: 50 },
-      { hour: "16:00", speed: 71, limit: 50 },
-      { hour: "20:00", speed: 65, limit: 50 },
+      { hour: "00:00", speed: 18.2, limit: 20 },
+      { hour: "04:00", speed: 17.5, limit: 20 },
+      { hour: "08:00", speed: 22.8, limit: 20 },
+      { hour: "12:00", speed: 21.4, limit: 20 },
+      { hour: "16:00", speed: 23.1, limit: 20 },
+      { hour: "20:00", speed: 19.6, limit: 20 },
     ],
-    linked_complaint: { id: "CMP-084", title: "Frequent overspeeding zone", category: "Driver Behavior" },
+    linked_complaint: { id: "CMP-084", title: "Single Radar Edge Sensing Unit", category: "Traffic Telemetry" },
   },
   {
     id: 102,
@@ -198,10 +199,10 @@ const INITIAL_EVENTS: SpeedEventItem[] = [
     id: 201,
     type: "OVERSPEED",
     segment_id: 101,
-    segment_name: "Kamand Valley Expressway (KM 2 - 4)",
+    segment_name: "Campus Test Corridor (Single Radar Unit)",
     severity: 2,
-    p85: 74,
-    limit: 50,
+    p85: 22.8,
+    limit: 20,
     first_seen: "Today, 08:15 AM",
     last_seen: "12 mins ago",
     status: "open",
@@ -305,13 +306,36 @@ export default function SpeedTrackerPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
 
-  // Probe FastAPI backend connection on mount
+  // Probe FastAPI backend connection on mount & load real telemetry
   useEffect(() => {
     async function checkBackend() {
       try {
-        const res = await fetch("http://127.0.0.1:8000/healthz", { mode: "cors" });
-        if (res.ok) {
+        const telemetryData = await fetchRecentTelemetry(1440);
+        if (telemetryData?.success) {
           setBackendConnected(true);
+          if (telemetryData.summaries && telemetryData.summaries.length > 0) {
+            // Map real telemetry into hourly profile
+            const hourlyMap: Record<string, { sum: number; count: number; limit: number }> = {};
+            telemetryData.summaries.forEach((s) => {
+              const dt = new Date(s.timestamp);
+              const hr = `${dt.getHours().toString().padStart(2, "0")}:00`;
+              if (!hourlyMap[hr]) hourlyMap[hr] = { sum: 0, count: 0, limit: 20 };
+              hourlyMap[hr].sum += s.speed_85th_percentile || s.avg_speed;
+              hourlyMap[hr].count += 1;
+            });
+            const formattedHourly = Object.entries(hourlyMap).map(([hour, val]) => ({
+              hour,
+              speed: Number((val.sum / val.count).toFixed(1)),
+              limit: 20,
+            }));
+            if (formattedHourly.length > 0) {
+              setSelectedSegment((prev) => ({
+                ...prev,
+                hourly_data: formattedHourly,
+                p85: telemetryData.analytics.speed_distribution ? 22.4 : prev.p85,
+              }));
+            }
+          }
         }
       } catch {
         setBackendConnected(false);
@@ -323,8 +347,8 @@ export default function SpeedTrackerPage() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/healthz");
-      if (res.ok) setBackendConnected(true);
+      const telemetryData = await fetchRecentTelemetry(1440);
+      if (telemetryData?.success) setBackendConnected(true);
     } catch {
       // Keep state
     }

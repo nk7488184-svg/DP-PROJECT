@@ -14,14 +14,16 @@ import {
   Gauge,
   Radio,
   Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarNavItem from "@/components/ui/SidebarNavItem";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/traffic", label: "Radar Telemetry", icon: Radio },
   { href: "/dashboard/speed", label: "Speed Tracker", icon: Gauge },
-  { href: "/dashboard/enforcement", label: "Traffic Enforcement", icon: Radio },
+  { href: "/dashboard/enforcement", label: "Traffic Enforcement", icon: ShieldAlert },
   { href: "/dashboard/reports", label: "Reports", icon: FileText },
   { href: "/dashboard/map", label: "Map View", icon: Map },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },

@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   Zap,
 } from "lucide-react";
-import { fetchFromFastApi, getFastApiWsUrl } from "@/lib/api";
+import { fetchFromFastApi, getFastApiWsUrl, FASTAPI_BASE } from "@/lib/api";
 
 interface BreachRecord {
   breach_id: string;
@@ -37,52 +37,52 @@ interface BreachRecord {
 export default function OverspeedAlertsCard() {
   const [breaches, setBreaches] = useState<BreachRecord[]>([
     {
-      breach_id: "BREACH-A801",
-      device_id: "RPI4_SOUTH_ACADEMIC",
+      breach_id: "BREACH-1004",
+      device_id: "RPI4_CAMERA_UNIT_01",
       timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(),
-      speed_kmh: 54.2,
-      posted_limit_kmh: 35.0,
-      delta_over_limit: 19.2,
-      severity: "high",
-      vehicle_type: "SUV",
-      pce_weight: 1.2,
+      speed_kmh: 32.4,
+      posted_limit_kmh: 20.0,
+      delta_over_limit: 12.4,
+      severity: "moderate",
+      vehicle_type: "Car",
+      pce_weight: 1.0,
       license_plate: "HP 33 B 4921",
-      ocr_confidence: 0.94,
+      ocr_confidence: 0.96,
       routed_to_active_learning: false,
       fine_suppressed: false,
-      road_name: "South Campus Academic Complex Road",
+      road_name: "Campus Test Corridor",
     },
     {
-      breach_id: "BREACH-C109",
-      device_id: "RPI4_NORTH_GATE",
+      breach_id: "BREACH-1008",
+      device_id: "RPI4_CAMERA_UNIT_01",
       timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-      speed_kmh: 46.5,
-      posted_limit_kmh: 30.0,
-      delta_over_limit: 16.5,
+      speed_kmh: 27.8,
+      posted_limit_kmh: 20.0,
+      delta_over_limit: 7.8,
       severity: "moderate",
       vehicle_type: "Car",
       pce_weight: 1.0,
       license_plate: "HP 65 A 1084",
-      ocr_confidence: 0.88,
+      ocr_confidence: 0.94,
       routed_to_active_learning: false,
       fine_suppressed: false,
-      road_name: "North Campus Main Gate Road",
+      road_name: "Campus Test Corridor",
     },
     {
-      breach_id: "BREACH-E902",
-      device_id: "RPI4_HOSTEL_ROAD",
+      breach_id: "BREACH-1015",
+      device_id: "RPI4_CAMERA_UNIT_01",
       timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-      speed_kmh: 42.0,
-      posted_limit_kmh: 25.0,
-      delta_over_limit: 17.0,
+      speed_kmh: 38.5,
+      posted_limit_kmh: 20.0,
+      delta_over_limit: 18.5,
       severity: "high",
       vehicle_type: "Motorcycle",
       pce_weight: 0.5,
-      license_plate: "DL 8C AK 9012",
-      ocr_confidence: 0.91,
+      license_plate: "HP 28 T 3319",
+      ocr_confidence: 0.95,
       routed_to_active_learning: false,
       fine_suppressed: false,
-      road_name: "Chandra Taal Hostel Road",
+      road_name: "Campus Test Corridor",
     },
   ]);
 
@@ -90,12 +90,17 @@ export default function OverspeedAlertsCard() {
 
   const loadBreaches = async () => {
     try {
-      const res = await fetchFromFastApi("/api/v1/telemetry/breaches?limit=8");
-      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-        setBreaches(res.data);
+      const res = await fetchFromFastApi("/api/v1/telemetry/recent?minutes=1440");
+      if (res?.breaches && Array.isArray(res.breaches) && res.breaches.length > 0) {
+        setBreaches(res.breaches);
+      } else {
+        const directRes = await fetchFromFastApi("/api/v1/telemetry/breaches?limit=8");
+        if (directRes?.data && Array.isArray(directRes.data) && directRes.data.length > 0) {
+          setBreaches(directRes.data);
+        }
       }
     } catch {
-      // Keep initial realistic fallback
+      // Keep realistic hilly fallback
     }
   };
 
@@ -234,6 +239,36 @@ export default function OverspeedAlertsCard() {
               </button>
             </div>
 
+            {/* Camera Evidence Snapshot or Privacy Zero-Storage Badge */}
+            {selectedBreach.image_url ? (
+              <div className="relative rounded-xl overflow-hidden border border-border bg-black/60">
+                <img
+                  src={
+                    selectedBreach.image_url.startsWith("http")
+                      ? selectedBreach.image_url
+                      : `${FASTAPI_BASE}${selectedBreach.image_url}`
+                  }
+                  alt={`Evidence Snapshot ${selectedBreach.breach_id}`}
+                  className="w-full h-44 object-cover rounded-xl"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+                <div className="absolute top-2 left-2 px-2.5 py-1 rounded bg-black/80 text-red-400 font-mono text-[11px] font-bold backdrop-blur-sm border border-red-500/30">
+                  RADAR CLOCKED: {selectedBreach.speed_kmh} km/h (Limit: {selectedBreach.posted_limit_kmh} km/h)
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl p-3 bg-emerald-950/20 border border-emerald-500/30 text-center space-y-1">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold text-xs">
+                  <span>Zero-Storage Radar Edge Record</span>
+                </div>
+                <p className="text-[11px] text-zinc-300">
+                  Raw camera frames are bypassed to operate within a strict &lt;10 MB RAM budget &amp; safeguard commuter privacy. 24GHz Doppler radar validated velocity: <span className="text-red-400 font-mono font-bold">{selectedBreach.speed_kmh} km/h</span>.
+                </p>
+              </div>
+            )}
+
             {/* License Plate Banner */}
             <div className="p-4 bg-card rounded-xl border border-border flex flex-col items-center justify-center space-y-2">
               <span className="text-[11px] text-muted font-medium">RECOGNISED VEHICLE NUMBER PLATE</span>
@@ -245,7 +280,7 @@ export default function OverspeedAlertsCard() {
                 <span>{selectedBreach.license_plate}</span>
               </div>
               <span className="text-[11px] text-emerald-400 font-semibold">
-                OCR Confidence: {Math.round(selectedBreach.ocr_confidence * 100)}%
+                ALPR OCR Confidence: {Math.round(selectedBreach.ocr_confidence * 100)}%
               </span>
             </div>
 
@@ -264,6 +299,10 @@ export default function OverspeedAlertsCard() {
                 <span className="font-mono font-bold text-red-500">+{selectedBreach.delta_over_limit} km/h Over</span>
               </div>
               <div className="flex justify-between py-1 border-b border-border/40">
+                <span className="text-muted">Capturing Sensor</span>
+                <span className="text-foreground font-medium">RPi-5 Doppler Radar Unit (Zero-Storage Edge)</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border/40">
                 <span className="text-muted">Location / Road</span>
                 <span className="text-foreground font-medium">{selectedBreach.road_name}</span>
               </div>
@@ -273,7 +312,7 @@ export default function OverspeedAlertsCard() {
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-muted">Timestamp</span>
-                <span className="text-foreground font-mono">{new Date(selectedBreach.timestamp).toLocaleString()}</span>
+                <span className="text-foreground font-mono" suppressHydrationWarning>{new Date(selectedBreach.timestamp).toLocaleString()}</span>
               </div>
             </div>
 
