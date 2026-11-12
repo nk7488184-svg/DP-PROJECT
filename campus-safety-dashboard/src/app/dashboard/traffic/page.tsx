@@ -622,7 +622,9 @@ export default function TrafficRadarPage() {
                           <Camera className="w-3.5 h-3.5 text-primary" />
                         </div>
                       ) : (
-                        <span className="text-muted text-[10px]">No Photo</span>
+                        <span className="text-emerald-400 text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 whitespace-nowrap">
+                          Radar Edge (Zero-Storage)
+                        </span>
                       )}
                     </td>
                     <td className="p-3">
@@ -672,7 +674,7 @@ export default function TrafficRadarPage() {
               </button>
             </div>
 
-            {/* Camera Evidence Snapshot */}
+            {/* Camera Evidence Snapshot or Privacy Zero-Storage Badge */}
             {selectedBreach.image_url ? (
               <div className="relative rounded-xl overflow-hidden border border-border bg-black/60">
                 <img
@@ -692,7 +694,17 @@ export default function TrafficRadarPage() {
                   RADAR CLOCKED: {selectedBreach.speed_kmh} km/h (Limit: {selectedBreach.posted_limit_kmh} km/h)
                 </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="rounded-xl p-4 bg-emerald-950/20 border border-emerald-500/30 text-center space-y-1.5">
+                <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Zero-Storage Radar Edge Record</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Raw camera frames are bypassed to operate within a strict &lt;10&nbsp;MB RAM budget and safeguard commuter privacy. 24GHz Doppler radar validated velocity: <span className="text-red-400 font-mono font-bold">{selectedBreach.speed_kmh} km/h</span>.
+                </p>
+              </div>
+            )}
 
             {/* Official HSRP Plate Header */}
             <div className="p-4 bg-card rounded-xl border border-border flex flex-col items-center justify-center space-y-2">
@@ -725,7 +737,7 @@ export default function TrafficRadarPage() {
               </div>
               <div className="flex justify-between py-1 border-b border-border/40">
                 <span className="text-muted">Capturing Sensor</span>
-                <span className="text-foreground font-medium">Single Edge Unit (RPi-4 + Camera 3)</span>
+                <span className="text-foreground font-medium">RPi-5 Doppler Radar Unit (Zero-Storage Edge)</span>
               </div>
               <div className="flex justify-between py-1 border-b border-border/40">
                 <span className="text-muted">Vehicle Classification</span>

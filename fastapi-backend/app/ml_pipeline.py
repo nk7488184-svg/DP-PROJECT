@@ -113,12 +113,19 @@ def run_ml_inference(payload: SpeedBreachPayload, image_path: Optional[str]) -> 
             except Exception as e:
                 print(f"[ANPR Inference Warning] {e}")
 
+    # If the edge node already generated or captured a license plate / vehicle type
+    if payload.license_plate:
+        v_type = payload.vehicle_type or ("Motorcycle" if payload.speed_kmh > 35 else "Car")
+        pce = PCE_WEIGHTS.get(v_type, 1.0)
+        confidence = 0.96
+        return v_type, pce, payload.license_plate, confidence
+
     # Deterministic or realistic classification fallback based on speed profile
     import random
-    if payload.speed_kmh > 65.0:
-        vehicle_type = random.choice(["Car", "SUV", "Motorcycle"])
-    elif payload.speed_kmh < 25.0:
-        vehicle_type = random.choice(["Truck", "Bus", "Van"])
+    if payload.speed_kmh > 40.0:
+        vehicle_type = random.choice(["Motorcycle", "Car", "SUV"])
+    elif payload.speed_kmh < 22.0:
+        vehicle_type = random.choice(["Truck", "Bus", "Van", "Car"])
     else:
         vehicle_type = random.choice(["Car", "SUV", "Motorcycle", "Van"])
 

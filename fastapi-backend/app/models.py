@@ -11,7 +11,7 @@ class RawTelemetryPayload(BaseModel):
     Periodic raw telemetry summary sent by the Raspberry Pi 4 edge state machine
     or the Python telemetry client every 1, 5, or 15 minutes.
     """
-    device_id: Optional[str] = Field("RPI4_NODE_01", description="Unique edge node identifier e.g. 'RPI4_NODE_01'")
+    device_id: Optional[str] = Field("RPI4_CAMERA_UNIT_01", description="Unique edge node identifier e.g. 'RPI4_CAMERA_UNIT_01'")
     timestamp: Optional[str] = Field(None, description="ISO-8601 timestamp")
     window_start: Optional[str] = Field(None, description="ISO-8601 start timestamp")
     window_end: Optional[str] = Field(None, description="ISO-8601 end timestamp")
@@ -23,8 +23,8 @@ class RawTelemetryPayload(BaseModel):
     approaching_count: Optional[int] = Field(None, ge=0, description="Vehicles moving toward radar")
     receding_count: Optional[int] = Field(None, ge=0, description="Vehicles moving away from radar")
     radar_occupancy_pct: Optional[float] = Field(0.0, ge=0.0, le=100.0, description="% of time radar detected target")
-    posted_speed_limit: Optional[float] = Field(35.0, description="Posted road limit in km/h")
-    road_name: Optional[str] = Field("North Campus Main Road", description="Campus road segment name")
+    posted_speed_limit: Optional[float] = Field(20.0, description="Posted road limit in km/h")
+    road_name: Optional[str] = Field("Campus Test Corridor", description="Campus road segment name")
     latitude: Optional[float] = Field(31.7807, description="GPS Latitude")
     longitude: Optional[float] = Field(76.9967, description="GPS Longitude")
 
@@ -33,7 +33,9 @@ class RawTelemetryPayload(BaseModel):
     def harmonize_fields(cls, values: Any) -> Any:
         if isinstance(values, dict):
             if not values.get("device_id"):
-                values["device_id"] = "RPI4_NODE_01"
+                values["device_id"] = "RPI4_CAMERA_UNIT_01"
+            if not values.get("road_name"):
+                values["road_name"] = "Campus Test Corridor"
             # Harmonize vehicle count
             cnt = values.get("raw_vehicle_count")
             if cnt is None:
@@ -109,14 +111,16 @@ class SpeedBreachPayload(BaseModel):
     Real-time speed breach event sent when radar detects V >= V_threshold.
     Carries 1080p JPEG snapshot taken directly from camera RAM.
     """
-    device_id: Optional[str] = Field("RPI4_NODE_01", description="Unique edge node identifier")
+    device_id: Optional[str] = Field("RPI4_CAMERA_UNIT_01", description="Unique edge node identifier")
     timestamp: Optional[str] = None
     speed_kmh: Optional[float] = None
     speed: Optional[float] = None
-    posted_limit_kmh: Optional[float] = 35.0
+    posted_limit_kmh: Optional[float] = 20.0
     direction: Optional[str] = "approaching"
+    license_plate: Optional[str] = None
+    vehicle_type: Optional[str] = None
     image_base64: Optional[str] = None
-    road_name: Optional[str] = "North Campus Main Road"
+    road_name: Optional[str] = "Campus Test Corridor"
     latitude: Optional[float] = 31.7807
     longitude: Optional[float] = 76.9967
 
@@ -125,12 +129,16 @@ class SpeedBreachPayload(BaseModel):
     def harmonize_breach(cls, values: Any) -> Any:
         if isinstance(values, dict):
             if not values.get("device_id"):
-                values["device_id"] = "RPI4_NODE_01"
+                values["device_id"] = "RPI4_CAMERA_UNIT_01"
+            if not values.get("road_name"):
+                values["road_name"] = "Campus Test Corridor"
+            if not values.get("posted_limit_kmh"):
+                values["posted_limit_kmh"] = 20.0
             sp = values.get("speed_kmh")
             if sp is None:
                 sp = values.get("speed")
             if sp is None:
-                sp = 45.0
+                sp = 26.5
             values["speed_kmh"] = float(sp)
             values["speed"] = float(sp)
             if not values.get("timestamp"):

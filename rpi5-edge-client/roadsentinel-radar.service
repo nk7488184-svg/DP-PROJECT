@@ -1,0 +1,22 @@
+[Unit]
+Description=RoadSentinel RPi5 Ultra-Optimized Radar Sensing Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/roadsentinel
+# Change the IP to your laptop/server IP on the LAN (e.g. 172.18.67.167)
+ExecStart=/usr/local/bin/rpi5_radar_daemon --host 172.18.67.167 --port 8000 --serial /dev/ttyUSB0 --limit 20.0 --interval 60
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Hardened low-resource sandbox
+LimitNOFILE=4096
+MemoryMax=32M
+
+[Install]
+WantedBy=multi-user.target
