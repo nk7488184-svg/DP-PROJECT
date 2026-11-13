@@ -70,6 +70,7 @@ struct Config {
     std::string roadName = "Campus Test Corridor";
     std::string serverHost = "127.0.0.1";
     int serverPort = 8000;
+    bool useSsl = false;
     std::string serialPort = "/dev/ttyUSB0";
     int baudRate = 115200;
     double postedLimit = 20.0;          // km/h (Hilly terrain posted limit)
@@ -126,9 +127,23 @@ private:
     CURL* curl;
     std::string baseUrl;
 public:
-    HttpClient(const std::string& host, int port) {
+    HttpClient(const std::string& host, int port, bool useSsl = false) {
         curl = curl_easy_init();
-        baseUrl = "http://" + host + ":" + std::to_string(port);
+        std::string scheme = (useSsl || port == 443 || host.find("trycloudflare.com") != std::string::npos) ? "https://" : "http://";
+        
+        std::string cleanHost = host;
+        if (cleanHost.rfind("https://", 0) == 0) {
+            cleanHost = cleanHost.substr(8);
+            scheme = "https://";
+        } else if (cleanHost.rfind("http://", 0) == 0) {
+            cleanHost = cleanHost.substr(7);
+        }
+
+        if (port == 443 || port == 80) {
+            baseUrl = scheme + cleanHost;
+        } else {
+            baseUrl = scheme + cleanHost + ":" + std::to_string(port);
+        }
     }
 
     ~HttpClient() {
@@ -148,8 +163,11 @@ public:
         curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonBody.c_str());
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 2L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
         CURLcode res = curl_easy_perform(curl);
         long httpCode = 0;
@@ -352,6 +370,17 @@ static std::string buildBreachJson(const Config& cfg, double speedKmh, bool isAp
     return ss.str();
 }
 
+static std::string buildLiveSpeedJson(const Config& cfg, double speedKmh, bool isPresent) {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(1);
+    ss << "{\n";
+    ss << "  \"device_id\": \"" << cfg.deviceId << "\",\n";
+    ss << "  \"speed_kmh\": " << (isPresent ? speedKmh : 0.0) << ",\n";
+    ss << "  \"is_target_present\": " << (isPresent ? "true" : "false") << "\n";
+    ss << "}";
+    return ss.str();
+}
+
 // -----------------------------------------------------------------------------
 // Main Execution Loop
 // -----------------------------------------------------------------------------
@@ -363,6 +392,7 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         if (arg == "--host" && i + 1 < argc) cfg.serverHost = argv[++i];
         else if (arg == "--port" && i + 1 < argc) cfg.serverPort = std::atoi(argv[++i]);
+        else if (arg == "--ssl") cfg.useSsl = true;
         else if (arg == "--serial" && i + 1 < argc) cfg.serialPort = argv[++i];
         else if (arg == "--baud" && i + 1 < argc) cfg.baudRate = std::atoi(argv[++i]);
         else if (arg == "--limit" && i + 1 < argc) cfg.postedLimit = std::atof(argv[++i]);
@@ -370,12 +400,13 @@ int main(int argc, char* argv[]) {
         else if (arg == "--demo" || arg == "--simulate") cfg.demoMode = true;
         else if (arg == "--help") {
             std::cout << "Usage: " << argv[0] << " [options]\n"
-                      << "  --host <ip>        Central backend server IP (default: 127.0.0.1)\n"
+                      << "  --host <ip/domain> Central backend server IP or domain\n"
                       << "  --port <port>      Central backend server port (default: 8000)\n"
+                      << "  --ssl              Use HTTPS / SSL encryption (automatic on port 443)\n"
                       << "  --serial <device>  Radar serial port (default: /dev/ttyUSB0)\n"
                       << "  --baud <rate>      Radar baud rate (default: 115200)\n"
                       << "  --limit <km/h>     Posted speed limit (default: 20.0)\n"
-                      << "  --interval <sec>   Telemetry send interval (default: 60)\n"
+                      << "  --interval <sec>   Telemetry summary interval (default: 60)\n"
                       << "  --demo             Force live bench demonstration traffic\n";
             return 0;
         }
@@ -393,12 +424,14 @@ int main(int argc, char* argv[]) {
     std::cout << "  Edge Node ID:         " << cfg.deviceId << "\n";
     std::cout << "  Campus Location:      " << cfg.roadName << "\n";
     std::cout << "  Hilly Speed Limit:    " << cfg.postedLimit << " km/h (Capped <= 44.8 km/h)\n";
-    std::cout << "  Central Backend:      http://" << cfg.serverHost << ":" << cfg.serverPort << "\n";
+    std::cout << "  Central Backend:      " << (cfg.useSsl || cfg.serverPort == 443 ? "https://" : "http://") 
+              << cfg.serverHost << ":" << cfg.serverPort << "\n";
     std::cout << "  Telemetry Interval:   Every " << cfg.summaryIntervalSec << " seconds\n";
+    std::cout << "  Live Speed Polling:   Every 1 second (1 Hz -> Instant Dial / 0.0 when clear)\n";
     std::cout << "  Zero-Storage Policy:  Active (Raw camera frames bypassed for privacy)\n";
     std::cout << "====================================================================\n\n";
 
-    HttpClient http(cfg.serverHost, cfg.serverPort);
+    HttpClient http(cfg.serverHost, cfg.serverPort, cfg.useSsl);
     SyntheticPlateGenerator plateGen;
     RadarStateMachine stateMachine;
     SerialRadarReader serialRadar;
@@ -415,6 +448,12 @@ int main(int argc, char* argv[]) {
     auto windowStartTime = getIsoUtcTimestamp();
     auto lastSummarySend = std::chrono::steady_clock::now();
     auto lastDemoVehicleTime = std::chrono::steady_clock::now();
+    auto lastLiveSpeedSend = std::chrono::steady_clock::now();
+    auto demoVehicleActiveUntil = std::chrono::steady_clock::now();
+    double activeDemoSpeed = 0.0;
+
+    double currentSecondMaxSpeed = 0.0;
+    bool targetDetectedThisSecond = false;
 
     std::mt19937 simRng(1337);
     std::uniform_real_distribution<double> intervalDist(3.0, 9.0);
@@ -452,6 +491,10 @@ int main(int argc, char* argv[]) {
             double rSpeed = 0.0;
             bool rApproaching = true;
             if (serialRadar.pollSpeed(rSpeed, rApproaching)) {
+                if (rSpeed > 2.0) {
+                    targetDetectedThisSecond = true;
+                    if (rSpeed > currentSecondMaxSpeed) currentSecondMaxSpeed = rSpeed;
+                }
                 stateMachine.processReading(rSpeed, rApproaching, cfg.postedLimit, onBreachTriggered);
             }
         }
@@ -483,6 +526,9 @@ int main(int argc, char* argv[]) {
                 stateMachine.speedSamples.push_back(vehicleSpeed);
                 stateMachine.totalOccupancySec += 1.8;
 
+                activeDemoSpeed = vehicleSpeed;
+                demoVehicleActiveUntil = now + std::chrono::milliseconds(2000);
+
                 std::cout << "[RADAR PASS] Vehicle #" << stateMachine.totalVehicles 
                           << " clocked at " << std::fixed << std::setprecision(1) << vehicleSpeed 
                           << " km/h (" << (isApp ? "Approaching" : "Receding") << ")";
@@ -494,10 +540,33 @@ int main(int argc, char* argv[]) {
                     std::cout << " -> Compliant.\n";
                 }
             }
+
+            if (now < demoVehicleActiveUntil) {
+                targetDetectedThisSecond = true;
+                if (activeDemoSpeed > currentSecondMaxSpeed) currentSecondMaxSpeed = activeDemoSpeed;
+            }
         }
 
-        // 3. Periodic Telemetry Aggregation & Ingestion
+        // 3. Second-by-Second Instant Radar Speed Broadcast (1 Hz)
         auto now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> liveElapsed = now - lastLiveSpeedSend;
+        if (liveElapsed.count() >= 1.0) {
+            double speedToSend = targetDetectedThisSecond ? currentSecondMaxSpeed : 0.0;
+            std::string livePayload = buildLiveSpeedJson(cfg, speedToSend, targetDetectedThisSecond);
+            http.postJson("/api/v1/telemetry/live-speed", livePayload);
+
+            if (targetDetectedThisSecond) {
+                std::cout << "[1Hz LIVE RADAR] Target In Beam: " << std::fixed << std::setprecision(1) << speedToSend << " km/h\n";
+            } else {
+                std::cout << "[1Hz LIVE RADAR] Beam Clear: 0.0 km/h\n";
+            }
+
+            targetDetectedThisSecond = false;
+            currentSecondMaxSpeed = 0.0;
+            lastLiveSpeedSend = now;
+        }
+
+        // 4. Periodic Telemetry Aggregation & Ingestion (60s)
         std::chrono::duration<double> elapsed = now - lastSummarySend;
         if (elapsed.count() >= cfg.summaryIntervalSec) {
             auto windowEndTime = getIsoUtcTimestamp();

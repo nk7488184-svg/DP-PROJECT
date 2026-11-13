@@ -9,6 +9,39 @@ from app.websocket_manager import manager
 
 router = APIRouter(prefix="/api/v1/telemetry", tags=["Traffic Telemetry & Enforcement"])
 
+@router.post("/live-speed", summary="Ingest real-time instant radar speed per second")
+async def ingest_live_speed(payload: Dict[str, Any], background_tasks: BackgroundTasks):
+    """
+    Ingests second-by-second radar readings (speed in km/h or 0.0 when no target is present)
+    and broadcasts immediately to web dashboard dials via WebSocket.
+    """
+    speed_kmh = float(payload.get("speed_kmh", 0.0))
+    is_present = bool(payload.get("is_target_present", speed_kmh > 0.0))
+    device_id = str(payload.get("device_id", "RPI4_CAMERA_UNIT_01"))
+
+    # Update latest live state in database
+    db.latest_live_speed = {
+        "speed_kmh": round(speed_kmh, 1),
+        "is_target_present": is_present,
+        "device_id": device_id,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    # Broadcast instantaneously to all connected web clients
+    background_tasks.add_task(
+        manager.broadcast,
+        {
+            "type": "LIVE_SPEED_TICK",
+            "data": db.latest_live_speed
+        }
+    )
+
+    return {"success": True, "data": db.latest_live_speed}
+
+@router.get("/live-speed", summary="Get most recent 1-second radar speed")
+async def get_live_speed():
+    return {"success": True, "data": getattr(db, "latest_live_speed", {"speed_kmh": 0.0, "is_target_present": False})}
+
 @router.get("/recent", summary="Get recent traffic summaries and overspeed breach events")
 async def get_recent_telemetry(
     minutes: int = Query(1440, ge=1, le=2880, description="Lookback window in minutes"),

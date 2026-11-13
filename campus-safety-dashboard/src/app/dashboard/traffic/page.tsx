@@ -96,6 +96,9 @@ export default function TrafficRadarPage() {
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [selectedBreach, setSelectedBreach] = useState<BreachRecord | null>(null);
   const [isMlLabOpen, setIsMlLabOpen] = useState<boolean>(false);
+  const [liveInstantSpeed, setLiveInstantSpeed] = useState<number>(0.0);
+  const [isTargetPresent, setIsTargetPresent] = useState<boolean>(false);
+  const [lastLiveTick, setLastLiveTick] = useState<string>("");
   const [extraAnalytics, setExtraAnalytics] = useState<{
     total_vehicles_observed: number;
     total_violations: number;
@@ -162,6 +165,13 @@ export default function TrafficRadarPage() {
       const breachesRes = await fetchFromFastApi("/api/v1/telemetry/breaches?limit=15").catch(() => null);
       if (breachesRes?.data && breachesRes.data.length > 0) setBreaches(breachesRes.data);
 
+      const liveSpeedRes = await fetchFromFastApi("/api/v1/telemetry/live-speed").catch(() => null);
+      if (liveSpeedRes?.data) {
+        setLiveInstantSpeed(liveSpeedRes.data.speed_kmh ?? 0.0);
+        setIsTargetPresent(Boolean(liveSpeedRes.data.is_target_present));
+        if (liveSpeedRes.data.timestamp) setLastLiveTick(liveSpeedRes.data.timestamp);
+      }
+
       const alRes = await fetchFromFastApi("/api/v1/telemetry/active-learning").catch(() => null);
       if (alRes?.data) setActiveLearningQueue(alRes.data);
     } catch {
@@ -192,6 +202,10 @@ export default function TrafficRadarPage() {
             setHistory((prev) => [msg.data, ...prev.slice(0, 15)]);
           } else if (msg.type === "BREACH_ALERT") {
             setBreaches((prev) => [msg.data, ...prev.slice(0, 20)]);
+          } else if (msg.type === "LIVE_SPEED_TICK") {
+            setLiveInstantSpeed(msg.data.speed_kmh ?? 0.0);
+            setIsTargetPresent(Boolean(msg.data.is_target_present));
+            setLastLiveTick(new Date().toISOString());
           } else if (msg.type === "INITIAL_STATE") {
             if (msg.stats) setStats(msg.stats);
             if (msg.latest) setTelemetry(msg.latest);
@@ -347,7 +361,48 @@ export default function TrafficRadarPage() {
       </div>
 
       {/* Top 4 KPI Domain Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Domain 0: Real-Time Radar Velocity Clock (Per Second) */}
+        <div className={`border rounded-xl p-5 relative overflow-hidden transition-all duration-300 ${
+          isTargetPresent && liveInstantSpeed > 20.0
+            ? "bg-red-950/30 border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.25)]"
+            : isTargetPresent
+            ? "bg-emerald-950/30 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+            : "bg-sidebar border-border"
+        }`}>
+          <div className="flex items-center justify-between text-muted text-xs font-medium mb-1.5">
+            <span className="flex items-center gap-1.5 font-bold tracking-wider">
+              <span className={`w-2 h-2 rounded-full ${isTargetPresent ? "bg-emerald-400 animate-ping" : "bg-zinc-600"}`} />
+              LIVE RADAR SPEED
+            </span>
+            <Gauge className={`w-4 h-4 ${isTargetPresent ? "text-emerald-400" : "text-muted"}`} />
+          </div>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className={`text-4xl font-black font-mono tracking-tight ${
+              isTargetPresent && liveInstantSpeed > 20.0
+                ? "text-red-400"
+                : isTargetPresent
+                ? "text-emerald-400"
+                : "text-zinc-500"
+            }`}>
+              {liveInstantSpeed > 0.0 ? liveInstantSpeed.toFixed(1) : "0.0"}
+            </span>
+            <span className="text-xs font-semibold text-muted">km/h</span>
+          </div>
+          <div className="mt-2.5 text-[11px] text-muted flex items-center justify-between border-t border-border/60 pt-2">
+            <span className="font-medium">
+              {isTargetPresent ? (
+                <span className={liveInstantSpeed > 20.0 ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>
+                  ● Target In Beam
+                </span>
+              ) : (
+                <span className="text-zinc-500">○ No Target (Beam Clear)</span>
+              )}
+            </span>
+            <span className="text-[10px] font-mono text-zinc-500">1 Hz Stream</span>
+          </div>
+        </div>
+
         {/* Domain 1: Traffic Volume & Flow Rate */}
         <div className="bg-sidebar border border-border rounded-xl p-5 relative overflow-hidden">
           <div className="flex items-center justify-between text-muted text-xs font-medium mb-2">
