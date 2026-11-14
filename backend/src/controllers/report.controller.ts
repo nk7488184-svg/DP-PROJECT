@@ -90,6 +90,7 @@ export const createReport = async (req: Request, res: Response) => {
         
         // 1. Immediately save into memory store
         const saved = memoryStore.addReport({
+            id: req.body.id,
             title,
             description,
             category: finalCategory,

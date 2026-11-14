@@ -78,13 +78,19 @@ export default function ReportsTable() {
     // Optimistic update & local storage sync immediately
     updateLocalReport(reportId, { status: newStatus });
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r))
+      prev.map((r) => (r.id === reportId ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r))
     );
     try {
-      await fetchFromApi(`/reports/${reportId}`, {
+      const res = await fetchFromApi(`/reports/${reportId}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
+      if (res && res.data) {
+        updateLocalReport(reportId, { status: res.data.status, updatedAt: res.data.updatedAt });
+        setReports((prev) =>
+          prev.map((r) => (r.id === reportId ? { ...r, ...res.data } : r))
+        );
+      }
     } catch (err) {
       console.warn("Backend report update notice (persisted locally):", err);
     } finally {
@@ -98,13 +104,19 @@ export default function ReportsTable() {
     // Optimistic update & local storage sync immediately
     updateLocalReport(reportId, { severity: newSeverity });
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity } : r))
+      prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity, updatedAt: new Date().toISOString() } : r))
     );
     try {
-      await fetchFromApi(`/reports/${reportId}`, {
+      const res = await fetchFromApi(`/reports/${reportId}`, {
         method: 'PATCH',
         body: JSON.stringify({ severity: newSeverity }),
       });
+      if (res && res.data) {
+        updateLocalReport(reportId, { severity: res.data.severity, updatedAt: res.data.updatedAt });
+        setReports((prev) =>
+          prev.map((r) => (r.id === reportId ? { ...r, ...res.data } : r))
+        );
+      }
     } catch (err) {
       console.warn("Backend report update notice (persisted locally):", err);
     } finally {

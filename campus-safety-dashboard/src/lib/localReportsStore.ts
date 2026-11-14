@@ -48,10 +48,25 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
   const seenIds = new Set<string>();
   const merged: HazardReport[] = [];
 
-  // 1. First include freshly fetched reports from backend
+  // Map local updates by ID for quick lookup to preserve fresher client-side state
+  const localMap = new Map<string, HazardReport>();
+  for (const r of local) {
+    if (r && r.id) localMap.set(r.id, r);
+  }
+
+  // 1. First include freshly fetched reports from backend, overlaying newer local updates if available
   for (const r of backendReports) {
     if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
+      const localVer = localMap.get(r.id);
+      if (localVer) {
+        const localTime = localVer.updatedAt ? new Date(localVer.updatedAt).getTime() : 0;
+        const backendTime = r.updatedAt ? new Date(r.updatedAt).getTime() : 0;
+        if (localTime >= backendTime) {
+          merged.push({ ...r, ...localVer });
+          continue;
+        }
+      }
       merged.push(r);
     }
   }
