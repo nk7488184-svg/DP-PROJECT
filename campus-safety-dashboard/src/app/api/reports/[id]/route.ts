@@ -6,8 +6,18 @@ declare global {
   var __REPORTS_CACHE__: HazardReport[] | undefined;
 }
 
-if (!global.__REPORTS_CACHE__ || global.__REPORTS_CACHE__.length === 0) {
+if (!global.__REPORTS_CACHE__) {
   global.__REPORTS_CACHE__ = [...mockReports];
+}
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
 export async function GET(
@@ -17,9 +27,9 @@ export async function GET(
   const { id } = await params;
   const report = global.__REPORTS_CACHE__?.find((r) => r.id === id);
   if (!report) {
-    return NextResponse.json({ success: false, error: 'Report not found' }, { status: 404 });
+    return NextResponse.json({ success: false, error: 'Report not found' }, { status: 404, headers: corsHeaders });
   }
-  return NextResponse.json({ success: true, data: report });
+  return NextResponse.json({ success: true, data: report }, { headers: corsHeaders });
 }
 
 export async function PATCH(
@@ -51,7 +61,7 @@ export async function PATCH(
         ...updates,
       };
       list.unshift(created);
-      return NextResponse.json({ success: true, data: created });
+      return NextResponse.json({ success: true, data: created }, { headers: corsHeaders });
     }
 
     list[idx] = {
@@ -59,8 +69,8 @@ export async function PATCH(
       ...updates,
       updatedAt: new Date().toISOString(),
     };
-    return NextResponse.json({ success: true, data: list[idx] });
+    return NextResponse.json({ success: true, data: list[idx] }, { headers: corsHeaders });
   } catch (err: any) {
-    return NextResponse.json({ success: false, error: err.message }, { status: 400 });
+    return NextResponse.json({ success: false, error: err.message }, { status: 400, headers: corsHeaders });
   }
 }

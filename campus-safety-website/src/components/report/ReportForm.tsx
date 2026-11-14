@@ -831,22 +831,28 @@ export default function ReportForm() {
     // Immediately save locally so tracking and maps work 100% reliably
     saveLocalReport(newReport);
 
+    const reportPayload = {
+      id: newReport.id,
+      title,
+      description: description || "Hazard reported on campus road.",
+      category: finalCategory,
+      severity: finalSeverity,
+      location: {
+        lat: location?.lat || 31.7808,
+        lng: location?.lng || 76.9967,
+        address: address || "IIT Mandi Campus",
+      },
+      images: photos.length > 0 ? [photos[0]] : [],
+      mlPrediction: mlResult || undefined,
+      reportedBy: "Campus Reporter",
+      reportedAt: new Date().toISOString(),
+      priorityScore: finalSeverity === "critical" ? 95 : finalSeverity === "high" ? 80 : finalSeverity === "medium" ? 55 : 30,
+    };
+
     try {
       const res = await fetchFromApi("/reports", {
         method: "POST",
-        body: JSON.stringify({
-          title,
-          description: description || "Hazard reported on campus road.",
-          category: finalCategory,
-          severity: finalSeverity,
-          location: {
-            lat: location?.lat || 31.7808,
-            lng: location?.lng || 76.9967,
-            address: address || "IIT Mandi Campus",
-          },
-          images: photos.length > 0 ? [photos[0]] : [],
-          mlPrediction: mlResult || undefined,
-        }),
+        body: JSON.stringify(reportPayload),
       });
 
       if (res && res.success && res.data) {
@@ -856,8 +862,31 @@ export default function ReportForm() {
         }
         saveLocalReport({ ...newReport, id: assignedId });
       }
+
+      // Redundant fail-safe direct broadcast to Admin Dashboard (port 3000)
+      if (typeof window !== "undefined") {
+        fetch("http://localhost:3000/api/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...reportPayload, id: assignedId }),
+        }).catch(() => {});
+      }
     } catch (err) {
       console.warn("Backend sync notice:", err);
+      if (typeof window !== "undefined") {
+        try {
+          const directRes = await fetch("http://localhost:3000/api/reports", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reportPayload),
+          });
+          const dData = await directRes.json();
+          if (dData && dData.success && dData.data) {
+            assignedId = dData.data.id || assignedId;
+            saveLocalReport({ ...newReport, id: assignedId });
+          }
+        } catch {}
+      }
     } finally {
       setCreatedReportId(assignedId);
       setIsSubmitting(false);

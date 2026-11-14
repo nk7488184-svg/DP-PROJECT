@@ -1,5 +1,7 @@
-const DEFAULT_PROD_URL = 'https://road-sentinel-backend.onrender.com/api';
+const DASHBOARD_API_URL = 'http://localhost:3000/api';
+const EXPRESS_BACKEND_URL = 'http://localhost:3002/api';
 const LOCAL_DEV_URL = 'http://localhost:3001/api';
+const DEFAULT_PROD_URL = 'https://road-sentinel-backend.onrender.com/api';
 
 function getApiCandidates(): string[] {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -9,14 +11,14 @@ function getApiCandidates(): string[] {
   if (envUrl) {
     const clean = envUrl.trim().replace(/\/+$/, '');
     const formatted = clean.endsWith('/api') ? clean : `${clean}/api`;
-    return [formatted, LOCAL_DEV_URL, DEFAULT_PROD_URL];
+    return [formatted, DASHBOARD_API_URL, EXPRESS_BACKEND_URL, LOCAL_DEV_URL, DEFAULT_PROD_URL];
   }
 
   if (isBrowserLocal) {
-    return [LOCAL_DEV_URL, DEFAULT_PROD_URL];
+    return [DASHBOARD_API_URL, EXPRESS_BACKEND_URL, LOCAL_DEV_URL, DEFAULT_PROD_URL];
   }
 
-  return [DEFAULT_PROD_URL, LOCAL_DEV_URL];
+  return [DEFAULT_PROD_URL, DASHBOARD_API_URL, EXPRESS_BACKEND_URL, LOCAL_DEV_URL];
 }
 
 const fastApiRaw = (process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://localhost:8000').trim();
