@@ -7,7 +7,7 @@ declare global {
 }
 
 if (!global.__REPORTS_CACHE__) {
-  global.__REPORTS_CACHE__ = [...mockReports];
+  global.__REPORTS_CACHE__ = [];
 }
 
 export async function GET(
@@ -30,7 +30,7 @@ export async function PATCH(
   try {
     const updates = await request.json();
     if (!global.__REPORTS_CACHE__) {
-      global.__REPORTS_CACHE__ = [...mockReports];
+      global.__REPORTS_CACHE__ = [];
     }
     const list = global.__REPORTS_CACHE__;
     const idx = list.findIndex((r) => r.id === id);

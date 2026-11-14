@@ -111,17 +111,17 @@ export function generateMockReports(count: number = 40): HazardReport[] {
   return reports.sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime());
 }
 
-export const mockReports = generateMockReports(40);
+export const mockReports: HazardReport[] = [];
 
 export const mockStats = {
-  totalReports: mockReports.length,
-  pending: mockReports.filter((r) => r.status === "submitted" || r.status === "under_review").length,
-  inProgress: mockReports.filter((r) => r.status === "in_progress").length,
-  resolved: mockReports.filter((r) => r.status === "resolved").length,
-  criticalCount: mockReports.filter((r) => r.severity === "critical").length,
+  totalReports: 0,
+  pending: 0,
+  inProgress: 0,
+  resolved: 0,
+  criticalCount: 0,
 };
 
 export const categoryDistribution = categories.map((cat) => ({
   category: cat,
-  count: mockReports.filter((r) => r.category === cat).length,
+  count: 0,
 }));

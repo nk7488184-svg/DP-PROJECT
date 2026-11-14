@@ -6,9 +6,8 @@ declare global {
   var __REPORTS_CACHE__: HazardReport[] | undefined;
 }
 
-if (!global.__REPORTS_CACHE__) {
-  global.__REPORTS_CACHE__ = [...mockReports];
-}
+// Reset cache to empty - all historical reports removed
+global.__REPORTS_CACHE__ = [];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,6 +18,16 @@ export async function GET(request: Request) {
     success: true,
     count: data.length,
     data,
+  });
+}
+
+export async function DELETE() {
+  global.__REPORTS_CACHE__ = [];
+  return NextResponse.json({
+    success: true,
+    message: "All previous hazard reports cleared",
+    count: 0,
+    data: [],
   });
 }
 
@@ -41,7 +50,7 @@ export async function POST(request: Request) {
       mlPrediction: body.mlPrediction || undefined,
     };
     if (!global.__REPORTS_CACHE__) {
-      global.__REPORTS_CACHE__ = [...mockReports];
+      global.__REPORTS_CACHE__ = [];
     }
     global.__REPORTS_CACHE__.unshift(newReport);
     return NextResponse.json({ success: true, data: newReport });

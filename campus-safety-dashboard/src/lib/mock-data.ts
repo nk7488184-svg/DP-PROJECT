@@ -144,26 +144,25 @@ function generateReports(): HazardReport[] {
   return generated;
 }
 
-export const mockReports: HazardReport[] = generateReports();
+export const mockReports: HazardReport[] = [];
 
 export const dashboardStats: DashboardStats = {
-  totalReports: mockReports.length,
-  pending: mockReports.filter((r) => r.status === "submitted" || r.status === "under_review").length,
-  inProgress: mockReports.filter((r) => r.status === "in_progress").length,
-  resolved: mockReports.filter((r) => r.status === "resolved").length,
-  criticalCount: mockReports.filter((r) => r.severity === "critical").length,
-  avgResolutionDays: 4.2,
+  totalReports: 0,
+  pending: 0,
+  inProgress: 0,
+  resolved: 0,
+  criticalCount: 0,
+  avgResolutionDays: 0,
 };
 
 export const timeSeriesData = Array.from({ length: 30 }, (_, i) => {
   const d = new Date("2026-08-20T12:00:00Z");
   d.setDate(d.getDate() - (29 - i));
-  return { date: d.toISOString().split("T")[0], count: Math.floor(seededRandom(i) * 5) + 1 };
+  return { date: d.toISOString().split("T")[0], count: 0 };
 });
 
 export const categoryDistribution = categories.map((cat) => {
-  const count = mockReports.filter((r) => r.category === cat).length;
-  return { category: cat, count, percentage: Math.round((count / mockReports.length) * 100) };
+  return { category: cat, count: 0, percentage: 0 };
 });
 
 export const monthlyTrends = [
