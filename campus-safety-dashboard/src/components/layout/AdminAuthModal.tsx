@@ -27,7 +27,7 @@ export interface AdminUser {
   role: string;
   department: string;
   campus: string;
-  authProvider: "credentials" | "google";
+  authProvider: string;
   avatarUrl?: string;
   token: string;
 }
@@ -150,9 +150,9 @@ export default function AdminAuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-md max-h-[88vh] overflow-y-auto my-auto bg-card border border-border rounded-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cloudflare Orange & Teal Header Glow Band */}
