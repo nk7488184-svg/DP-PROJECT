@@ -51,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { fetchRecentTelemetry, fetchFromFastApi, FASTAPI_BASE } from "@/lib/api";
 import MlVisionLabModal from "@/components/dashboard/MlVisionLabModal";
+import RpiLiveCameraCard from "@/components/dashboard/RpiLiveCameraCard";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -769,6 +770,9 @@ export default function EnforcementPage() {
           <p className="text-[11px] text-muted mt-1">Confidence &lt;75% → human review</p>
         </div>
       </div>
+
+      {/* ─── LIVE RASPBERRY PI 5 CORRIDOR CAMERA STREAM (ZERO-STORAGE ARCHITECTURE) ─── */}
+      <RpiLiveCameraCard />
 
       {/* ─── MAIN GRID: LIVE BREACH FEED + EVIDENCE DRAWER ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

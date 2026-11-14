@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { categoryLabels, type HazardCategory, type Severity, type HazardReport } from "@/types";
 import CategoryIcon from "@/components/shared/CategoryIcon";
 import LocationPicker from "@/components/map/LocationPicker";
-import { fetchFromApi } from "@/lib/api";
+import { fetchFromApi, FASTAPI_BASE } from "@/lib/api";
 import { saveLocalReport } from "@/lib/localReportsStore";
 
 const steps = [
@@ -538,6 +538,26 @@ export default function ReportForm() {
     }
   };
 
+  const importFromRpiCamera = async () => {
+    try {
+      setIsAnalyzing(true);
+      const res = await fetch(`${FASTAPI_BASE}/api/v1/camera/live`);
+      if (!res.ok) throw new Error("Could not fetch camera snapshot");
+      const blob = await res.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = reader.result as string;
+        setPhotos((prev) => [...prev, base64data]);
+        analyzePhoto(base64data);
+      };
+      reader.readAsDataURL(blob);
+    } catch (err: any) {
+      alert("Could not retrieve RPi camera snapshot: " + err.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const applyPrediction = useCallback((data: any) => {
     const rawClass = data.rawClass || data.prediction || (data.top_predictions?.[0]?.class) || "Pothole_Surface_Breakout";
     const label = data.label || CLASS_METADATA[rawClass]?.label || rawClass.replace(/_/g, " ");
@@ -971,8 +991,8 @@ export default function ReportForm() {
             <h3 className="text-lg font-semibold mb-1">Add Hazard Photos</h3>
             <p className="text-sm text-muted mb-6">Choose between taking a photo with your camera or uploading from gallery/files</p>
 
-            {/* 2 Primary Upload Options */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+            {/* 3 Primary Upload Options */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
               {/* Option 1: Camera */}
               <button
                 type="button"
@@ -995,8 +1015,22 @@ export default function ReportForm() {
                 <div className="w-14 h-14 rounded-full bg-muted/15 flex items-center justify-center text-primary mb-3 group-hover:scale-105 transition-transform">
                   <ImageIcon className="w-7 h-7" />
                 </div>
-                <span className="font-semibold text-foreground text-base">Choose from Gallery / Files</span>
+                <span className="font-semibold text-foreground text-base">Choose Gallery / Files</span>
                 <span className="text-xs text-muted mt-1">Browse photos stored on your device</span>
+              </button>
+
+              {/* Option 3: Roadside RPi 5 Camera */}
+              <button
+                type="button"
+                onClick={importFromRpiCamera}
+                disabled={isAnalyzing}
+                className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500 transition-all text-center group cursor-pointer shadow-sm disabled:opacity-50"
+              >
+                <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-600 mb-3 group-hover:scale-105 transition-transform">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <span className="font-semibold text-foreground text-base">Roadside RPi 5 Cam</span>
+                <span className="text-xs text-muted mt-1">Grab live roadside snapshot (Zero-Storage)</span>
               </button>
             </div>
 

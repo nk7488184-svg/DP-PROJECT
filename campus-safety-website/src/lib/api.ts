@@ -22,7 +22,7 @@ function getApiCandidates(): string[] {
 }
 
 const fastApiRaw = (process.env.NEXT_PUBLIC_FASTAPI_URL || 'http://localhost:8000').trim();
-const FASTAPI_BASE = fastApiRaw.replace(/\/+$/, '');
+export const FASTAPI_BASE = fastApiRaw.replace(/\/+$/, '');
 
 export async function fetchFromApi<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;

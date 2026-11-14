@@ -39,12 +39,8 @@ DEFAULT_OVERSPEED_THRESHOLD = float(os.environ.get("OVERSPEED_THRESHOLD", "24.0"
 DEFAULT_POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL", "2.0"))   # seconds between radar reads
 DEFAULT_SUMMARY_INTERVAL = int(os.environ.get("SUMMARY_INTERVAL", "60")) # seconds per aggregated summary
 
-TEMP_IMG_DIR = Path("/tmp/roadsentinel_captures")
-TEMP_IMG_DIR.mkdir(parents=True, exist_ok=True)
-
-# ---------------------------------------------------------------------------
-# Hardware Sensor Adapters (Radar & Camera)
-# ---------------------------------------------------------------------------
+# Zero-Storage Architecture: Images are strictly buffered in RAM, NEVER written to SD card
+import io
 
 class RadarSensorAdapter:
     """
@@ -73,7 +69,6 @@ class RadarSensorAdapter:
         if self.serial_conn:
             try:
                 line = self.serial_conn.readline().decode("utf-8", errors="ignore").strip()
-                # Parse speed from radar ASCII output (e.g. "V=42.5 km/h" or raw float)
                 if line:
                     import re
                     match = re.search(r"[-+]?\d*\.\d+|\d+", line)
@@ -85,19 +80,18 @@ class RadarSensorAdapter:
 
         # Simulated traffic distribution when running without radar hardware:
         import random
-        # 60% chance of a passing vehicle in this interval
         if random.random() < 0.65:
-            # 85% normal compliant traffic, 15% overspeeding breaches
             if random.random() < 0.85:
-                return round(random.gauss(26.5, 4.2), 1)
+                return round(random.gauss(17.5, 2.5), 1)
             else:
-                return round(random.uniform(36.0, 68.0), 1)
+                return round(random.uniform(22.0, 36.0), 1)
         return 0.0
 
 
 class CameraAdapter:
     """
     Adapter for Pi Camera Module (Picamera2, legacy picamera, or USB OpenCV camera).
+    STRICT ZERO-DISK GUARANTEE: In-memory RAM capture only.
     """
     def __init__(self):
         self.backend_type = None
@@ -110,7 +104,7 @@ class CameraAdapter:
             self.picam2.configure(config)
             self.picam2.start()
             self.backend_type = "picamera2"
-            print("[Camera] Picamera2 initialized in 1080p mode.")
+            print("[Camera] Picamera2 initialized in 1080p RAM-only mode.")
             return
         except Exception:
             pass
@@ -119,7 +113,7 @@ class CameraAdapter:
         try:
             from picamera import PiCamera
             self.backend_type = "picamera_legacy"
-            print("[Camera] Legacy PiCamera library detected.")
+            print("[Camera] Legacy PiCamera library detected (RAM mode).")
             return
         except Exception:
             pass
@@ -130,52 +124,50 @@ class CameraAdapter:
             self.cap = cv2.VideoCapture(0)
             if self.cap.isOpened():
                 self.backend_type = "opencv"
-                print("[Camera] USB/V4L2 camera detected via OpenCV.")
+                print("[Camera] USB/V4L2 camera detected via OpenCV (RAM mode).")
                 return
         except Exception:
             pass
 
-        print("[Camera Note] No physical camera attached. Synthetic snapshot generator active.")
+        print("[Camera Note] Physical camera not attached; in-memory synthetic generator active.")
         self.backend_type = "mock"
 
-    def capture(self, filename: str) -> Path:
-        target_path = TEMP_IMG_DIR / filename
-
+    def capture_bytes(self) -> bytes:
+        """Captures frame strictly in memory with zero SD card writes."""
         if self.backend_type == "picamera2":
-            self.picam2.capture_file(str(target_path))
-            return target_path
+            buf = io.BytesIO()
+            self.picam2.capture_file(buf, format="jpeg")
+            return buf.getvalue()
 
         elif self.backend_type == "picamera_legacy":
             from picamera import PiCamera
+            buf = io.BytesIO()
             with PiCamera() as camera:
                 camera.resolution = (1920, 1080)
-                camera.capture(str(target_path))
-            return target_path
+                camera.capture(buf, format="jpeg")
+            return buf.getvalue()
 
         elif self.backend_type == "opencv":
             import cv2
             ret, frame = self.cap.read()
             if ret:
-                cv2.imwrite(str(target_path), frame)
-                return target_path
+                _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                return buf.tobytes()
 
-        # Mock synthetic image fallback with license plate simulation
-        from io import BytesIO
+        # In-memory synthetic fallback
         try:
             from PIL import Image, ImageDraw
             img = Image.new("RGB", (640, 360), color=(30, 35, 45))
             draw = ImageDraw.Draw(img)
             draw.rectangle([0, 180, 640, 360], fill=(55, 60, 70))
             draw.rectangle([220, 150, 420, 280], fill=(40, 90, 160), outline=(20, 50, 100), width=3)
-            # Simulated plate
             draw.rectangle([280, 240, 370, 270], fill=(255, 255, 255), outline=(0, 0, 0), width=2)
             draw.text((290, 250), "HP 65 A 1084", fill=(0, 0, 0))
-            img.save(target_path, format="JPEG", quality=80)
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=80)
+            return buf.getvalue()
         except Exception:
-            # Minimal dummy JPEG header fallback if PIL not installed on Pi
-            with open(target_path, "wb") as f:
-                f.write(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00")
-        return target_path
+            return b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00"
 
 
 # ---------------------------------------------------------------------------
@@ -214,20 +206,19 @@ def post_telemetry_summary(backend_url: str, device_id: str, road_name: str,
 
 
 def post_speed_breach(backend_url: str, device_id: str, road_name: str,
-                      posted_limit: float, speed: float, image_path: Path, timestamp: str):
+                      posted_limit: float, speed: float, image_bytes: Optional[bytes], timestamp: str):
     """
-    Sends an overspeed violation event along with camera snapshot to backend.
-    Backend runs YOLOv8 vehicle detection + license plate ALPR on this snapshot.
+    Sends an overspeed violation event along with in-memory camera snapshot to backend.
+    STRICT ZERO-DISK GUARANTEE: In-memory bytes only.
     """
     url = f"{backend_url.rstrip('/')}/api/v1/telemetry/breach"
     b64_img = None
 
-    if image_path and image_path.exists() and image_path.stat().st_size > 0:
+    if image_bytes and len(image_bytes) > 0:
         try:
-            with open(image_path, "rb") as f:
-                b64_img = base64.b64encode(f.read()).decode("utf-8")
+            b64_img = base64.b64encode(image_bytes).decode("utf-8")
         except Exception as e:
-            print(f"[Camera Warning] Failed to read image for base64: {e}")
+            print(f"[Camera Warning] Failed to encode RAM image to base64: {e}")
 
     payload = {
         "device_id": device_id,
@@ -288,15 +279,14 @@ def run_telemetry_daemon(args):
 
                 # Check for Overspeed Breach
                 if speed >= args.threshold:
-                    print(f"[!] OVERSPEED DETECTED: {speed:.1f} km/h >= {args.threshold} km/h limit! Capturing evidence snapshot...")
-                    img_name = f"breach_{int(time.time())}_{args.device_id}.jpg"
-                    img_path = camera.capture(img_name)
+                    print(f"[!] OVERSPEED DETECTED: {speed:.1f} km/h >= {args.threshold} km/h limit! Capturing evidence snapshot in RAM...")
+                    img_bytes = camera.capture_bytes()
 
                     # Dispatch upload asynchronously to not block the radar loop
                     threading.Thread(
                         target=post_speed_breach,
                         args=(args.backend, args.device_id, args.road_name,
-                              args.limit, speed, img_path, now_iso),
+                              args.limit, speed, img_bytes, now_iso),
                         daemon=True
                     ).start()
 

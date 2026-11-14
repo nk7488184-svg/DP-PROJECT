@@ -2,9 +2,11 @@ import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.routes.telemetry import router as telemetry_router
 from app.routes.predict import router as predict_router, get_classifier
 from app.routes.anpr import router as anpr_router
+from app.routes.camera import router as camera_router
 from app.websocket_manager import manager
 from app.database import db
 
@@ -44,6 +46,14 @@ app.mount("/media", StaticFiles(directory=evidence_dir), name="media")
 app.include_router(telemetry_router)
 app.include_router(predict_router)
 app.include_router(anpr_router)
+app.include_router(camera_router)
+
+@app.get("/rpi_camera_edge.py")
+def download_rpi_script():
+    script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rpi_camera_edge.py")
+    if not os.path.exists(script_path):
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "edge", "rpi_camera_edge.py")
+    return FileResponse(script_path, media_type="text/x-python", filename="rpi_camera_edge.py")
 
 @app.get("/")
 def root():
