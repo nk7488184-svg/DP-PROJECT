@@ -125,21 +125,12 @@ export default function AdminUserMenu() {
             <ChevronDown className="w-3.5 h-3.5 text-muted group-hover:text-foreground transition-colors ml-0.5" />
           </button>
         ) : (
-          /* LOGGED OUT LOGIN BUTTON (Links directly to Cloudflare Login) */
+          /* LOGGED OUT LOGIN BUTTON (Links directly to Login) */
           <Link
             href="/login"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/50 text-orange-400 text-xs font-semibold transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(243,128,32,0.25)] active:scale-95"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/50 text-primary text-xs font-semibold transition-all cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] active:scale-95"
           >
-            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 115 48" fill="none">
-              <path
-                d="M87.2 24.3c-.6-4.9-4.8-8.7-9.8-8.7-2.3 0-4.4.8-6.1 2.2-2.3-6.6-8.6-11.3-16-11.3-8.8 0-16.1 6.5-17.3 15-2.2-.8-4.6-1.1-7.1-.8-5.7.8-10.2 5.3-11 11-.3 1.9-.1 3.7.5 5.4H90.8c3.9 0 7.1-3.2 7.1-7.1 0-2.8-1.7-5.3-4.2-6.5l-6.5.8z"
-                fill="#F38020"
-              />
-              <path
-                d="M93.3 29.8c-.5-3.3-3.3-5.8-6.7-5.8-1.5 0-2.9.5-4.1 1.4-1.6-4.5-5.9-7.7-10.9-7.7-5.9 0-10.8 4.3-11.6 10-.7-.2-1.5-.3-2.3-.3h-3.4l-.3 1.2c-.3 1.1-.4 2.2-.4 3.4 0 .9.1 1.7.3 2.5h33.8c2.6 0 4.7-2.1 4.7-4.7z"
-                fill="#FAAD3F"
-              />
-            </svg>
+            <Shield className="w-3.5 h-3.5" />
             <span>Login</span>
           </Link>
         )}
@@ -151,7 +142,7 @@ export default function AdminUserMenu() {
             <div className="p-4 bg-gradient-to-b from-primary/10 to-transparent border-b border-border/60">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm shadow-sm">
-                  {user.authProvider === "google" || user.authProvider === "cloudflare_google" ? "G" : "A"}
+                  {user.authProvider === "google" ? "G" : "A"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold text-foreground truncate">{user.name}</div>
@@ -170,7 +161,7 @@ export default function AdminUserMenu() {
               <div className="flex items-center justify-between text-muted">
                 <span>Auth Provider:</span>
                 <span className="font-semibold text-foreground capitalize flex items-center gap-1">
-                  {user.authProvider?.includes("google") ? "Google OAuth 2.0" : "Cloudflare Zero Trust"}
+                  {user.authProvider?.includes("google") ? "Google OAuth 2.0" : "SafeRoads Credentials"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-muted">
@@ -194,22 +185,13 @@ export default function AdminUserMenu() {
               <Link
                 href="/login"
                 onClick={() => setIsDropdownOpen(false)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold text-orange-400 hover:bg-orange-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-colors text-left group"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/40 transition-colors text-left group"
               >
                 <div className="flex items-center gap-2.5">
-                  <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 115 48" fill="none">
-                    <path
-                      d="M87.2 24.3c-.6-4.9-4.8-8.7-9.8-8.7-2.3 0-4.4.8-6.1 2.2-2.3-6.6-8.6-11.3-16-11.3-8.8 0-16.1 6.5-17.3 15-2.2-.8-4.6-1.1-7.1-.8-5.7.8-10.2 5.3-11 11-.3 1.9-.1 3.7.5 5.4H90.8c3.9 0 7.1-3.2 7.1-7.1 0-2.8-1.7-5.3-4.2-6.5l-6.5.8z"
-                      fill="#F38020"
-                    />
-                    <path
-                      d="M93.3 29.8c-.5-3.3-3.3-5.8-6.7-5.8-1.5 0-2.9.5-4.1 1.4-1.6-4.5-5.9-7.7-10.9-7.7-5.9 0-10.8 4.3-11.6 10-.7-.2-1.5-.3-2.3-.3h-3.4l-.3 1.2c-.3 1.1-.4 2.2-.4 3.4 0 .9.1 1.7.3 2.5h33.8c2.6 0 4.7-2.1 4.7-4.7z"
-                      fill="#FAAD3F"
-                    />
-                  </svg>
+                  <KeyRound className="w-4 h-4 text-emerald-400" />
                   <span>Login</span>
                 </div>
-                <ExternalLink className="w-3.5 h-3.5 text-orange-400/80 group-hover:translate-x-0.5 transition-transform" />
+                <ExternalLink className="w-3.5 h-3.5 text-emerald-400/80 group-hover:translate-x-0.5 transition-transform" />
               </Link>
 
               <button

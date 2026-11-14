@@ -155,8 +155,8 @@ export default function AdminAuthModal({
         className="relative w-full max-w-md max-h-[88vh] overflow-y-auto my-auto bg-card border border-border rounded-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cloudflare Orange & Teal Header Glow Band */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[#F38020] via-teal-400 to-emerald-500" />
+        {/* Emerald Header Glow Band */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 via-teal-400 to-emerald-500" />
 
         {/* Modal Close Button */}
         <button
@@ -169,30 +169,21 @@ export default function AdminAuthModal({
 
         {/* Content Container */}
         <div className="p-6">
-          {/* Cloudflare Access Branding Header */}
+          {/* SafeRoads Branding Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center shadow-sm">
-                <svg className="w-6 h-6" viewBox="0 0 115 48" fill="none">
-                  <path
-                    d="M87.2 24.3c-.6-4.9-4.8-8.7-9.8-8.7-2.3 0-4.4.8-6.1 2.2-2.3-6.6-8.6-11.3-16-11.3-8.8 0-16.1 6.5-17.3 15-2.2-.8-4.6-1.1-7.1-.8-5.7.8-10.2 5.3-11 11-.3 1.9-.1 3.7.5 5.4H90.8c3.9 0 7.1-3.2 7.1-7.1 0-2.8-1.7-5.3-4.2-6.5l-6.5.8z"
-                    fill="#F38020"
-                  />
-                  <path
-                    d="M93.3 29.8c-.5-3.3-3.3-5.8-6.7-5.8-1.5 0-2.9.5-4.1 1.4-1.6-4.5-5.9-7.7-10.9-7.7-5.9 0-10.8 4.3-11.6 10-.7-.2-1.5-.3-2.3-.3h-3.4l-.3 1.2c-.3 1.1-.4 2.2-.4 3.4 0 .9.1 1.7.3 2.5h33.8c2.6 0 4.7-2.1 4.7-4.7z"
-                    fill="#FAAD3F"
-                  />
-                </svg>
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-sm">
+                <Shield className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-sm font-bold text-foreground">Cloudflare Access</h3>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-orange-500/15 text-orange-400 uppercase border border-orange-500/30">
-                    Zero Trust
+                  <h3 className="text-sm font-bold text-foreground">SafeRoads Admin Portal</h3>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/15 text-emerald-400 uppercase border border-emerald-500/30">
+                    IIT Mandi
                   </span>
                 </div>
                 <p className="text-[11px] text-muted">
-                  RoadSentinel IIT Mandi Edge Enforcement
+                  RoadSentinel Campus Safety Command Center
                 </p>
               </div>
             </div>
@@ -200,20 +191,11 @@ export default function AdminAuthModal({
             <Link
               href="/login"
               onClick={onClose}
-              className="text-[10px] text-orange-400 hover:text-orange-300 font-medium flex items-center gap-0.5 mr-6 mt-1 hover:underline"
-              title="Open full dedicated Cloudflare login page"
+              className="text-[10px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-0.5 mr-6 mt-1 hover:underline"
+              title="Open full login page"
             >
               Full Page <ExternalLink className="w-2.5 h-2.5" />
             </Link>
-          </div>
-
-          {/* Cloudflare Turnstile Verification Badge */}
-          <div className="mb-4 px-3 py-1.5 rounded-lg bg-zinc-900/90 border border-zinc-800 flex items-center justify-between text-[11px]">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-zinc-300 font-mono">Turnstile: Verified Human</span>
-            </div>
-            <span className="text-[10px] text-zinc-500 font-mono">Ray ID: 893cfb12a874e190</span>
           </div>
 
           {/* VIEW: GOOGLE ACCOUNT PICKER */}
