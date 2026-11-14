@@ -180,37 +180,67 @@ class ZeroDiskCamera:
 # Radar Sensor Interface
 # ---------------------------------------------------------------------------
 class RadarSensor:
-    def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 115200):
+    def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 115200, allow_mock: bool = True):
         self.conn = None
-        if serial_port and os.path.exists(serial_port):
-            try:
-                import serial
-                self.conn = serial.Serial(serial_port, baud_rate, timeout=1)
-                print(f"[Radar OK] Hardware radar connected on {serial_port}")
-            except Exception as e:
-                print(f"[Radar Notice] Could not open {serial_port}: {e}")
+        self.is_hardware = False
+        self.allow_mock = allow_mock
+
+        # Candidate serial devices if none explicitly provided
+        candidates = [serial_port] if serial_port else [
+            "/dev/ttyUSB0",
+            "/dev/ttyUSB1",
+            "/dev/ttyACM0",
+            "/dev/ttyACM1",
+            "/dev/ttyAMA0",
+            "/dev/serial0"
+        ]
+
+        for port in candidates:
+            if port and os.path.exists(port):
+                try:
+                    import serial
+                    self.conn = serial.Serial(port, baud_rate, timeout=0.1)
+                    self.is_hardware = True
+                    print(f"\n[Hardware Radar CONNECTED] Active Doppler radar link established on {port}")
+                    print("[Radar Mode] Mock simulation DISABLED - strictly reading real vehicle speeds from physical radar sensor.")
+                    break
+                except Exception as e:
+                    print(f"[Radar Port Notice] Tried {port}: {e}")
+
+        if not self.is_hardware:
+            if self.allow_mock:
+                print("\n[Radar Notice] No physical radar detected on serial ports.")
+                print("[Radar Mode] Running demo traffic simulation. (Use --no-mock to disable when waiting for real sensor)")
+            else:
+                print("\n[Radar Notice] No physical radar detected. Mock simulation is DISABLED (--no-mock).")
+                print("[Radar Mode] Waiting for real radar hardware to be plugged in. Speed will remain 0.0.")
 
     def read_speed(self) -> float:
-        if self.conn:
+        # 1. Real Hardware Radar Read
+        if self.is_hardware and self.conn:
             try:
                 line = self.conn.readline().decode("utf-8", errors="ignore").strip()
                 if line:
                     import re
-                    match = re.search(r"[-+]?\d*\.\d+|\d+", line)
+                    # Look for speed values in incoming serial data (e.g. "SPEED: 28.4" or "28.4")
+                    match = re.search(r"[-+]?\d*\.?\d+", line)
                     if match:
-                        return abs(float(match.group(0)))
+                        val = abs(float(match.group(0)))
+                        if val > 1.0: # filter noise floor
+                            return val
             except Exception:
                 pass
             return 0.0
 
-        # Simulated hill corridor traffic: 20 km/h posted limit
-        import random
-        if random.random() < 0.25:
-            # 85% compliant, 15% breach
-            if random.random() < 0.85:
-                return round(random.gauss(17.5, 2.2), 1)
-            else:
-                return round(random.uniform(22.0, 36.5), 1)
+        # 2. Synthetic Traffic Simulation (Only if mock is permitted and hardware is absent)
+        if self.allow_mock:
+            import random
+            if random.random() < 0.25:
+                # 85% compliant, 15% breach
+                if random.random() < 0.85:
+                    return round(random.gauss(17.5, 2.2), 1)
+                else:
+                    return round(random.uniform(22.0, 36.5), 1)
         return 0.0
 
 
@@ -317,7 +347,7 @@ def run_client(args):
     print("=" * 75)
 
     camera = ZeroDiskCamera(width=args.width, height=args.height)
-    radar = RadarSensor(args.radar_port)
+    radar = RadarSensor(serial_port=args.radar_port, allow_mock=not args.no_mock)
 
     last_hazard_scan_time = 0.0
     last_analytics_scan_time = time.time()
@@ -394,7 +424,7 @@ def run_client(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RoadSentinel Raspberry Pi Edge Camera Streamer (Zero-Storage)")
-    parser.add_argument("--backend", default=DEFAULT_BACKEND_URL, help="Target backend/website URL (e.g. https://xyz.trycloudflare.com or http://ip:8000)")
+    parser.add_argument("--backend", "--server", default=DEFAULT_BACKEND_URL, help="Target backend/website URL (e.g. https://xyz.trycloudflare.com or http://ip:8000)")
     parser.add_argument("--device-id", default=DEFAULT_DEVICE_ID, help="Unique edge device identifier")
     parser.add_argument("--road-name", default=DEFAULT_ROAD_NAME, help="Road / corridor location name")
     parser.add_argument("--fps", type=float, default=DEFAULT_STREAM_FPS, help="Live camera stream frame rate (FPS)")
@@ -405,6 +435,7 @@ if __name__ == "__main__":
     parser.add_argument("--width", type=int, default=1280, help="Camera capture width")
     parser.add_argument("--height", type=int, default=720, help="Camera capture height")
     parser.add_argument("--radar-port", default=None, help="Serial port for radar hardware (e.g. /dev/ttyUSB0)")
+    parser.add_argument("--no-mock", action="store_true", help="Disable synthetic demo speed simulation when physical radar is not connected")
 
     args = parser.parse_args()
     run_client(args)
