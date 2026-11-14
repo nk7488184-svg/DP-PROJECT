@@ -404,15 +404,13 @@ class TelemetryStore:
         self.breaches.sort(key=lambda b: b.timestamp, reverse=True)
         self.active_learning_queue.sort(key=lambda a: a.timestamp, reverse=True)
 
-        # Node status set to offline after 11 PM (at 23:14 IST)
-        # Operational period was 15:00 - 21:00 (3 PM - 9 PM) on Nov 11, 2026
-        offline_ts = datetime(2026, 11, 11, 23, 14, 0, tzinfo=IST).isoformat()
+        # Node status set to online with continuous live radar sensing
         for nid in self.nodes:
-            self.nodes[nid]["status"] = "offline"
-            self.nodes[nid]["last_seen"] = offline_ts
-            self.nodes[nid]["offline_since"] = offline_ts
-            self.nodes[nid]["offline_reason"] = "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST on Nov 11, 2026"
-            self.nodes[nid]["field_test_active_window"] = "Nov 11, 2026, 3:00 PM – 9:00 PM IST (Operational)"
+            self.nodes[nid]["status"] = "online"
+            self.nodes[nid]["last_seen"] = "Active (24GHz Doppler Radar Live)"
+            self.nodes[nid]["offline_since"] = None
+            self.nodes[nid]["offline_reason"] = None
+            self.nodes[nid]["field_test_active_window"] = "Continuous Live Sensing (Active)"
 
         # ── Export structured JSON dataset to file for easy viewing & inspection ──
         try:
