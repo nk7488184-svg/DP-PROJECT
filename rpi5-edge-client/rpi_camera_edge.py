@@ -254,6 +254,26 @@ def post_hazard_scan(backend_url: str, device_id: str, road_name: str, frame_byt
         print(f"[Hazard Scan Upload Notice] {e}")
 
 
+def post_analytics_photo(backend_url: str, device_id: str, road_name: str, frame_bytes: bytes):
+    """Submits camera frame for civil engineering & road condition analytics."""
+    url = f"{backend_url.rstrip('/')}/api/v1/camera/capture-analytics"
+    headers = {
+        "X-Device-Id": device_id,
+        "X-Road-Name": road_name
+    }
+    try:
+        files = {"image": ("rpi_analytics.jpg", frame_bytes, "image/jpeg")}
+        res = requests.post(url, files=files, headers=headers, timeout=10)
+        if res.status_code == 200:
+            data = res.json().get("data", {})
+            cond = data.get("road_condition", "Normal")
+            conf = data.get("condition_confidence", 0.0)
+            flow = data.get("flow_rate_vph", 0.0)
+            print(f"[📊 Analytics Photo] Captured from camera -> Surface: {cond} ({conf}%) | Flow: {flow} VPH")
+    except Exception as e:
+        print(f"[Analytics Photo Notice] {e}")
+
+
 def post_speed_breach(backend_url: str, device_id: str, road_name: str,
                       speed: float, limit: float, frame_bytes: bytes):
     """Submits speed violation snapshot in RAM to backend for YOLOv8 & ALPR."""
@@ -275,7 +295,7 @@ def post_speed_breach(backend_url: str, device_id: str, road_name: str,
             plate = data.get("license_plate", "UNKNOWN")
             vtype = data.get("vehicle_type", "Vehicle")
             conf = data.get("ocr_confidence", 0.0)
-            print(f"[🚨 SPEED BREACH UPLOADED] {speed:.1f} km/h (Limit: {limit}) -> Plate: [{plate}] ({vtype}, OCR Conf: {conf*100:.1f}%)")
+            print(f"[🚨 SPEED BREACH CAPTURED] {speed:.1f} km/h (Limit: {limit}) -> ML Detected Plate: [{plate}] ({vtype}, OCR Conf: {conf*100:.1f}%) -> Photo stored in Camera Menu & Plate displayed in Enforcement Menu!")
     except Exception as e:
         print(f"[Breach Upload Warning] {e}")
 
@@ -300,6 +320,7 @@ def run_client(args):
     radar = RadarSensor(args.radar_port)
 
     last_hazard_scan_time = 0.0
+    last_analytics_scan_time = time.time()
     frame_interval = 1.0 / max(0.5, args.fps)
 
     print("\n[Edge Streaming Started] Connecting to website and transmitting live frames...")
@@ -319,8 +340,8 @@ def run_client(args):
                     daemon=True
                 ).start()
 
-                # 3. Check for periodic AI road hazard inspection
                 now = time.time()
+                # 3. Check for periodic AI road hazard inspection
                 if now - last_hazard_scan_time >= args.hazard_interval:
                     last_hazard_scan_time = now
                     threading.Thread(
@@ -329,7 +350,16 @@ def run_client(args):
                         daemon=True
                     ).start()
 
-            # 4. Check Doppler radar for speed violations
+                # 4. Check for periodic analytics photo capture
+                if now - last_analytics_scan_time >= args.analytics_interval:
+                    last_analytics_scan_time = now
+                    threading.Thread(
+                        target=post_analytics_photo,
+                        args=(args.backend, args.device_id, args.road_name, frame_bytes),
+                        daemon=True
+                    ).start()
+
+            # 5. Check Doppler radar for speed violations
             speed = radar.read_speed()
             if speed > 0:
                 # Send 1-second live speed tick to website dials
@@ -369,6 +399,7 @@ if __name__ == "__main__":
     parser.add_argument("--road-name", default=DEFAULT_ROAD_NAME, help="Road / corridor location name")
     parser.add_argument("--fps", type=float, default=DEFAULT_STREAM_FPS, help="Live camera stream frame rate (FPS)")
     parser.add_argument("--hazard-interval", type=int, default=DEFAULT_HAZARD_SCAN_SEC, help="Seconds between automatic AI road hazard scans")
+    parser.add_argument("--analytics-interval", type=int, default=30, help="Seconds between automatic analytics photo captures")
     parser.add_argument("--limit", type=float, default=DEFAULT_SPEED_LIMIT, help="Posted speed limit in km/h")
     parser.add_argument("--threshold", type=float, default=DEFAULT_TRIGGER_LIMIT, help="Violation breach trigger threshold in km/h")
     parser.add_argument("--width", type=int, default=1280, help="Camera capture width")

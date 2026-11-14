@@ -16,7 +16,6 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { fetchFromFastApi } from "@/lib/api";
-import LiveCorridorCamera from "@/components/traffic/LiveCorridorCamera";
 
 interface ProcessedTelemetry {
   vehicle_count: number;
@@ -196,9 +195,6 @@ export default function PublicTrafficPage() {
               </div>
             </div>
           </div>
-
-          {/* Live RPi 5 Corridor Camera & Road Hazard Stream (Zero-Storage Architecture) */}
-          <LiveCorridorCamera />
 
           {/* Analytics Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

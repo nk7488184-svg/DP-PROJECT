@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import {
   Radio,
   Zap,
   Car,
+  Camera,
   ScanLine,
   Timer,
   Brain,
@@ -51,7 +53,6 @@ import {
 import { cn } from "@/lib/utils";
 import { fetchRecentTelemetry, fetchFromFastApi, FASTAPI_BASE } from "@/lib/api";
 import MlVisionLabModal from "@/components/dashboard/MlVisionLabModal";
-import RpiLiveCameraCard from "@/components/dashboard/RpiLiveCameraCard";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -771,9 +772,6 @@ export default function EnforcementPage() {
         </div>
       </div>
 
-      {/* ─── LIVE RASPBERRY PI 5 CORRIDOR CAMERA STREAM (ZERO-STORAGE ARCHITECTURE) ─── */}
-      <RpiLiveCameraCard />
-
       {/* ─── MAIN GRID: LIVE BREACH FEED + EVIDENCE DRAWER ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Live Breach Feed */}
@@ -1170,6 +1168,15 @@ export default function EnforcementPage() {
                   <Flag className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              {/* Link to Camera & Evidence Menu */}
+              <Link
+                href="/dashboard/camera"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-card hover:bg-input border border-border text-xs text-muted hover:text-foreground transition-all group"
+              >
+                <Camera className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span>View Raw Vehicle Capture in Camera &amp; Evidence Menu</span>
+              </Link>
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-12">

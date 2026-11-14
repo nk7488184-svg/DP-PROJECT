@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 import { fetchFromApi } from "@/lib/api";
 
 export default function ReportsTable() {
-  const [reports, setReports] = useState<HazardReport[]>(fallbackReports);
-  const [loading, setLoading] = useState(false);
+  const [reports, setReports] = useState<HazardReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState<HazardCategory | "">("");
   const [statusFilter, setStatusFilter] = useState<Status | "">("");

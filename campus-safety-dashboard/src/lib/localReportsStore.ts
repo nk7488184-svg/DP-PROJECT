@@ -78,7 +78,7 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
     }
   }
 
-  // 2. Include any local client-side reports
+  // 2. Include any local client-side reports NOT already from the backend (e.g. submitted offline or from website)
   for (const r of local) {
     if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
@@ -86,15 +86,17 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
     }
   }
 
-  // 3. Fallback to mock baseline reports
-  for (const r of mockReports) {
-    if (r && r.id && !seenIds.has(r.id)) {
-      seenIds.add(r.id);
-      const localVer = localMap.get(r.id);
-      if (localVer) {
-        merged.push({ ...r, ...localVer });
-      } else {
-        merged.push(r);
+  // 3. ONLY use mock baseline reports when the backend returned ZERO reports (offline / unreachable)
+  if (backendReports.length === 0) {
+    for (const r of mockReports) {
+      if (r && r.id && !seenIds.has(r.id)) {
+        seenIds.add(r.id);
+        const localVer = localMap.get(r.id);
+        if (localVer) {
+          merged.push({ ...r, ...localVer });
+        } else {
+          merged.push(r);
+        }
       }
     }
   }
