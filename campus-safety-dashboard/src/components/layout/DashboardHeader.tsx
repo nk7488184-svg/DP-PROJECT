@@ -5,6 +5,7 @@ import { Search, Bell, User, Shield, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import StaggeredMenu, { StaggeredMenuItem, StaggeredMenuSocialItem } from "@/components/ui/StaggeredMenu";
 import NotificationPopover from "./NotificationPopover";
+import AdminUserMenu from "./AdminUserMenu";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Overview",
@@ -79,12 +80,9 @@ export default function DashboardHeader() {
           {/* Notifications Popover */}
           <NotificationPopover />
 
-          {/* User Profile - hidden on mobile for clean fit */}
-          <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-border">
-            <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-              <User className="w-4 h-4 text-primary" />
-            </div>
-            <span className="text-sm font-medium text-foreground">Admin</span>
+          {/* Admin User Profile & Authentication Trigger */}
+          <div className="pl-1 sm:pl-2 border-l border-border flex items-center">
+            <AdminUserMenu />
           </div>
 
           {/* Staggered Navigation Trigger Button */}
