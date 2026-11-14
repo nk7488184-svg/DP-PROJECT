@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Bell, User, Shield, Sparkles } from "lucide-react";
+import { Search, Bell, User, Shield, Sparkles, Camera } from "lucide-react";
 import { usePathname } from "next/navigation";
 import StaggeredMenu, { StaggeredMenuItem, StaggeredMenuSocialItem } from "@/components/ui/StaggeredMenu";
 import NotificationPopover from "./NotificationPopover";
@@ -9,6 +9,8 @@ import AdminUserMenu from "./AdminUserMenu";
 
 const breadcrumbMap: Record<string, string> = {
   "/dashboard": "Overview",
+  "/dashboard/camera": "Camera & Evidence",
+  "/dashboard/traffic": "Radar Telemetry",
   "/dashboard/speed": "Speed Tracker Observatory",
   "/dashboard/enforcement": "Edge Traffic Enforcement",
   "/dashboard/reports": "Hazard Reports",
@@ -19,13 +21,14 @@ const breadcrumbMap: Record<string, string> = {
 
 const dashboardMenuItems: StaggeredMenuItem[] = [
   { label: "Overview", ariaLabel: "Dashboard overview", link: "/dashboard" },
+  { label: "Camera & Evidence", ariaLabel: "Live camera stream and captured photo evidence", link: "/dashboard/camera" },
   { label: "Speed Tracker", ariaLabel: "Speed Tracker observatory", link: "/dashboard/speed" },
   { label: "Traffic Enforcement", ariaLabel: "Edge radar & camera enforcement", link: "/dashboard/enforcement" },
   { label: "Hazard Reports", ariaLabel: "Citizen hazard reports", link: "/dashboard/reports" },
   { label: "Map View", ariaLabel: "Campus spatial hazard map", link: "/dashboard/map" },
   { label: "Analytics", ariaLabel: "Trends and resolution performance", link: "/dashboard/analytics" },
   { label: "System Settings", ariaLabel: "System settings and calibration", link: "/dashboard/settings" },
-  { label: "Public Portal", ariaLabel: "Citizen hazard reporting portal", link: "http://localhost:3000" },
+  { label: "Public Portal", ariaLabel: "Citizen hazard reporting portal", link: "http://localhost:3001" },
 ];
 
 const dashboardSocialItems: StaggeredMenuSocialItem[] = [
@@ -84,6 +87,16 @@ export default function DashboardHeader() {
           <div className="pl-1 sm:pl-2 border-l border-border flex items-center">
             <AdminUserMenu />
           </div>
+
+          {/* Direct Camera & Evidence Quick Link */}
+          <Link
+            href="/dashboard/camera"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-all flex-shrink-0"
+            title="Open Camera & Evidence"
+          >
+            <Camera className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline font-mono text-xs font-bold">CAMERA</span>
+          </Link>
 
           {/* Staggered Navigation Trigger Button */}
           <button

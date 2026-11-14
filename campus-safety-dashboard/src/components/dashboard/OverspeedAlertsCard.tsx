@@ -156,12 +156,21 @@ export default function OverspeedAlertsCard() {
           </div>
         </div>
 
-        <Link
-          href="/dashboard/traffic"
-          className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold self-start sm:self-auto"
-        >
-          Open Radar Telemetry <ArrowRight className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <Link
+            href="/dashboard/camera"
+            className="text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-semibold transition-colors"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span>Camera & Evidence</span>
+          </Link>
+          <Link
+            href="/dashboard/enforcement"
+            className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold"
+          >
+            Enforcement Log <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
