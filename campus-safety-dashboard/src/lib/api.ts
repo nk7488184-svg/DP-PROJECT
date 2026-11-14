@@ -2,21 +2,21 @@ const DEFAULT_PROD_URL = 'https://road-sentinel-backend.onrender.com/api';
 const LOCAL_DEV_URL = 'http://localhost:3001/api';
 
 function getApiCandidates(): string[] {
+  const isBrowser = typeof window !== 'undefined';
+  const localOriginApi = isBrowser ? `${window.location.origin}/api` : '';
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  const isBrowserLocal = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
+  const candidates: string[] = [];
+  if (localOriginApi) {
+    candidates.push(localOriginApi);
+  }
   if (envUrl) {
     const clean = envUrl.trim().replace(/\/+$/, '');
     const formatted = clean.endsWith('/api') ? clean : `${clean}/api`;
-    return [formatted, LOCAL_DEV_URL, DEFAULT_PROD_URL];
+    candidates.push(formatted);
   }
-
-  if (isBrowserLocal) {
-    return [LOCAL_DEV_URL, DEFAULT_PROD_URL];
-  }
-
-  return [DEFAULT_PROD_URL, LOCAL_DEV_URL];
+  candidates.push(LOCAL_DEV_URL, DEFAULT_PROD_URL);
+  return Array.from(new Set(candidates.filter(Boolean)));
 }
 
 const defaultFastApiUrl = 'http://127.0.0.1:8000';

@@ -75,18 +75,18 @@ export default function ReportsTable() {
 
   const handleUpdateStatus = async (reportId: string, newStatus: Status) => {
     setStatusUpdating(true);
+    // Optimistic update & local storage sync immediately
+    updateLocalReport(reportId, { status: newStatus });
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r))
+    );
     try {
       await fetchFromApi(`/reports/${reportId}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
-      // Optimistic update & local storage sync
-      updateLocalReport(reportId, { status: newStatus });
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, status: newStatus } : r))
-      );
     } catch (err) {
-      console.error("Failed to update status:", err);
+      console.warn("Backend report update notice (persisted locally):", err);
     } finally {
       setStatusUpdating(false);
     }
@@ -95,18 +95,18 @@ export default function ReportsTable() {
   // Admin capability to edit/override severity according to requirements
   const handleUpdateSeverity = async (reportId: string, newSeverity: Severity) => {
     setSeverityUpdating(true);
+    // Optimistic update & local storage sync immediately
+    updateLocalReport(reportId, { severity: newSeverity });
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity } : r))
+    );
     try {
       await fetchFromApi(`/reports/${reportId}`, {
         method: 'PATCH',
         body: JSON.stringify({ severity: newSeverity }),
       });
-      // Optimistic update & local storage sync
-      updateLocalReport(reportId, { severity: newSeverity });
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity } : r))
-      );
     } catch (err) {
-      console.error("Failed to update severity:", err);
+      console.warn("Backend report update notice (persisted locally):", err);
     } finally {
       setSeverityUpdating(false);
     }
