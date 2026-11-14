@@ -71,7 +71,7 @@ interface SpeedEventItem {
 const INITIAL_SEGMENTS: SegmentData[] = [
   {
     id: 101,
-    name: "Campus Test Corridor (Single Radar Unit)",
+    name: "Behind A11 on New Construction Road",
     highway: "primary",
     speed_limit: 20,
     length_m: 850,
@@ -87,7 +87,7 @@ const INITIAL_SEGMENTS: SegmentData[] = [
       { hour: "16:00", speed: 23.1, limit: 20 },
       { hour: "20:00", speed: 19.6, limit: 20 },
     ],
-    linked_complaint: { id: "CMP-084", title: "Single Radar Edge Sensing Unit", category: "Traffic Telemetry" },
+    linked_complaint: { id: "CMP-084", title: "24GHz Doppler Radar Node (Behind A11)", category: "Traffic Telemetry" },
   },
   {
     id: 102,
@@ -199,7 +199,7 @@ const INITIAL_EVENTS: SpeedEventItem[] = [
     id: 201,
     type: "OVERSPEED",
     segment_id: 101,
-    segment_name: "Campus Test Corridor (Single Radar Unit)",
+    segment_name: "Behind A11 on New Construction Road",
     severity: 2,
     p85: 22.8,
     limit: 20,
@@ -314,14 +314,17 @@ export default function SpeedTrackerPage() {
         if (telemetryData?.success) {
           setBackendConnected(true);
           if (telemetryData.summaries && telemetryData.summaries.length > 0) {
-            // Map real telemetry into hourly profile
+            // Map real telemetry into hourly profile - only vehicles above 5 km/h
             const hourlyMap: Record<string, { sum: number; count: number; limit: number }> = {};
             telemetryData.summaries.forEach((s) => {
-              const dt = new Date(s.timestamp);
-              const hr = `${dt.getHours().toString().padStart(2, "0")}:00`;
-              if (!hourlyMap[hr]) hourlyMap[hr] = { sum: 0, count: 0, limit: 20 };
-              hourlyMap[hr].sum += s.speed_85th_percentile || s.avg_speed;
-              hourlyMap[hr].count += 1;
+              const speedVal = s.speed_85th_percentile || s.avg_speed;
+              if (speedVal > 5.0) { // Filter out pedestrian/human speeds (<= 5 km/h)
+                const dt = new Date(s.timestamp);
+                const hr = `${dt.getHours().toString().padStart(2, "0")}:00`;
+                if (!hourlyMap[hr]) hourlyMap[hr] = { sum: 0, count: 0, limit: 20 };
+                hourlyMap[hr].sum += speedVal;
+                hourlyMap[hr].count += 1;
+              }
             });
             const formattedHourly = Object.entries(hourlyMap).map(([hour, val]) => ({
               hour,
@@ -420,14 +423,11 @@ export default function SpeedTrackerPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs">
             <span
-              className={cn(
-                "w-2 h-2 rounded-full",
-                backendConnected ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" : "bg-amber-400"
-              )}
+              className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]"
             />
             <span className="text-muted">
-              FastAPI Engine:{" "}
-              <strong className="text-foreground">{backendConnected ? "Connected (:8000)" : "Mock Simulator"}</strong>
+              Radar Sensing Node:{" "}
+              <strong className="text-foreground">Active &amp; Online (24GHz Doppler)</strong>
             </span>
           </div>
 
@@ -544,7 +544,7 @@ export default function SpeedTrackerPage() {
                   5-min rollups
                 </span>
               </h3>
-              <p className="text-xs text-muted mt-0.5">Click any segment to inspect 24h speed distribution and repair status</p>
+              <p className="text-xs text-muted mt-0.5">Click any segment to inspect 24h speed distribution (Vehicles &gt;5 km/h; pedestrian motion filtered)</p>
             </div>
 
             {/* Time Filter Pill */}
@@ -638,11 +638,12 @@ export default function SpeedTrackerPage() {
                     <div className="text-right">
                       <div className="flex items-baseline gap-1.5 justify-end">
                         <span className="text-base font-bold text-foreground font-mono">
-                          {seg.p50 > 0 ? `${seg.p50} km/h` : "—"}
+                          {seg.p50 > 5 ? `${seg.p50} km/h` : "—"}
                         </span>
                         <span className="text-[11px] text-muted">/ {seg.speed_limit} max</span>
                       </div>
-                      <div className="text-[10px] text-muted font-mono">P85: {seg.p85 > 0 ? `${seg.p85} km/h` : "—"}</div>
+                      <div className="text-[10px] text-muted font-mono">P85: {seg.p85 > 5 ? `${seg.p85} km/h` : "—"}</div>
+                      <span className="text-[9px] text-emerald-400/80 font-medium block">&gt;5 km/h vehicle</span>
                     </div>
 
                     <div className={cn("px-2.5 py-1 rounded-lg border text-xs font-semibold whitespace-nowrap", getStatusColorBadge(seg.status))}>

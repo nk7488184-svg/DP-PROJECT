@@ -19,8 +19,8 @@
   "nodes": {
     "RPI4_CAMERA_UNIT_01": {
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "name": "Edge Roadside Sensing Unit (Radar + Camera Module 3)",
-      "location": "Campus Test Corridor",
+      "name": "Edge Roadside Sensing Unit (24GHz Doppler Radar)",
+      "location": "Behind A11 on New Construction Road",
       "posted_limit": 20.0,
       "status": "offline",
       "last_seen": "2026-11-11T23:14:00+05:30",
@@ -29,7 +29,7 @@
       "field_test_active_window": "Nov 11, 2026, 3:00 PM \u2013 9:00 PM IST (Operational)",
       "firmware": "v2.4-c++17-radar",
       "radar_model": "HLK-LD2415H 24GHz",
-      "camera_model": "Raspberry Pi Camera Module 3 (Single Camera Setup)",
+      "camera_model": "Zero-Storage Camera Bypass",
       "network": "Wi-Fi / 4G LTE"
     }
   },
@@ -42,16 +42,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 9.8,
       "severity": "moderate",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HP 66 C 2247",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 68 H 1139",
       "ocr_confidence": 0.92,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1039.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1038",
@@ -61,16 +61,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 16.6,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HP 31 E 8840",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 28 T 3319",
       "ocr_confidence": 0.69,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1038.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1037",
@@ -82,14 +82,14 @@
       "severity": "high",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 28 J 4407",
+      "license_plate": "HP 65 A 9912",
       "ocr_confidence": 0.82,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1037.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1036",
@@ -99,16 +99,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 20.3,
       "severity": "critical",
-      "vehicle_type": "SUV",
-      "pce_weight": 1.2,
-      "license_plate": "HP 33 C 7712",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 33 C 8841",
       "ocr_confidence": 0.64,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1036.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1035",
@@ -118,16 +118,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 21.0,
       "severity": "critical",
-      "vehicle_type": "Truck",
-      "pce_weight": 3.0,
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
       "license_plate": "HP 33 B 4921",
       "ocr_confidence": 0.96,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1035.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1033",
@@ -139,14 +139,14 @@
       "severity": "high",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 28 T 3319",
+      "license_plate": "HP 65 A 1084",
       "ocr_confidence": 0.81,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1033.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1034",
@@ -156,16 +156,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 15.8,
       "severity": "high",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HP 31 E 8840",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 28 T 3319",
       "ocr_confidence": 0.95,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1034.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1032",
@@ -177,14 +177,14 @@
       "severity": "critical",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 68 H 1139",
+      "license_plate": "HP 28 B 3456",
       "ocr_confidence": 0.8,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1032.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1031",
@@ -194,16 +194,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 7.2,
       "severity": "moderate",
-      "vehicle_type": "SUV",
-      "pce_weight": 1.2,
-      "license_plate": "UK 18 DG 9903",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 77 G 4406",
       "ocr_confidence": 0.79,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1031.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1029",
@@ -215,14 +215,14 @@
       "severity": "critical",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 04 K 2205",
+      "license_plate": "HP 33 C 8841",
       "ocr_confidence": 0.92,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1029.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1030",
@@ -232,16 +232,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 24.5,
       "severity": "critical",
-      "vehicle_type": "Van",
-      "pce_weight": 1.5,
-      "license_plate": "UK 18 DG 9903",
+      "vehicle_type": "Bus",
+      "pce_weight": 3.0,
+      "license_plate": "HP 77 G 4406",
       "ocr_confidence": 0.76,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1030.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1028",
@@ -253,14 +253,14 @@
       "severity": "critical",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 04 K 2205",
+      "license_plate": "HP 31 E 8840",
       "ocr_confidence": 0.73,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1028.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1027",
@@ -270,16 +270,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 15.4,
       "severity": "high",
-      "vehicle_type": "Motorcycle",
+      "vehicle_type": "Bike",
       "pce_weight": 0.5,
-      "license_plate": "HP 73 A 5562",
+      "license_plate": "HP 33 F 5120",
       "ocr_confidence": 0.67,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1027.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1025",
@@ -289,16 +289,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 10.8,
       "severity": "high",
-      "vehicle_type": "SUV",
-      "pce_weight": 1.2,
-      "license_plate": "UK 18 DG 9903",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 51 F 8862",
       "ocr_confidence": 0.96,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1025.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1026",
@@ -308,16 +308,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 20.4,
       "severity": "critical",
-      "vehicle_type": "SUV",
-      "pce_weight": 1.2,
-      "license_plate": "HR 51 AJ 8804",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 28 J 4407",
       "ocr_confidence": 0.73,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1026.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1024",
@@ -329,14 +329,14 @@
       "severity": "moderate",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 39 B 5583",
+      "license_plate": "HP 68 H 1139",
       "ocr_confidence": 0.68,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1024.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1023",
@@ -348,14 +348,14 @@
       "severity": "moderate",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "DL 12 CQ 7829",
+      "license_plate": "HP 34 C 1209",
       "ocr_confidence": 0.9,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1023.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1022",
@@ -365,16 +365,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 18.3,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
+      "vehicle_type": "Bike",
       "pce_weight": 0.5,
-      "license_plate": "CH 03 BH 6678",
+      "license_plate": "HP 04 K 2205",
       "ocr_confidence": 0.75,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1022.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1021",
@@ -386,14 +386,14 @@
       "severity": "low",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 22 E 3314",
+      "license_plate": "HP 65 C 5678",
       "ocr_confidence": 0.92,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1021.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1020",
@@ -403,16 +403,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 5.9,
       "severity": "moderate",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
       "license_plate": "HP 65 A 1084",
       "ocr_confidence": 0.68,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1020.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1019",
@@ -422,16 +422,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 22.9,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "UK 18 DG 9903",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 51 F 8862",
       "ocr_confidence": 0.69,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1019.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1018",
@@ -441,16 +441,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 16.4,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
+      "vehicle_type": "Bike",
       "pce_weight": 0.5,
-      "license_plate": "HP 77 G 4406",
+      "license_plate": "HP 31 D 9012",
       "ocr_confidence": 0.9,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1018.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1017",
@@ -462,14 +462,14 @@
       "severity": "high",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 28 T 3319",
+      "license_plate": "HP 65 A 1084",
       "ocr_confidence": 0.7,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1017.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1015",
@@ -479,16 +479,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 4.8,
       "severity": "low",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "CH 01 CK 5590",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 04 K 2205",
       "ocr_confidence": 0.95,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1015.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1016",
@@ -498,16 +498,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 18.2,
       "severity": "critical",
-      "vehicle_type": "Truck",
+      "vehicle_type": "Bus",
       "pce_weight": 3.0,
-      "license_plate": "DL 12 CQ 7829",
+      "license_plate": "HP 34 C 1209",
       "ocr_confidence": 0.96,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1016.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1014",
@@ -517,16 +517,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 9.0,
       "severity": "moderate",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HP 10 D 1148",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 65 B 3390",
       "ocr_confidence": 0.89,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1014.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1013",
@@ -538,14 +538,14 @@
       "severity": "critical",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "HP 22 E 3314",
+      "license_plate": "HP 65 C 5678",
       "ocr_confidence": 0.9,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1013.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1012",
@@ -555,16 +555,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 20.9,
       "severity": "critical",
-      "vehicle_type": "Bus",
-      "pce_weight": 3.0,
-      "license_plate": "HP 51 F 8862",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 31 D 9012",
       "ocr_confidence": 0.74,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1012.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1011",
@@ -581,9 +581,9 @@
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1011.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1010",
@@ -593,16 +593,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 10.0,
       "severity": "moderate",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HR 36 CM 1190",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 34 A 1121",
       "ocr_confidence": 0.97,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1010.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1009",
@@ -612,16 +612,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 8.5,
       "severity": "moderate",
-      "vehicle_type": "SUV",
-      "pce_weight": 1.2,
-      "license_plate": "HR 06 BT 3316",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 34 A 1121",
       "ocr_confidence": 0.61,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1009.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1008",
@@ -631,16 +631,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 24.3,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HP 28 J 4407",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 65 A 9912",
       "ocr_confidence": 0.71,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1008.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1007",
@@ -650,16 +650,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 7.1,
       "severity": "moderate",
-      "vehicle_type": "Motorcycle",
+      "vehicle_type": "Bike",
       "pce_weight": 0.5,
-      "license_plate": "CH 03 BH 6678",
+      "license_plate": "HP 04 K 2205",
       "ocr_confidence": 0.68,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1007.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1006",
@@ -671,14 +671,14 @@
       "severity": "moderate",
       "vehicle_type": "Car",
       "pce_weight": 1.0,
-      "license_plate": "CH 04 AE 2281",
+      "license_plate": "HP 12 F 6617",
       "ocr_confidence": 0.73,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1006.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1005",
@@ -688,16 +688,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 18.1,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "CH 01 CK 5590",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 04 K 2205",
       "ocr_confidence": 0.72,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1005.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1004",
@@ -707,16 +707,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 19.9,
       "severity": "critical",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HP 12 F 6617",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 31 E 8840",
       "ocr_confidence": 0.76,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1004.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1003",
@@ -726,16 +726,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 17.6,
       "severity": "critical",
-      "vehicle_type": "Bus",
-      "pce_weight": 3.0,
-      "license_plate": "UK 14 CB 6637",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 22 E 3314",
       "ocr_confidence": 0.61,
       "routed_to_active_learning": true,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1003.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1002",
@@ -745,16 +745,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 4.0,
       "severity": "low",
-      "vehicle_type": "Motorcycle",
-      "pce_weight": 0.5,
-      "license_plate": "HR 36 CM 1190",
+      "vehicle_type": "Car",
+      "pce_weight": 1.0,
+      "license_plate": "HP 34 A 1121",
       "ocr_confidence": 0.75,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1002.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "breach_id": "BREACH-1001",
@@ -764,16 +764,16 @@
       "posted_limit_kmh": 20.0,
       "delta_over_limit": 16.3,
       "severity": "critical",
-      "vehicle_type": "SUV",
-      "pce_weight": 1.2,
-      "license_plate": "HR 51 AJ 8804",
+      "vehicle_type": "Bike",
+      "pce_weight": 0.5,
+      "license_plate": "HP 28 J 4407",
       "ocr_confidence": 0.94,
       "routed_to_active_learning": false,
       "image_url": "/evidence/RPI4_CAMERA_UNIT_01/2026-11-11/BREACH-1001.jpg",
       "fine_suppressed": false,
-      "road_name": "Campus Test Corridor",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "road_name": "Behind A11 on New Construction Road",
+      "latitude": 31.7807,
+      "longitude": 76.9967
     }
   ],
   "telemetry_history": [
@@ -797,14 +797,14 @@
       "congestion_index": 0.83,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:00:00+05:30",
       "window_end": "2026-11-11T15:05:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:05:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -826,14 +826,14 @@
       "congestion_index": 0.89,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:05:00+05:30",
       "window_end": "2026-11-11T15:10:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:10:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 18,
@@ -855,14 +855,14 @@
       "congestion_index": 0.88,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:10:00+05:30",
       "window_end": "2026-11-11T15:15:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:15:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 15,
@@ -884,14 +884,14 @@
       "congestion_index": 0.89,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:15:00+05:30",
       "window_end": "2026-11-11T15:20:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:20:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 16,
@@ -913,14 +913,14 @@
       "congestion_index": 0.79,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:20:00+05:30",
       "window_end": "2026-11-11T15:25:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:25:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 15,
@@ -942,14 +942,14 @@
       "congestion_index": 0.98,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:25:00+05:30",
       "window_end": "2026-11-11T15:30:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:30:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -971,14 +971,14 @@
       "congestion_index": 0.89,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:30:00+05:30",
       "window_end": "2026-11-11T15:35:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:35:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 14,
@@ -1000,14 +1000,14 @@
       "congestion_index": 0.93,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:35:00+05:30",
       "window_end": "2026-11-11T15:40:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:40:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -1029,14 +1029,14 @@
       "congestion_index": 0.72,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:40:00+05:30",
       "window_end": "2026-11-11T15:45:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:45:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 12,
@@ -1058,14 +1058,14 @@
       "congestion_index": 0.93,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:45:00+05:30",
       "window_end": "2026-11-11T15:50:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:50:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -1087,14 +1087,14 @@
       "congestion_index": 0.96,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:50:00+05:30",
       "window_end": "2026-11-11T15:55:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T15:55:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -1116,14 +1116,14 @@
       "congestion_index": 1.01,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T15:55:00+05:30",
       "window_end": "2026-11-11T16:00:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:00:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 14,
@@ -1145,14 +1145,14 @@
       "congestion_index": 0.87,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:00:00+05:30",
       "window_end": "2026-11-11T16:05:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:05:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 16,
@@ -1174,14 +1174,14 @@
       "congestion_index": 0.76,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:05:00+05:30",
       "window_end": "2026-11-11T16:10:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:10:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 16,
@@ -1203,14 +1203,14 @@
       "congestion_index": 0.95,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:10:00+05:30",
       "window_end": "2026-11-11T16:15:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:15:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 17,
@@ -1232,14 +1232,14 @@
       "congestion_index": 0.88,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:15:00+05:30",
       "window_end": "2026-11-11T16:20:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:20:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 18,
@@ -1261,14 +1261,14 @@
       "congestion_index": 0.7,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:20:00+05:30",
       "window_end": "2026-11-11T16:25:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:25:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 16,
@@ -1290,14 +1290,14 @@
       "congestion_index": 0.86,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:25:00+05:30",
       "window_end": "2026-11-11T16:30:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:30:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 14,
@@ -1319,14 +1319,14 @@
       "congestion_index": 0.86,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:30:00+05:30",
       "window_end": "2026-11-11T16:35:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:35:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 19,
@@ -1348,14 +1348,14 @@
       "congestion_index": 1.14,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:35:00+05:30",
       "window_end": "2026-11-11T16:40:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:40:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 18,
@@ -1377,14 +1377,14 @@
       "congestion_index": 0.99,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:40:00+05:30",
       "window_end": "2026-11-11T16:45:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:45:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 16,
@@ -1406,14 +1406,14 @@
       "congestion_index": 0.93,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:45:00+05:30",
       "window_end": "2026-11-11T16:50:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:50:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 20,
@@ -1435,14 +1435,14 @@
       "congestion_index": 0.82,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:50:00+05:30",
       "window_end": "2026-11-11T16:55:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T16:55:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 21,
@@ -1464,14 +1464,14 @@
       "congestion_index": 0.98,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T16:55:00+05:30",
       "window_end": "2026-11-11T17:00:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T17:00:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 23,
@@ -1493,14 +1493,14 @@
       "congestion_index": 0.83,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:00:00+05:30",
       "window_end": "2026-11-11T17:05:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:05:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 23,
@@ -1522,14 +1522,14 @@
       "congestion_index": 0.77,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:05:00+05:30",
       "window_end": "2026-11-11T17:10:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:10:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 28,
@@ -1551,14 +1551,14 @@
       "congestion_index": 0.73,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:10:00+05:30",
       "window_end": "2026-11-11T17:15:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:15:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 26,
@@ -1580,14 +1580,14 @@
       "congestion_index": 1.0,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:15:00+05:30",
       "window_end": "2026-11-11T17:20:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:20:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 25,
@@ -1609,14 +1609,14 @@
       "congestion_index": 0.84,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:20:00+05:30",
       "window_end": "2026-11-11T17:25:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:25:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 28,
@@ -1638,14 +1638,14 @@
       "congestion_index": 0.85,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:25:00+05:30",
       "window_end": "2026-11-11T17:30:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:30:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 31,
@@ -1667,14 +1667,14 @@
       "congestion_index": 0.82,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:30:00+05:30",
       "window_end": "2026-11-11T17:35:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:35:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 31,
@@ -1696,14 +1696,14 @@
       "congestion_index": 0.74,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:35:00+05:30",
       "window_end": "2026-11-11T17:40:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:40:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 31,
@@ -1725,14 +1725,14 @@
       "congestion_index": 0.85,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:40:00+05:30",
       "window_end": "2026-11-11T17:45:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:45:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 30,
@@ -1754,14 +1754,14 @@
       "congestion_index": 0.78,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:45:00+05:30",
       "window_end": "2026-11-11T17:50:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:50:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 27,
@@ -1783,14 +1783,14 @@
       "congestion_index": 0.74,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:50:00+05:30",
       "window_end": "2026-11-11T17:55:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T17:55:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 32,
@@ -1812,14 +1812,14 @@
       "congestion_index": 0.8,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T17:55:00+05:30",
       "window_end": "2026-11-11T18:00:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:00:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 33,
@@ -1841,14 +1841,14 @@
       "congestion_index": 0.82,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:00:00+05:30",
       "window_end": "2026-11-11T18:05:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:05:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 32,
@@ -1870,14 +1870,14 @@
       "congestion_index": 0.84,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:05:00+05:30",
       "window_end": "2026-11-11T18:10:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:10:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 34,
@@ -1899,14 +1899,14 @@
       "congestion_index": 0.7,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:10:00+05:30",
       "window_end": "2026-11-11T18:15:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:15:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 29,
@@ -1928,14 +1928,14 @@
       "congestion_index": 0.77,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:15:00+05:30",
       "window_end": "2026-11-11T18:20:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:20:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 30,
@@ -1957,14 +1957,14 @@
       "congestion_index": 0.74,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:20:00+05:30",
       "window_end": "2026-11-11T18:25:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:25:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 28,
@@ -1986,14 +1986,14 @@
       "congestion_index": 0.78,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:25:00+05:30",
       "window_end": "2026-11-11T18:30:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:30:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 27,
@@ -2015,14 +2015,14 @@
       "congestion_index": 0.8,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:30:00+05:30",
       "window_end": "2026-11-11T18:35:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:35:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 35,
@@ -2044,14 +2044,14 @@
       "congestion_index": 0.93,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:35:00+05:30",
       "window_end": "2026-11-11T18:40:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:40:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 29,
@@ -2073,14 +2073,14 @@
       "congestion_index": 0.77,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:40:00+05:30",
       "window_end": "2026-11-11T18:45:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:45:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 25,
@@ -2102,14 +2102,14 @@
       "congestion_index": 0.77,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:45:00+05:30",
       "window_end": "2026-11-11T18:50:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:50:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 30,
@@ -2131,14 +2131,14 @@
       "congestion_index": 0.8,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:50:00+05:30",
       "window_end": "2026-11-11T18:55:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T18:55:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 28,
@@ -2160,14 +2160,14 @@
       "congestion_index": 0.94,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T18:55:00+05:30",
       "window_end": "2026-11-11T19:00:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:00:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 29,
@@ -2189,14 +2189,14 @@
       "congestion_index": 0.8,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:00:00+05:30",
       "window_end": "2026-11-11T19:05:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:05:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 27,
@@ -2218,14 +2218,14 @@
       "congestion_index": 0.8,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:05:00+05:30",
       "window_end": "2026-11-11T19:10:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:10:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 25,
@@ -2247,14 +2247,14 @@
       "congestion_index": 0.93,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:10:00+05:30",
       "window_end": "2026-11-11T19:15:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:15:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 29,
@@ -2276,14 +2276,14 @@
       "congestion_index": 0.84,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:15:00+05:30",
       "window_end": "2026-11-11T19:20:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:20:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 25,
@@ -2305,14 +2305,14 @@
       "congestion_index": 0.8,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:20:00+05:30",
       "window_end": "2026-11-11T19:25:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:25:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 28,
@@ -2334,14 +2334,14 @@
       "congestion_index": 0.78,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:25:00+05:30",
       "window_end": "2026-11-11T19:30:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:30:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -2363,14 +2363,14 @@
       "congestion_index": 0.81,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:30:00+05:30",
       "window_end": "2026-11-11T19:35:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": true,
       "calculated_at": "2026-11-11T19:35:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2392,14 +2392,14 @@
       "congestion_index": 0.86,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:35:00+05:30",
       "window_end": "2026-11-11T19:40:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T19:40:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 12,
@@ -2421,14 +2421,14 @@
       "congestion_index": 0.83,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:40:00+05:30",
       "window_end": "2026-11-11T19:45:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T19:45:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -2450,14 +2450,14 @@
       "congestion_index": 0.87,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:45:00+05:30",
       "window_end": "2026-11-11T19:50:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T19:50:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 18,
@@ -2479,14 +2479,14 @@
       "congestion_index": 0.91,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:50:00+05:30",
       "window_end": "2026-11-11T19:55:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T19:55:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 14,
@@ -2508,14 +2508,14 @@
       "congestion_index": 0.81,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T19:55:00+05:30",
       "window_end": "2026-11-11T20:00:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:00:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2537,14 +2537,14 @@
       "congestion_index": 0.81,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:00:00+05:30",
       "window_end": "2026-11-11T20:05:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:05:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 14,
@@ -2566,14 +2566,14 @@
       "congestion_index": 0.83,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:05:00+05:30",
       "window_end": "2026-11-11T20:10:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:10:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2595,14 +2595,14 @@
       "congestion_index": 0.83,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:10:00+05:30",
       "window_end": "2026-11-11T20:15:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:15:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 12,
@@ -2624,14 +2624,14 @@
       "congestion_index": 0.84,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:15:00+05:30",
       "window_end": "2026-11-11T20:20:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:20:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2653,14 +2653,14 @@
       "congestion_index": 0.96,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:20:00+05:30",
       "window_end": "2026-11-11T20:25:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:25:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 13,
@@ -2682,14 +2682,14 @@
       "congestion_index": 0.85,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:25:00+05:30",
       "window_end": "2026-11-11T20:30:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:30:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2711,14 +2711,14 @@
       "congestion_index": 0.77,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:30:00+05:30",
       "window_end": "2026-11-11T20:35:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:35:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 10,
@@ -2740,14 +2740,14 @@
       "congestion_index": 0.72,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:35:00+05:30",
       "window_end": "2026-11-11T20:40:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:40:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 6,
@@ -2769,14 +2769,14 @@
       "congestion_index": 0.95,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:40:00+05:30",
       "window_end": "2026-11-11T20:45:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:45:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2798,14 +2798,14 @@
       "congestion_index": 0.89,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:45:00+05:30",
       "window_end": "2026-11-11T20:50:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:50:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 11,
@@ -2827,14 +2827,14 @@
       "congestion_index": 1.06,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:50:00+05:30",
       "window_end": "2026-11-11T20:55:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T20:55:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     },
     {
       "vehicle_count": 4,
@@ -2856,14 +2856,14 @@
       "congestion_index": 0.99,
       "fine_suppression_active": false,
       "device_id": "RPI4_CAMERA_UNIT_01",
-      "road_name": "Campus Test Corridor",
+      "road_name": "Behind A11 on New Construction Road",
       "window_start": "2026-11-11T20:55:00+05:30",
       "window_end": "2026-11-11T21:00:00+05:30",
       "window_duration_seconds": 300.0,
       "is_peak_hour": false,
       "calculated_at": "2026-11-11T21:00:00+05:30",
-      "latitude": 0.0,
-      "longitude": 0.0
+      "latitude": 31.7807,
+      "longitude": 76.9967
     }
   ]
 }

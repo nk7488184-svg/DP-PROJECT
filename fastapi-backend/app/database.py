@@ -23,19 +23,16 @@ def _det_gauss(seed: str, mu: float, sigma: float) -> float:
     return mu + sigma * z
 
 # ───────────────────────────────────────────────────────────────────────
-# Realistic Indian license plates (HP / CH / DL / HR / PB / UK)
+# Realistic Indian license plates (Prioritizing Mandi / Himachal Pradesh)
 # ───────────────────────────────────────────────────────────────────────
 _PLATE_POOL = [
     "HP 33 B 4921", "HP 65 A 1084", "HP 28 T 3319", "HP 31 E 8840",
-    "HP 12 F 6617", "HP 04 K 2205", "HP 33 C 7712", "HP 65 B 3390",
-    "HP 10 D 1148", "HP 73 A 5562", "HP 01 G 8834", "HP 28 J 4407",
-    "DL 8C AK 9012", "DL 3C BM 4415", "DL 12 CQ 7829", "DL 9C AU 1133",
-    "CH 01 BG 7733", "CH 04 AE 2281", "CH 01 CK 5590", "CH 03 BH 6678",
-    "HR 26 DQ 5521", "HR 51 AJ 8804", "HR 06 BT 3316", "HR 36 CM 1190",
-    "PB 11 EX 4427", "PB 65 BK 7761", "PB 08 DN 2253", "PB 10 CJ 8819",
-    "UK 07 PA 4492", "UK 14 CB 6637", "UK 04 AB 1128", "UK 18 DG 9903",
+    "HP 33 C 8841", "HP 65 B 3390", "HP 33 F 5120", "HP 65 A 9912",
+    "HP 01 BG 7733", "HP 02 A 5567", "HP 34 C 1209", "HP 73 A 5562",
+    "HP 12 F 6617", "HP 04 K 2205", "HP 10 D 1148", "HP 28 J 4407",
     "HP 34 A 1121", "HP 39 B 5583", "HP 66 C 2247", "HP 45 D 7790",
     "HP 22 E 3314", "HP 51 F 8862", "HP 77 G 4406", "HP 68 H 1139",
+    "HP 33 A 1234", "HP 65 C 5678", "HP 31 D 9012", "HP 28 B 3456",
 ]
 
 _VEHICLE_COLORS = [
@@ -114,13 +111,9 @@ def _generate_synthetic_evidence_image(disk_path: str, plate: str, speed: float,
         print(f"[Evidence Gen Warning] Could not save {disk_path}: {e}")
 
 _VEHICLE_TYPES = [
-    ("Car",        1.0,  0.42),
-    ("Motorcycle",  0.5,  0.28),
-    ("SUV",        1.2,  0.12),
-    ("Bus",        3.0,  0.06),
-    ("Truck",      3.0,  0.05),
-    ("Bicycle",    0.2,  0.04),
-    ("Van",        1.5,  0.03),
+    ("Car",        1.0,  0.65),
+    ("Bike",       0.5,  0.25),
+    ("Bus",        3.0,  0.10),
 ]
 
 def _pick_vehicle(seed: str):
@@ -141,17 +134,17 @@ class TelemetryStore:
         self.nodes: Dict[str, dict] = {
             "RPI4_CAMERA_UNIT_01": {
                 "device_id": "RPI4_CAMERA_UNIT_01",
-                "name": "Edge Roadside Sensing Unit (Radar + Camera Module 3)",
-                "location": "Campus Test Corridor",
+                "name": "Edge Roadside Sensing Unit (24GHz Doppler Radar)",
+                "location": "Behind A11 on New Construction Road",
                 "posted_limit": 20.0,
-                "status": "offline",
-                "last_seen": "2026-11-11T23:14:00+05:30",
-                "offline_since": "2026-11-11T23:14:00+05:30",
-                "offline_reason": "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST on Nov 11, 2026",
-                "field_test_active_window": "Nov 11, 2026 15:00 - 21:00 IST (Operational)",
+                "status": "online",
+                "last_seen": "Active (24GHz Doppler Radar Live)",
+                "offline_since": None,
+                "offline_reason": None,
+                "field_test_active_window": "Continuous Live Sensing (Operational)",
                 "firmware": "v2.4-c++17-radar",
                 "radar_model": "HLK-LD2415H 24GHz",
-                "camera_model": "Raspberry Pi Camera Module 3 (Single Camera Setup)",
+                "camera_model": "Zero-Storage Camera Bypass",
                 "network": "Wi-Fi / 4G LTE",
             }
         }
@@ -166,8 +159,7 @@ class TelemetryStore:
         """
         Generates synthetic dataset for the November 11, 2026 Field Test (3:00 PM - 9:00 PM IST)
         from a single Raspberry Pi 4 edge sensing unit (HLK-LD2415H 24 GHz
-        Doppler radar + Camera Module 3) stationed along the campus test corridor.
-        Node was operational between 15:00 and 21:00, then server went offline at 23:14 IST.
+        Doppler radar) stationed Behind A11 on New Construction Road.
         """
         IST = timezone(timedelta(hours=5, minutes=30))
         # Start of day: Nov 11 2026 00:00 IST
@@ -176,10 +168,10 @@ class TelemetryStore:
         NODES = [
             {
                 "device_id": "RPI4_CAMERA_UNIT_01",
-                "road_name": "Campus Test Corridor",
+                "road_name": "Behind A11 on New Construction Road",
                 "posted_limit": 20.0,
-                "lat": 0.0,
-                "lng": 0.0,
+                "lat": 31.7807,
+                "lng": 76.9967,
                 "base_factor": 1.0,
             }
         ]

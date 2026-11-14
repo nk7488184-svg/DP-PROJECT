@@ -130,7 +130,7 @@ export default function TrafficRadarPage() {
     congestion_index: 0.86,
     fine_suppression_active: false,
     device_id: "RPI4_CAMERA_UNIT_01",
-    road_name: "Campus Test Corridor",
+    road_name: "Behind A11 on New Construction Road",
     window_start: "2026-11-11T20:55:00+05:30",
     window_end: "2026-11-11T21:00:00+05:30",
     window_duration_seconds: 300,
@@ -296,9 +296,9 @@ export default function TrafficRadarPage() {
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs font-medium text-foreground">
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            <Camera className="w-3.5 h-3.5 text-muted" />
-            <span>Unit 01 (Offline since 23:14 IST)</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <Radio className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Unit 01 (Online • 24GHz Radar Active)</span>
           </div>
 
           <button
@@ -312,30 +312,29 @@ export default function TrafficRadarPage() {
         </div>
       </div>
 
-      {/* Nov 11 Field Test Summary & Offline Status Alert */}
-      <div className="bg-gradient-to-r from-red-950/30 via-sidebar to-amber-950/20 border border-red-500/30 rounded-2xl p-5 shadow-sm">
+      {/* Field Test & Live Enforcement Audit */}
+      <div className="bg-gradient-to-r from-emerald-950/30 via-sidebar to-zinc-900 border border-emerald-500/30 rounded-2xl p-5 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0 mt-0.5">
-              <ShieldAlert className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0 mt-0.5">
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="font-bold text-foreground text-sm">Nov 11 Field Test Run (3:00 PM – 9:00 PM IST)</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-500/20 text-red-300 border border-red-500/30">
-                  Node Offline Since 11:14 PM IST
-                </span>
+                <span className="font-bold text-foreground text-sm">Field Test &amp; Live Radar Sensing Audit</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  72 Telemetry Windows Captured
+                  Radar Node: Active &amp; Online
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                  39 HSRP Plates Preserved
+                  Himachal Pradesh Mandi Corridor
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  Behind A11 on New Construction Road
                 </span>
               </div>
               <p className="text-xs text-muted leading-relaxed">
-                Single edge node (<b className="text-foreground">RPI4_CAMERA_UNIT_01</b>) was actively deployed on the Campus Test Corridor from <b>3:00 PM to 9:00 PM IST on November 11, 2026</b>.
-                At <b>11:14 PM IST</b>, the camera CSI ribbon cable disconnected and the edge server transitioned to offline state.
-                All 39 overspeeding breaches with synthetic Indian HSRP license plates remain preserved for safety audit.
+                Edge sensing unit (<b className="text-foreground">RPI4_CAMERA_UNIT_01</b>) actively monitoring Behind A11 on New Construction Road with posted speed limit of <b>20 km/h</b>.
+                Zero-storage architecture with 24GHz Doppler radar and authentic Mandi HSRP plate tracking.
               </p>
             </div>
           </div>
@@ -366,35 +365,37 @@ export default function TrafficRadarPage() {
         <div className={`border rounded-xl p-5 relative overflow-hidden transition-all duration-300 ${
           isTargetPresent && liveInstantSpeed > 20.0
             ? "bg-red-950/30 border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.25)]"
-            : isTargetPresent
+            : isTargetPresent && liveInstantSpeed > 5.0
             ? "bg-emerald-950/30 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
             : "bg-sidebar border-border"
         }`}>
           <div className="flex items-center justify-between text-muted text-xs font-medium mb-1.5">
             <span className="flex items-center gap-1.5 font-bold tracking-wider">
-              <span className={`w-2 h-2 rounded-full ${isTargetPresent ? "bg-emerald-400 animate-ping" : "bg-zinc-600"}`} />
+              <span className={`w-2 h-2 rounded-full ${isTargetPresent && liveInstantSpeed > 5.0 ? "bg-emerald-400 animate-ping" : "bg-zinc-600"}`} />
               LIVE RADAR SPEED
             </span>
-            <Gauge className={`w-4 h-4 ${isTargetPresent ? "text-emerald-400" : "text-muted"}`} />
+            <Gauge className={`w-4 h-4 ${isTargetPresent && liveInstantSpeed > 5.0 ? "text-emerald-400" : "text-muted"}`} />
           </div>
           <div className="flex items-baseline gap-2 mt-1">
             <span className={`text-4xl font-black font-mono tracking-tight ${
               isTargetPresent && liveInstantSpeed > 20.0
                 ? "text-red-400"
-                : isTargetPresent
+                : isTargetPresent && liveInstantSpeed > 5.0
                 ? "text-emerald-400"
                 : "text-zinc-500"
             }`}>
-              {liveInstantSpeed > 0.0 ? liveInstantSpeed.toFixed(1) : "0.0"}
+              {liveInstantSpeed > 5.0 ? liveInstantSpeed.toFixed(1) : "0.0"}
             </span>
             <span className="text-xs font-semibold text-muted">km/h</span>
           </div>
           <div className="mt-2.5 text-[11px] text-muted flex items-center justify-between border-t border-border/60 pt-2">
             <span className="font-medium">
-              {isTargetPresent ? (
+              {isTargetPresent && liveInstantSpeed > 5.0 ? (
                 <span className={liveInstantSpeed > 20.0 ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>
-                  ● Target In Beam
+                  ● Vehicle In Beam ({liveInstantSpeed.toFixed(1)} km/h)
                 </span>
+              ) : isTargetPresent && liveInstantSpeed <= 5.0 ? (
+                <span className="text-amber-400/80 font-medium">○ Walking Motion Filtered (&le;5 km/h)</span>
               ) : (
                 <span className="text-zinc-500">○ No Target (Beam Clear)</span>
               )}

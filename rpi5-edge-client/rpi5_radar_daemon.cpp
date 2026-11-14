@@ -48,18 +48,18 @@ void signalHandler(int signum) {
 static const std::vector<std::string> HP_SYNTHETIC_PLATES = {
     "HP 33 B 4921",  // Mandi District Private
     "HP 65 A 1084",  // Mandi Rural / Transport
-    "HP 01 BG 7733", // Shimla Tourist Vehicle
+    "HP 33 C 8841",  // Mandi Town Transit
     "HP 28 T 3319",  // Sarkaghat Commercial
     "HP 31 E 8840",  // Sundernagar Commuter
     "HP 34 C 1209",  // Kullu / Manali Transit
     "HP 02 A 5567",  // Kangra / Dharamshala
-    "CH 01 BG 4421", // Inter-state Chandigarh
-    "DL 8C AK 9012", // Delhi Visitor
-    "HR 26 DQ 5521"  // Gurgaon / Haryana
+    "HP 01 BG 7733", // Shimla Tourist Vehicle
+    "HP 33 F 5120",  // Mandi Kamand Valley
+    "HP 65 B 9912"   // Mandi Rural
 };
 
 static const std::vector<std::string> VEHICLE_TYPES = {
-    "Car", "SUV", "Motorcycle", "Van", "Truck"
+    "Car", "Bus", "Bike"
 };
 
 // -----------------------------------------------------------------------------
@@ -67,7 +67,7 @@ static const std::vector<std::string> VEHICLE_TYPES = {
 // -----------------------------------------------------------------------------
 struct Config {
     std::string deviceId = "RPI4_CAMERA_UNIT_01";
-    std::string roadName = "Campus Test Corridor";
+    std::string roadName = "Behind A11 on New Construction Road";
     std::string serverHost = "127.0.0.1";
     int serverPort = 8000;
     bool useSsl = false;
@@ -96,13 +96,13 @@ public:
     }
 
     std::string classifyVehicle(double speedKmh) {
-        if (speedKmh > 36.0) {
-            std::uniform_int_distribution<int> d(0, 2);
-            const char* fast[] = {"Motorcycle", "Car", "SUV"};
+        if (speedKmh > 32.0) {
+            std::uniform_int_distribution<int> d(0, 1);
+            const char* fast[] = {"Bike", "Car"};
             return fast[d(rng)];
-        } else if (speedKmh < 18.0) {
-            std::uniform_int_distribution<int> d(0, 2);
-            const char* slow[] = {"Truck", "Van", "Car"};
+        } else if (speedKmh < 16.0) {
+            std::uniform_int_distribution<int> d(0, 1);
+            const char* slow[] = {"Bus", "Car"};
             return slow[d(rng)];
         } else {
             std::uniform_int_distribution<size_t> d(0, VEHICLE_TYPES.size() - 1);

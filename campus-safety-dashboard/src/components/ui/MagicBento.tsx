@@ -188,14 +188,14 @@ const inkFor = (rgb: [number, number, number]) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55 ? '#121016' : '#ffffff';
 };
 
-// 24-hour speed profile points (km/h) for the velocity chart
-const SPEED_POINTS = [34, 38, 42, 58, 64, 71, 74, 68, 62, 54, 45, 38];
+// 24-hour speed profile points (km/h) for the velocity chart (scaled for 40 km/h max in hills)
+const SPEED_POINTS = [14, 16, 18, 24, 29, 36, 39, 34, 28, 22, 18, 15];
 
 const curve = (values: number[], width: number, height: number) => {
   const top = 8;
   const bottom = 4;
-  const low = 20;
-  const high = 80;
+  const low = 10;
+  const high = 45;
   const points: [number, number][] = values.map((value, index) => [
     (index / (values.length - 1)) * width,
     top + (1 - (value - low) / (high - low)) * (height - top - bottom)
@@ -278,9 +278,9 @@ const AnalyticsVisual = () => {
   const limitY = useMemo(() => {
     const top = 10;
     const bottom = 22;
-    const low = 20;
-    const high = 80;
-    return top + (1 - (50 - low) / (high - low)) * (size.height - top - bottom);
+    const low = 10;
+    const high = 45;
+    return top + (1 - (20 - low) / (high - low)) * (size.height - top - bottom);
   }, [size.height]);
 
   const scrub = (event: React.PointerEvent) => {
@@ -303,17 +303,17 @@ const AnalyticsVisual = () => {
     dot.style.transform = `translateY(${y.toFixed(1)}px)`;
     label.textContent = `${Math.round(value)} km/h`;
     const hour = Math.round(position * 2);
-    note.textContent = `${hour.toString().padStart(2, '0')}:00 hrs (${value > 50 ? 'OVERSPEED' : 'NORMAL'})`;
-    note.className = value > 50
+    note.textContent = `${hour.toString().padStart(2, '0')}:00 hrs (${value > 20 ? 'OVERSPEED' : 'NORMAL'})`;
+    note.className = value > 20
       ? 'min-w-0 overflow-hidden text-ellipsis text-[11.5px] leading-[14px] text-rose-400 font-bold tabular-nums'
       : 'min-w-0 overflow-hidden text-ellipsis text-[11.5px] leading-[14px] text-emerald-400 font-medium tabular-nums';
   };
 
   const rest = () => {
     if (chartRef.current) delete chartRef.current.dataset.scrub;
-    if (valueRef.current) valueRef.current.textContent = `74 km/h`;
+    if (valueRef.current) valueRef.current.textContent = `39 km/h`;
     if (noteRef.current) {
-      noteRef.current.textContent = `P85 Peak (+48% over limit)`;
+      noteRef.current.textContent = `P85 Peak (+95% over 20 km/h limit)`;
       noteRef.current.className = 'min-w-0 overflow-hidden text-ellipsis text-[11.5px] leading-[14px] text-rose-400 font-medium tabular-nums';
     }
   };
@@ -344,10 +344,10 @@ const AnalyticsVisual = () => {
     >
       <div className="flex min-w-0 items-baseline gap-2 whitespace-nowrap mb-1">
         <span ref={valueRef} className="text-[20px] leading-[24px] font-black tracking-tight text-emerald-400 font-mono tabular-nums">
-          74 km/h
+          39 km/h
         </span>
         <span ref={noteRef} className="min-w-0 overflow-hidden text-ellipsis text-[11.5px] leading-[14px] text-rose-400 font-medium tabular-nums">
-          P85 Peak (+48% over limit)
+          P85 Peak (+95% over 20 km/h limit)
         </span>
       </div>
 
@@ -373,7 +373,7 @@ const AnalyticsVisual = () => {
           <line x1="0" y1={size.height * 0.5} x2={size.width} y2={size.height * 0.5} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
           <line x1="0" y1={size.height * 0.75} x2={size.width} y2={size.height * 0.75} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
 
-          {/* Speed Limit Reference Line (50 km/h) */}
+          {/* Speed Limit Reference Line (20 km/h) */}
           <line
             x1="0"
             y1={limitY}
@@ -394,7 +394,7 @@ const AnalyticsVisual = () => {
             fontFamily="monospace"
             letterSpacing="0.05em"
           >
-            LIMIT: 50 km/h
+            LIMIT: 20 km/h
           </text>
 
           {/* Area Fill */}
