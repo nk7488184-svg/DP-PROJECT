@@ -88,25 +88,29 @@ export async function PATCH(
       updatedReport = list[idx];
     }
 
+    const syncSource = request.headers.get('x-sync-source');
+
     // Forward status/severity update to Express backend (port 3002)
     try {
       fetch(`http://127.0.0.1:3002/api/reports/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-sync-source': 'dashboard' },
         body: JSON.stringify(updates),
         signal: AbortSignal.timeout(1500),
       }).catch(() => {});
     } catch {}
 
-    // Forward status/severity update to Public Website (port 3001)
-    try {
-      fetch(`http://127.0.0.1:3001/api/reports/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-        signal: AbortSignal.timeout(1500),
-      }).catch(() => {});
-    } catch {}
+    // Forward status/severity update to Public Website (port 3001) only if not originated from website
+    if (syncSource !== 'website') {
+      try {
+        fetch(`http://127.0.0.1:3001/api/reports/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-sync-source': 'dashboard' },
+          body: JSON.stringify(updates),
+          signal: AbortSignal.timeout(1500),
+        }).catch(() => {});
+      } catch {}
+    }
 
     return NextResponse.json({ success: true, data: updatedReport }, { headers: corsHeaders });
   } catch (err: any) {

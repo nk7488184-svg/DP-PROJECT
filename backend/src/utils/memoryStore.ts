@@ -168,7 +168,6 @@ class MemoryStore {
 
   updateReport(id: string, updates: any) {
     const idx = this.reports.findIndex(r => r.id === id || (r as any)._id === id);
-    if (idx === -1) return null;
 
     // Filter out undefined keys so we never overwrite existing fields with undefined!
     const cleanUpdates: any = {};
@@ -176,6 +175,27 @@ class MemoryStore {
       if (updates[key] !== undefined) {
         cleanUpdates[key] = updates[key];
       }
+    }
+
+    if (idx === -1) {
+      const created: MockReport = {
+        id,
+        title: cleanUpdates.title || 'Hazard Report',
+        description: cleanUpdates.description || '',
+        category: cleanUpdates.category || 'other',
+        severity: cleanUpdates.severity || 'medium',
+        status: cleanUpdates.status || 'submitted',
+        location: cleanUpdates.location || { lat: 31.7754, lng: 76.9861, address: 'IIT Mandi Campus' },
+        images: sanitizeImages(cleanUpdates.images || []),
+        reportedBy: cleanUpdates.reportedBy || { name: 'Campus Reporter' },
+        reportedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        priorityScore: cleanUpdates.priorityScore || 50,
+        mlPrediction: cleanUpdates.mlPrediction || null,
+        ...cleanUpdates,
+      };
+      this.reports.unshift(created);
+      return created;
     }
 
     this.reports[idx] = { 

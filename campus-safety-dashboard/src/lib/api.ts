@@ -10,6 +10,7 @@ function getApiCandidates(): string[] {
   if (localOriginApi) {
     candidates.push(localOriginApi);
   }
+  candidates.push('http://127.0.0.1:3000/api', 'http://localhost:3000/api');
   if (envUrl) {
     const clean = envUrl.trim().replace(/\/+$/, '');
     const formatted = clean.endsWith('/api') ? clean : `${clean}/api`;

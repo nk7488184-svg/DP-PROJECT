@@ -49,25 +49,28 @@ export async function PATCH(
   const { id } = await params;
   try {
     const body = await request.json();
+    const syncSource = request.headers.get('x-sync-source');
 
-    // Broadcast patch to Admin Dashboard (3000) and Backend (3002)
+    // Only forward to Admin Dashboard if the patch did NOT originate from the dashboard
     let dashboardResult: any = null;
-    try {
-      const dRes = await fetch(`${DASHBOARD_URL}/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(2000),
-      });
-      if (dRes.ok) {
-        dashboardResult = await dRes.json();
-      }
-    } catch {}
+    if (syncSource !== 'dashboard') {
+      try {
+        const dRes = await fetch(`${DASHBOARD_URL}/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'x-sync-source': 'website' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(2000),
+        });
+        if (dRes.ok) {
+          dashboardResult = await dRes.json();
+        }
+      } catch {}
+    }
 
     try {
       await fetch(`${BACKEND_URL}/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-sync-source': 'website' },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(2000),
       }).catch(() => {});

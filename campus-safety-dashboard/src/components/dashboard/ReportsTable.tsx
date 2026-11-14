@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { mockReports as fallbackReports } from "@/lib/mock-data";
 import { getAllMergedReports, updateLocalReport } from "@/lib/localReportsStore";
@@ -25,27 +25,42 @@ export default function ReportsTable() {
   const [analyzingReportId, setAnalyzingReportId] = useState<string | null>(null);
   const perPage = 10;
 
+  // Track pending user status & severity updates to block stale in-flight GET polls from flickering UI
+  const pendingUpdatesRef = useRef<Map<string, { status?: Status; severity?: Severity; timestamp: number }>>(new Map());
+
   const loadReports = useCallback((showSpinner = false) => {
     if (showSpinner) setLoading(true);
     fetchFromApi('/reports?limit=50')
       .then((res) => {
         let backendItems: HazardReport[] = [];
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          backendItems = res.data.map((r: any) => ({
-            id: r.id || r._id || `RPT-${Date.now().toString(36)}`,
-            title: r.title || 'Hazard Report',
-            description: r.description || '',
-            category: r.category || 'Pothole_Surface_Breakout',
-            severity: r.severity || 'medium',
-            status: r.status || 'submitted',
-            location: r.location || { lat: 31.7754, lng: 76.9861, address: 'IIT Mandi Campus' },
-            images: r.images || [],
-            reportedBy: typeof r.reportedBy === 'object' ? r.reportedBy?.name || 'Campus Reporter' : r.reportedBy || 'Campus Reporter',
-            reportedAt: r.reportedAt || new Date().toISOString(),
-            updatedAt: r.updatedAt || new Date().toISOString(),
-            priorityScore: r.priorityScore || 50,
-            mlPrediction: r.mlPrediction || undefined,
-          }));
+          const now = Date.now();
+          backendItems = res.data.map((r: any) => {
+            const pending = pendingUpdatesRef.current.get(r.id);
+            // Lock in user's recently selected status & severity for at least 20 seconds against stale polls
+            const effectiveStatus = (pending?.status && now - pending.timestamp < 20000)
+              ? pending.status
+              : (r.status || 'submitted');
+            const effectiveSeverity = (pending?.severity && now - pending.timestamp < 20000)
+              ? pending.severity
+              : (r.severity || 'medium');
+
+            return {
+              id: r.id || r._id || `RPT-${Date.now().toString(36)}`,
+              title: r.title || 'Hazard Report',
+              description: r.description || '',
+              category: r.category || 'Pothole_Surface_Breakout',
+              severity: effectiveSeverity,
+              status: effectiveStatus,
+              location: r.location || { lat: 31.7754, lng: 76.9861, address: 'IIT Mandi Campus' },
+              images: r.images || [],
+              reportedBy: typeof r.reportedBy === 'object' ? r.reportedBy?.name || 'Campus Reporter' : r.reportedBy || 'Campus Reporter',
+              reportedAt: r.reportedAt || new Date().toISOString(),
+              updatedAt: r.updatedAt || new Date().toISOString(),
+              priorityScore: r.priorityScore || 50,
+              mlPrediction: r.mlPrediction || undefined,
+            };
+          });
         }
         setReports(getAllMergedReports(backendItems));
       })
@@ -64,63 +79,93 @@ export default function ReportsTable() {
       loadReports(false);
     }, 5000);
 
-    const onFocus = () => loadReports(false);
-    window.addEventListener("focus", onFocus);
-
     return () => {
       clearInterval(interval);
-      window.removeEventListener("focus", onFocus);
     };
   }, [loadReports]);
 
   const handleUpdateStatus = async (reportId: string, newStatus: Status) => {
     setStatusUpdating(true);
-    // Optimistic update & local storage sync immediately
-    updateLocalReport(reportId, { status: newStatus });
+    const nowIso = new Date().toISOString();
+
+    // 1. Immediately record in pending ref to block stale incoming poll overwrites
+    pendingUpdatesRef.current.set(reportId, {
+      ...pendingUpdatesRef.current.get(reportId),
+      status: newStatus,
+      timestamp: Date.now(),
+    });
+
+    // 2. Optimistic update in local storage and component state
+    updateLocalReport(reportId, { status: newStatus, updatedAt: nowIso });
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: newStatus, updatedAt: new Date().toISOString() } : r))
+      prev.map((r) => (r.id === reportId ? { ...r, status: newStatus, updatedAt: nowIso } : r))
     );
+
     try {
       const res = await fetchFromApi(`/reports/${reportId}`, {
         method: 'PATCH',
         body: JSON.stringify({ status: newStatus }),
       });
       if (res && res.data) {
-        updateLocalReport(reportId, { status: res.data.status, updatedAt: res.data.updatedAt });
+        updateLocalReport(reportId, { status: res.data.status || newStatus, updatedAt: res.data.updatedAt || nowIso });
         setReports((prev) =>
-          prev.map((r) => (r.id === reportId ? { ...r, ...res.data } : r))
+          prev.map((r) => (r.id === reportId ? { ...r, ...res.data, status: res.data.status || newStatus } : r))
         );
       }
     } catch (err) {
       console.warn("Backend report update notice (persisted locally):", err);
     } finally {
       setStatusUpdating(false);
+      // Wait 4 seconds before clearing lock so any in-flight GET requests cannot revert
+      setTimeout(() => {
+        const cur = pendingUpdatesRef.current.get(reportId);
+        if (cur && cur.status === newStatus) {
+          pendingUpdatesRef.current.delete(reportId);
+        }
+      }, 4000);
     }
   };
 
   // Admin capability to edit/override severity according to requirements
   const handleUpdateSeverity = async (reportId: string, newSeverity: Severity) => {
     setSeverityUpdating(true);
-    // Optimistic update & local storage sync immediately
-    updateLocalReport(reportId, { severity: newSeverity });
+    const nowIso = new Date().toISOString();
+
+    // 1. Immediately record in pending ref to block stale incoming poll overwrites
+    pendingUpdatesRef.current.set(reportId, {
+      ...pendingUpdatesRef.current.get(reportId),
+      severity: newSeverity,
+      timestamp: Date.now(),
+    });
+
+    // 2. Optimistic update in local storage and component state
+    updateLocalReport(reportId, { severity: newSeverity, updatedAt: nowIso });
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity, updatedAt: new Date().toISOString() } : r))
+      prev.map((r) => (r.id === reportId ? { ...r, severity: newSeverity, updatedAt: nowIso } : r))
     );
+
     try {
       const res = await fetchFromApi(`/reports/${reportId}`, {
         method: 'PATCH',
         body: JSON.stringify({ severity: newSeverity }),
       });
       if (res && res.data) {
-        updateLocalReport(reportId, { severity: res.data.severity, updatedAt: res.data.updatedAt });
+        updateLocalReport(reportId, { severity: res.data.severity || newSeverity, updatedAt: res.data.updatedAt || nowIso });
         setReports((prev) =>
-          prev.map((r) => (r.id === reportId ? { ...r, ...res.data } : r))
+          prev.map((r) => (r.id === reportId ? { ...r, ...res.data, severity: res.data.severity || newSeverity } : r))
         );
       }
     } catch (err) {
       console.warn("Backend report update notice (persisted locally):", err);
     } finally {
       setSeverityUpdating(false);
+      // Wait 4 seconds before clearing lock so any in-flight GET requests cannot revert
+      setTimeout(() => {
+        const cur = pendingUpdatesRef.current.get(reportId);
+        if (cur && cur.severity === newSeverity) {
+          pendingUpdatesRef.current.delete(reportId);
+        }
+      }, 4000);
     }
   };
 

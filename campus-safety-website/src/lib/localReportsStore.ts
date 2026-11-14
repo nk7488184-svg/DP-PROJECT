@@ -38,6 +38,12 @@ export function updateLocalReport(id: string, updates: Partial<HazardReport>): H
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
       window.dispatchEvent(new CustomEvent("campus-reports-updated", { detail: existing[idx] }));
       return existing[idx];
+    } else {
+      const newEntry = { id, ...updates, updatedAt: new Date().toISOString() } as HazardReport;
+      existing.unshift(newEntry);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+      window.dispatchEvent(new CustomEvent("campus-reports-updated", { detail: newEntry }));
+      return newEntry;
     }
   } catch (e) {}
   return null;
@@ -48,10 +54,26 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
   const seenIds = new Set<string>();
   const merged: HazardReport[] = [];
 
-  // 1. First include freshly fetched reports from backend
+  // Map local updates by ID for quick lookup to preserve fresher client-side state
+  const localMap = new Map<string, HazardReport>();
+  for (const r of local) {
+    if (r && r.id) localMap.set(r.id, r);
+  }
+
+  // 1. First include freshly fetched reports from backend, overlaying newer local updates if available
   for (const r of backendReports) {
     if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
+      const localVer = localMap.get(r.id);
+      if (localVer) {
+        const localTime = localVer.updatedAt ? new Date(localVer.updatedAt).getTime() : 0;
+        const backendTime = r.updatedAt ? new Date(r.updatedAt).getTime() : 0;
+        const isRecentLocalUpdate = (Date.now() - localTime) < 30000;
+        if (isRecentLocalUpdate || localTime >= backendTime) {
+          merged.push({ ...r, ...localVer });
+          continue;
+        }
+      }
       merged.push(r);
     }
   }
@@ -68,7 +90,12 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
   for (const r of mockReports) {
     if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
-      merged.push(r);
+      const localVer = localMap.get(r.id);
+      if (localVer) {
+        merged.push({ ...r, ...localVer });
+      } else {
+        merged.push(r);
+      }
     }
   }
 
