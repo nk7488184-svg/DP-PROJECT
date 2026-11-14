@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const DASHBOARD_URL = 'http://localhost:3000/api/reports';
-const BACKEND_URL = 'http://localhost:3002/api/reports';
+const DASHBOARD_URL = 'http://127.0.0.1:3000/api/reports';
+const BACKEND_URL = 'http://127.0.0.1:3002/api/reports';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

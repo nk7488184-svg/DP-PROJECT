@@ -8,7 +8,7 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import SeverityBadge from "@/components/shared/SeverityBadge";
 import CategoryIcon from "@/components/shared/CategoryIcon";
 import { mockReports } from "@/lib/mock-data";
-import { getLocalReports } from "@/lib/localReportsStore";
+import { getLocalReports, updateLocalReport } from "@/lib/localReportsStore";
 import { categoryLabels } from "@/types";
 import {
   Search,
@@ -48,20 +48,20 @@ export default function TrackPage() {
     }
   }, []);
 
-  const executeSearch = async (term: string) => {
+  const executeSearch = async (term: string, silent = false) => {
     if (!term) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setNotFound(false);
 
     try {
       const { fetchFromApi } = await import("@/lib/api");
       const res = await fetchFromApi(`/reports/${term}`);
-      if (res.success && res.data) {
-        const d = res.data;
+      if (res && (res.success || res.data)) {
+        const d = res.data || res;
         const normalized = {
           ...d,
           id: d.id || d._id || term,
-          location: d.location || { lat: 31.7754, lng: 76.9861, address: "IIT Mandi Campus" },
+          location: d.location || { lat: 31.7754, lng: 76.9861, address: "Behind A11 on New Construction Road" },
           category: d.category || "Pothole_Surface_Breakout",
           severity: d.severity || "medium",
           status: d.status || "submitted",
@@ -69,6 +69,9 @@ export default function TrackPage() {
           description: d.description || "Hazard reported on campus road.",
           images: d.images || [],
         };
+        try {
+          updateLocalReport(normalized.id, { status: normalized.status });
+        } catch {}
         setReport(normalized);
         setNotFound(false);
         return;
@@ -76,7 +79,7 @@ export default function TrackPage() {
     } catch (err) {
       // If backend reports error, try local mock fallback
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
 
     const local = getLocalReports();
@@ -86,7 +89,7 @@ export default function TrackPage() {
     if (foundLocal) {
       setReport({
         ...foundLocal,
-        location: foundLocal.location || { lat: 31.7754, lng: 76.9861, address: "IIT Mandi Campus" },
+        location: foundLocal.location || { lat: 31.7754, lng: 76.9861, address: "Behind A11 on New Construction Road" },
       });
       setNotFound(false);
       return;
@@ -98,7 +101,7 @@ export default function TrackPage() {
     if (found) {
       setReport({
         ...found,
-        location: found.location || { lat: 31.7754, lng: 76.9861, address: "IIT Mandi Campus" },
+        location: found.location || { lat: 31.7754, lng: 76.9861, address: "Behind A11 on New Construction Road" },
       });
       setNotFound(false);
     } else {
@@ -106,6 +109,15 @@ export default function TrackPage() {
       setNotFound(true);
     }
   };
+
+  // Real-time polling for status changes (e.g., admin marking in_progress or resolved)
+  useEffect(() => {
+    if (!report?.id) return;
+    const interval = setInterval(() => {
+      executeSearch(report.id, true);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [report?.id]);
 
   const handleSearch = () => {
     executeSearch(searchId.trim());
