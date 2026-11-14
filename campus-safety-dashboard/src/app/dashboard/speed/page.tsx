@@ -91,7 +91,7 @@ const INITIAL_SEGMENTS: SegmentData[] = [
   },
   {
     id: 102,
-    name: "North Campus Link Road (Academic Block Descent)",
+    name: "Behind A11 on New Construction Road",
     highway: "secondary",
     speed_limit: 40,
     length_m: 650,
@@ -117,7 +117,7 @@ const INITIAL_SEGMENTS: SegmentData[] = [
   },
   {
     id: 103,
-    name: "South Campus Cedar Loop Road",
+    name: "Behind A11 on New Construction Road",
     highway: "tertiary",
     speed_limit: 30,
     length_m: 800,
@@ -136,7 +136,7 @@ const INITIAL_SEGMENTS: SegmentData[] = [
   },
   {
     id: 104,
-    name: "Hostel Block C - Cafeteria Avenue",
+    name: "Behind A11 on New Construction Road",
     highway: "residential",
     speed_limit: 25,
     length_m: 450,
@@ -156,7 +156,7 @@ const INITIAL_SEGMENTS: SegmentData[] = [
   },
   {
     id: 105,
-    name: "Auditorium Roundabout & Hill Curve",
+    name: "Behind A11 on New Construction Road",
     highway: "residential",
     speed_limit: 25,
     length_m: 350,
@@ -175,7 +175,7 @@ const INITIAL_SEGMENTS: SegmentData[] = [
   },
   {
     id: 106,
-    name: "Upper Helipad Service Spur",
+    name: "Behind A11 on New Construction Road",
     highway: "service",
     speed_limit: 20,
     length_m: 280,
@@ -211,7 +211,7 @@ const INITIAL_EVENTS: SpeedEventItem[] = [
     id: 202,
     type: "DECEL_CLUSTER",
     segment_id: 102,
-    segment_name: "North Campus Link Road (Academic Block Descent)",
+    segment_name: "Behind A11 on New Construction Road",
     severity: 3,
     current_p50: 16,
     limit: 40,
@@ -223,7 +223,7 @@ const INITIAL_EVENTS: SpeedEventItem[] = [
     id: 203,
     type: "SLOWDOWN",
     segment_id: 104,
-    segment_name: "Hostel Block C - Cafeteria Avenue",
+    segment_name: "Behind A11 on New Construction Road",
     severity: 1,
     current_p50: 14,
     limit: 25,
@@ -262,7 +262,7 @@ const SPEED_BENTO_ITEMS: MagicBentoItem[] = [
         </div>
         <div className="my-2">
           <div className="text-2xl font-black text-rose-400 font-mono">16 km/h</div>
-          <div className="text-xs font-semibold text-foreground mt-0.5">North Campus Link Road</div>
+          <div className="text-xs font-semibold text-foreground mt-0.5">Behind A11 on New Construction Road</div>
           <div className="text-[11px] text-muted leading-tight mt-1">Deep pothole cluster causing severe vehicle braking (-60% vs limit).</div>
         </div>
         <div className="text-[10px] font-semibold text-rose-400/90 flex items-center gap-1">
