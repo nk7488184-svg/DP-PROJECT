@@ -7,7 +7,7 @@ declare global {
 }
 
 export async function GET() {
-  const reports = global.__REPORTS_CACHE__ || [];
+  const reports = global.__REPORTS_CACHE__ || mockReports;
 
   const prioritized = [...reports]
     .filter((r) => r.status !== 'resolved')

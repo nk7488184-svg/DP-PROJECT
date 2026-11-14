@@ -7,7 +7,7 @@ declare global {
 }
 
 export async function GET() {
-  const reports = global.__REPORTS_CACHE__ || [];
+  const reports = global.__REPORTS_CACHE__ || mockReports;
 
   const stats: DashboardStats = {
     totalReports: reports.length,
@@ -15,7 +15,7 @@ export async function GET() {
     inProgress: reports.filter((r) => r.status === "in_progress").length,
     resolved: reports.filter((r) => r.status === "resolved").length,
     criticalCount: reports.filter((r) => r.severity === "critical").length,
-    avgResolutionDays: reports.length > 0 ? 4.2 : 0,
+    avgResolutionDays: 4.2,
   };
 
   return NextResponse.json({

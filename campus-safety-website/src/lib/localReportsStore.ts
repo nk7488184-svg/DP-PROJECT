@@ -9,12 +9,7 @@ export function getLocalReports(): HazardReport[] {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((r) => {
-      if (!r || !r.id) return false;
-      const isLegacyMock = r.description?.includes("Detailed description for report at") || /^RPT-10\d\d$/.test(r.id);
-      return !isLegacyMock;
-    });
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     return [];
   }
@@ -63,6 +58,14 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
 
   // 2. Include any local client-side reports
   for (const r of local) {
+    if (r && r.id && !seenIds.has(r.id)) {
+      seenIds.add(r.id);
+      merged.push(r);
+    }
+  }
+
+  // 3. Fallback to mock baseline reports
+  for (const r of mockReports) {
     if (r && r.id && !seenIds.has(r.id)) {
       seenIds.add(r.id);
       merged.push(r);

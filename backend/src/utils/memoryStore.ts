@@ -14,7 +14,78 @@ export interface MockReport {
   mlPrediction?: any;
 }
 
-export const initialReports: MockReport[] = [];
+export const initialReports: MockReport[] = [
+  {
+    id: "RPT-1001",
+    title: "Pothole & Surface Breakout at Main Academic Block Road",
+    description: "Deep pothole causing vehicle damage and traffic slowdown.",
+    category: "Pothole_Surface_Breakout",
+    severity: "critical",
+    status: "submitted",
+    location: { lat: 31.7754, lng: 76.9861, address: "Main Academic Block Road" },
+    images: [],
+    reportedBy: { name: "Admin User", email: "admin@roadsentinel.com" },
+    reportedAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
+    updatedAt: new Date().toISOString(),
+    priorityScore: 85,
+  },
+  {
+    id: "RPT-1002",
+    title: "Paver & Interlock Damage near North Campus Gate",
+    description: "Broken curb tiles causing pedestrian tripping risk.",
+    category: "Paver_Damage",
+    severity: "high",
+    status: "in_progress",
+    location: { lat: 31.7748, lng: 76.9855, address: "Near North Campus Gate" },
+    images: [],
+    reportedBy: { name: "Campus Reporter", email: "reporter@iitmandi.ac.in" },
+    reportedAt: new Date(Date.now() - 3600000 * 24 * 5).toISOString(),
+    updatedAt: new Date().toISOString(),
+    priorityScore: 72,
+  },
+  {
+    id: "RPT-1003",
+    title: "Longitudinal Road Crack at Hostel Road - Block A",
+    description: "Continuous longitudinal fracture extending along the main driving line.",
+    category: "Longitudinal_Crack",
+    severity: "medium",
+    status: "under_review",
+    location: { lat: 31.7761, lng: 76.987, address: "Hostel Road - Block A" },
+    images: [],
+    reportedBy: { name: "Admin User", email: "admin@roadsentinel.com" },
+    reportedAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(),
+    updatedAt: new Date().toISOString(),
+    priorityScore: 68,
+  },
+  {
+    id: "RPT-1004",
+    title: "Iron Grid & Drainage Grate Damage at Library Junction",
+    description: "Bent stormwater drain grate posing tire hazard.",
+    category: "Iron_grid_damage",
+    severity: "high",
+    status: "in_progress",
+    location: { lat: 31.774, lng: 76.9848, address: "Library Junction" },
+    images: [],
+    reportedBy: { name: "Campus Reporter", email: "reporter@iitmandi.ac.in" },
+    reportedAt: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
+    updatedAt: new Date().toISOString(),
+    priorityScore: 54,
+  },
+  {
+    id: "RPT-1005",
+    title: "Patch Repair Deterioration at Sports Complex Road",
+    description: "Sunken asphalt patch repair deteriorating under rain.",
+    category: "Patch_Repair",
+    severity: "low",
+    status: "resolved",
+    location: { lat: 31.7769, lng: 76.9878, address: "Sports Complex Road" },
+    images: [],
+    reportedBy: { name: "Campus Reporter", email: "reporter@iitmandi.ac.in" },
+    reportedAt: new Date(Date.now() - 3600000 * 24 * 20).toISOString(),
+    updatedAt: new Date().toISOString(),
+    priorityScore: 28,
+  }
+];
 
 // Helper to sanitize images - allows compressed base64 images up to 4MB for display
 function sanitizeImages(images: any[]): string[] {
