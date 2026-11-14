@@ -6,7 +6,7 @@ declare global {
   var __REPORTS_CACHE__: HazardReport[] | undefined;
 }
 
-if (!global.__REPORTS_CACHE__) {
+if (!global.__REPORTS_CACHE__ || global.__REPORTS_CACHE__.length === 0) {
   global.__REPORTS_CACHE__ = [...mockReports];
 }
 

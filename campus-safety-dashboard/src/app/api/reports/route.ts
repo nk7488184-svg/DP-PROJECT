@@ -6,9 +6,8 @@ declare global {
   var __REPORTS_CACHE__: HazardReport[] | undefined;
 }
 
-if (!global.__REPORTS_CACHE__) {
-  global.__REPORTS_CACHE__ = [...mockReports];
-}
+// Restore baseline reports cache
+global.__REPORTS_CACHE__ = [...mockReports];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
