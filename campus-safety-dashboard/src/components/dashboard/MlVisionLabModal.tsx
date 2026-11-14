@@ -53,7 +53,7 @@ export default function MlVisionLabModal({ isOpen, onClose }: MlVisionLabModalPr
   // Sample pre-configured test scenarios for live evaluation
   const anprSamples = [
     {
-      title: "Sample 1: Compact Car (Campus Test Corridor)",
+      title: "Sample 1: Compact Car (Behind A11 on New Construction Road)",
       plate: "HP 65 A 1084",
       speed: 39.6,
       vclass: "Car",

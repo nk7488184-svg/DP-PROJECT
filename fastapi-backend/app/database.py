@@ -424,11 +424,9 @@ class TelemetryStore:
             export_data = {
                 "metadata": {
                     "test_date": "2026-11-11",
-                    "operational_window": "3:00 PM – 9:00 PM IST (15:00 – 21:00)",
-                    "server_offline_at": "2026-11-11T23:14:00+05:30 (11:14 PM IST)",
-                    "node_status": "OFFLINE (CSI bus disconnected after 11 PM)",
-                    "offline_reason": "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST",
-                    "location": "IIT Mandi Kamand Campus (Campus Test Corridor)",
+                    "operational_window": "Continuous Live Sensing (Active)",
+                    "node_status": "ONLINE (24GHz Doppler Radar Active)",
+                    "location": "Behind A11 on New Construction Road",
                     "posted_speed_limit_kmh": 20.0,
                     "max_speed_observed_kmh": max((b.speed_kmh for b in self.breaches), default=44.8),
                     "total_telemetry_windows": len(self.telemetry_history),

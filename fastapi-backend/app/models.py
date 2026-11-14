@@ -24,7 +24,7 @@ class RawTelemetryPayload(BaseModel):
     receding_count: Optional[int] = Field(None, ge=0, description="Vehicles moving away from radar")
     radar_occupancy_pct: Optional[float] = Field(0.0, ge=0.0, le=100.0, description="% of time radar detected target")
     posted_speed_limit: Optional[float] = Field(20.0, description="Posted road limit in km/h")
-    road_name: Optional[str] = Field("Campus Test Corridor", description="Campus road segment name")
+    road_name: Optional[str] = Field("Behind A11 on New Construction Road", description="Campus road segment name")
     latitude: Optional[float] = Field(31.7807, description="GPS Latitude")
     longitude: Optional[float] = Field(76.9967, description="GPS Longitude")
 
@@ -35,7 +35,7 @@ class RawTelemetryPayload(BaseModel):
             if not values.get("device_id"):
                 values["device_id"] = "RPI4_CAMERA_UNIT_01"
             if not values.get("road_name"):
-                values["road_name"] = "Campus Test Corridor"
+                values["road_name"] = "Behind A11 on New Construction Road"
             # Harmonize vehicle count
             cnt = values.get("raw_vehicle_count")
             if cnt is None:
@@ -120,7 +120,7 @@ class SpeedBreachPayload(BaseModel):
     license_plate: Optional[str] = None
     vehicle_type: Optional[str] = None
     image_base64: Optional[str] = None
-    road_name: Optional[str] = "Campus Test Corridor"
+    road_name: Optional[str] = "Behind A11 on New Construction Road"
     latitude: Optional[float] = 31.7807
     longitude: Optional[float] = 76.9967
 
@@ -131,7 +131,7 @@ class SpeedBreachPayload(BaseModel):
             if not values.get("device_id"):
                 values["device_id"] = "RPI4_CAMERA_UNIT_01"
             if not values.get("road_name"):
-                values["road_name"] = "Campus Test Corridor"
+                values["road_name"] = "Behind A11 on New Construction Road"
             if not values.get("posted_limit_kmh"):
                 values["posted_limit_kmh"] = 20.0
             sp = values.get("speed_kmh")

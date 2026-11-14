@@ -243,7 +243,7 @@ export default function TrafficRadarPage() {
           receding_count: 4,
           radar_occupancy_pct: 18.0,
           posted_speed_limit: 20.0,
-          road_name: selectedNode === "RPI4_NORTH_GATE" ? "North Campus Main Gate Road" : "South Campus Academic Complex Road",
+          road_name: "Behind A11 on New Construction Road",
         }),
       });
       await loadAllData();
@@ -270,9 +270,9 @@ export default function TrafficRadarPage() {
                   <Calendar className="w-3 h-3" />
                   Field Test: 11 Nov 2026 (3:00 PM – 9:00 PM IST Operational Window)
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[11px] font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  Server / Node Offline (@ 11:14 PM IST)
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Radar Node: Active &amp; Online
                 </span>
               </div>
               <p className="text-xs text-muted mt-0.5">

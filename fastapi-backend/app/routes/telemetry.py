@@ -299,7 +299,7 @@ async def get_field_test_session():
             "server_offline_at": "2026-11-11T23:14:00+05:30",
             "offline_reason": node.get("offline_reason", "Camera Module 3 CSI bus disconnected & server went offline at 11:14 PM IST on Nov 11, 2026"),
             "device_id": "RPI4_CAMERA_UNIT_01",
-            "road_name": "Campus Test Corridor (IIT Mandi)",
+            "road_name": "Behind A11 on New Construction Road",
             "posted_speed_limit_kmh": 20.0,
             "total_telemetry_windows": len(db.telemetry_history),
             "total_vehicles_observed": total_vehicles,

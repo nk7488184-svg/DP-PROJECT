@@ -50,7 +50,7 @@ export default function OverspeedAlertsCard() {
       ocr_confidence: 0.96,
       routed_to_active_learning: false,
       fine_suppressed: false,
-      road_name: "Campus Test Corridor",
+      road_name: "Behind A11 on New Construction Road",
     },
     {
       breach_id: "BREACH-1008",
@@ -66,7 +66,7 @@ export default function OverspeedAlertsCard() {
       ocr_confidence: 0.94,
       routed_to_active_learning: false,
       fine_suppressed: false,
-      road_name: "Campus Test Corridor",
+      road_name: "Behind A11 on New Construction Road",
     },
     {
       breach_id: "BREACH-1015",
@@ -76,13 +76,13 @@ export default function OverspeedAlertsCard() {
       posted_limit_kmh: 20.0,
       delta_over_limit: 18.5,
       severity: "high",
-      vehicle_type: "Motorcycle",
+      vehicle_type: "Bike",
       pce_weight: 0.5,
       license_plate: "HP 28 T 3319",
       ocr_confidence: 0.95,
       routed_to_active_learning: false,
       fine_suppressed: false,
-      road_name: "Campus Test Corridor",
+      road_name: "Behind A11 on New Construction Road",
     },
   ]);
 
