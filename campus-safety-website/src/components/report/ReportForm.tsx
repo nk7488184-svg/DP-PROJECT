@@ -862,17 +862,9 @@ export default function ReportForm() {
         }
         saveLocalReport({ ...newReport, id: assignedId });
       }
-
-      // Redundant fail-safe direct broadcast to Admin Dashboard (port 3000)
-      if (typeof window !== "undefined") {
-        fetch("http://localhost:3000/api/reports", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...reportPayload, id: assignedId }),
-        }).catch(() => {});
-      }
     } catch (err) {
       console.warn("Backend sync notice:", err);
+      // Only try direct dashboard POST if fetchFromApi completely failed
       if (typeof window !== "undefined") {
         try {
           const directRes = await fetch("http://localhost:3000/api/reports", {

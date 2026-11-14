@@ -24,25 +24,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '50', 10);
 
-  // Sync with Express backend on port 3002 if running
-  try {
-    const backendRes = await fetch('http://127.0.0.1:3002/api/reports?limit=100', {
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(1000),
+  // Deduplicate the cache by ID (defensive cleanup)
+  if (global.__REPORTS_CACHE__) {
+    const seenIds = new Set<string>();
+    global.__REPORTS_CACHE__ = global.__REPORTS_CACHE__.filter((r) => {
+      if (!r || !r.id || seenIds.has(r.id)) return false;
+      seenIds.add(r.id);
+      return true;
     });
-    if (backendRes.ok) {
-      const bData = await backendRes.json();
-      if (bData && Array.isArray(bData.data)) {
-        const existingIds = new Set((global.__REPORTS_CACHE__ || []).map((r) => r.id));
-        for (const r of bData.data) {
-          if (r && r.id && !existingIds.has(r.id)) {
-            existingIds.add(r.id);
-            global.__REPORTS_CACHE__?.unshift(r);
-          }
-        }
-      }
-    }
-  } catch {}
+  }
 
   const list = global.__REPORTS_CACHE__ || [];
   const data = list.slice(0, limit);
@@ -86,12 +76,12 @@ export async function POST(request: Request) {
       global.__REPORTS_CACHE__.unshift(newReport);
     }
 
-    // Also forward to Express backend (3002) asynchronously if online
+    // Also forward to Express backend (3002) asynchronously if online — include the assigned ID
     try {
       fetch('http://127.0.0.1:3002/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, id: newReport.id }),
         signal: AbortSignal.timeout(1500),
       }).catch(() => {});
     } catch {}

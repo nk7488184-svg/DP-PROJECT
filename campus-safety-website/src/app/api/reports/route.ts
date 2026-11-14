@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Broadcast report to Admin Dashboard (3000) and Express Backend (3002)
+    // Forward report to Admin Dashboard (3000) only — Dashboard handles Express (3002) forwarding
     let dashboardResult: any = null;
     try {
       const dRes = await fetch(DASHBOARD_URL, {
@@ -48,14 +48,20 @@ export async function POST(request: Request) {
       console.warn('Could not forward report to Admin Dashboard:', e);
     }
 
-    try {
-      await fetch(BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(3000),
-      }).catch(() => {});
-    } catch {}
+    // Only try Express directly if Dashboard failed
+    if (!dashboardResult) {
+      try {
+        const bRes = await fetch(BACKEND_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(3000),
+        });
+        if (bRes.ok) {
+          dashboardResult = await bRes.json();
+        }
+      } catch {}
+    }
 
     if (dashboardResult && dashboardResult.success) {
       return NextResponse.json(dashboardResult, { status: 201 });

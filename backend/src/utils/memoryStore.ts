@@ -127,7 +127,26 @@ class MemoryStore {
   }
 
   addReport(reportData: any) {
-    const id = `RPT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const id = reportData.id || `RPT-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Deduplicate: if a report with this ID already exists, update it instead
+    const existingIdx = this.reports.findIndex(r => r.id === id);
+    if (existingIdx !== -1) {
+      this.reports[existingIdx] = { ...this.reports[existingIdx], ...reportData, id, updatedAt: new Date().toISOString() };
+      return this.reports[existingIdx];
+    }
+
+    // Also deduplicate by title + category within 60 seconds (same submission arriving via multiple routes)
+    const now = Date.now();
+    const dupIdx = this.reports.findIndex(r =>
+      r.title === (reportData.title || 'Hazard Report') &&
+      r.category === (reportData.category || 'other') &&
+      Math.abs(now - new Date(r.reportedAt || 0).getTime()) < 60000
+    );
+    if (dupIdx !== -1) {
+      return this.reports[dupIdx];
+    }
+
     const newReport: MockReport = {
       id,
       title: reportData.title || 'Hazard Report',
