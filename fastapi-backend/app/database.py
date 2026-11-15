@@ -131,6 +131,12 @@ class TelemetryStore:
         self.telemetry_history: List[ProcessedTrafficAnalytics] = []
         self.breaches: List[ProcessedBreachRecord] = []
         self.active_learning_queue: List[ActiveLearningSample] = []
+        self.latest_live_speed = {
+            "speed_kmh": 0.0,
+            "is_target_present": False,
+            "device_id": "RPI4_CAMERA_UNIT_01",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
         self.nodes: Dict[str, dict] = {
             "RPI4_CAMERA_UNIT_01": {
                 "device_id": "RPI4_CAMERA_UNIT_01",
@@ -148,7 +154,9 @@ class TelemetryStore:
                 "network": "Wi-Fi / 4G LTE",
             }
         }
-        self._seed_nov11_full_day()
+        # In pure hardware enforcement mode, do NOT seed synthetic mock breaches.
+        # Only real speed readings from physical radar and real captures are recorded.
+        # self._seed_nov11_full_day()
 
     # ──────────────────────────────────────────────────────────────────
     # FIELD TEST SYNTHETIC SEED: November 11 2026, 15:00 IST → 21:00 IST (3 PM - 9 PM)

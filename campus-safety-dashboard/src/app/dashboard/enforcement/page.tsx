@@ -321,8 +321,8 @@ const MOCK_AL_QUEUE: ALQueueItem[] = [
 
 export default function EnforcementPage() {
   const [nodes, setNodes] = useState<EdgeNode[]>(MOCK_NODES);
-  const [breaches, setBreaches] = useState<BreachEvent[]>(MOCK_BREACHES);
-  const [alQueue, setAlQueue] = useState<ALQueueItem[]>(MOCK_AL_QUEUE);
+  const [breaches, setBreaches] = useState<BreachEvent[]>([]);
+  const [alQueue, setAlQueue] = useState<ALQueueItem[]>([]);
   const [selectedBreach, setSelectedBreach] = useState<BreachEvent | null>(null);
   const [selectedV85, setSelectedV85] = useState<V85Location>(MOCK_V85[0]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -340,7 +340,7 @@ export default function EnforcementPage() {
         const data = await fetchRecentTelemetry(1440);
         if (data?.success) {
           setBackendConnected(true);
-          if (data.breaches && data.breaches.length > 0) {
+          if (data.breaches && Array.isArray(data.breaches)) {
             // Filter out speeds <= 5 km/h (human walking motion)
             const validReal = data.breaches.filter(
               (b: any) => (b.speed_kmh || b.speed || 0) > 5
@@ -349,7 +349,7 @@ export default function EnforcementPage() {
               const d = b.timestamp ? new Date(b.timestamp) : null;
               const timeStr = d
                 ? `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : "14 Nov, 18:30";
+                : "Just now";
 
               let vcls: "car" | "bus" | "bike" = "car";
               const rawV = (b.vehicle_type || "").toLowerCase();
@@ -357,20 +357,8 @@ export default function EnforcementPage() {
               else if (rawV.includes("bike") || rawV.includes("motor") || rawV.includes("cycle")) vcls = "bike";
               else vcls = "car";
 
-              let plate = b.license_plate || b.plate_text;
-              if (!plate || !plate.startsWith("HP")) {
-                const mandiPlates = [
-                  "HP 33 B 4921",
-                  "HP 65 A 1084",
-                  "HP 33 C 8841",
-                  "HP 28 T 3319",
-                  "HP 31 E 8840",
-                  "HP 01 BG 7733",
-                  "HP 02 A 5567",
-                  "HP 34 C 1209",
-                ];
-                plate = mandiPlates[idx % mandiPlates.length];
-              }
+              // Keep the EXACT real license plate detected by YOLOv8 + EasyOCR
+              const plate = b.license_plate || b.plate_text || "PLATE UNREADABLE";
 
               const spd = Math.round(b.speed_kmh || b.speed);
               const limit = b.posted_limit || 20;
@@ -391,8 +379,8 @@ export default function EnforcementPage() {
               };
             });
 
-            // Prepend new real data from sensor on top of baseline seed data
-            setBreaches([...mappedReal, ...MOCK_BREACHES]);
+            // Set ONLY real breaches from physical radar and camera
+            setBreaches(mappedReal);
           }
         }
 
@@ -426,7 +414,43 @@ export default function EnforcementPage() {
     setIsRefreshing(true);
     try {
       const data = await fetchRecentTelemetry(1440);
-      if (data?.success) setBackendConnected(true);
+      if (data?.success) {
+        setBackendConnected(true);
+        if (data.breaches && Array.isArray(data.breaches)) {
+          const validReal = data.breaches.filter(
+            (b: any) => (b.speed_kmh || b.speed || 0) > 5
+          );
+          const mappedReal: BreachEvent[] = validReal.map((b: any, idx: number) => {
+            const d = b.timestamp ? new Date(b.timestamp) : null;
+            const timeStr = d
+              ? `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : "Just now";
+            let vcls: "car" | "bus" | "bike" = "car";
+            const rawV = (b.vehicle_type || "").toLowerCase();
+            if (rawV.includes("bus")) vcls = "bus";
+            else if (rawV.includes("bike") || rawV.includes("motor") || rawV.includes("cycle")) vcls = "bike";
+            else vcls = "car";
+            const plate = b.license_plate || b.plate_text || "PLATE UNREADABLE";
+            const spd = Math.round(b.speed_kmh || b.speed);
+            const limit = b.posted_limit || 20;
+            return {
+              id: 4000 + idx,
+              node_id: "RPI4_CAMERA_UNIT_01",
+              timestamp: timeStr,
+              radar_speed_kmh: spd,
+              speed_limit_kmh: limit,
+              overspeed_pct: Math.round(((spd - limit) / limit) * 100),
+              vehicle_class: vcls,
+              vehicle_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
+              plate_text: plate,
+              plate_confidence: Math.round((b.ocr_confidence || 0.94) * 100),
+              pce_weight: vcls === "bus" ? 3.0 : vcls === "bike" ? 0.5 : 1.0,
+              status: "new",
+            };
+          });
+          setBreaches(mappedReal);
+        }
+      }
     } catch {
       /* keep state */
     }

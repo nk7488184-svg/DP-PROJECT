@@ -83,7 +83,7 @@ export default function CameraEvidencePage() {
 
   const [streamError, setStreamError] = useState(false);
   const [streamKey, setStreamKey] = useState(0);
-  const [activeTab, setActiveTab] = useState<"all" | "overspeed" | "analytics">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "overspeed" | "analytics">("overspeed");
 
   const [overspeedPhotos, setOverspeedPhotos] = useState<OverspeedPhoto[]>([]);
   const [analyticsPhotos, setAnalyticsPhotos] = useState<AnalyticsPhoto[]>([]);

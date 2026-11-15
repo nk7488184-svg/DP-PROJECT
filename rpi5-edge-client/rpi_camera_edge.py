@@ -458,6 +458,7 @@ def run_client(args):
     threading.Thread(target=terminal_snap_listener, daemon=True).start()
 
     frame_interval = 1.0 / max(0.5, args.fps)
+    last_idle_heartbeat = 0.0
 
     print("\n[Edge Streaming Started] Transmitting live video frames to website...")
     print("[Speed Radar Active] Strictly waiting for physical radar sensor readings.")
@@ -480,6 +481,8 @@ def run_client(args):
 
             # 3. Read REAL physical Doppler radar speed
             speed = radar.read_speed()
+            now_time = time.time()
+
             if speed >= 3.0:
                 print(f"[Radar Speed Reading] Physical vehicle clocked at: {speed:.1f} km/h")
 
@@ -487,7 +490,7 @@ def run_client(args):
                 threading.Thread(
                     target=lambda s=speed: requests.post(
                         f"{args.backend.rstrip('/')}/api/v1/telemetry/live-speed",
-                        json={"speed_kmh": s, "device_id": args.device_id},
+                        json={"speed_kmh": s, "is_target_present": True, "device_id": args.device_id},
                         timeout=2
                     ) if True else None,
                     daemon=True
@@ -505,11 +508,20 @@ def run_client(args):
                                   speed, args.limit, breach_frame),
                             daemon=True
                         ).start()
+            else:
+                # Idle state: Periodic 0.0 km/h heartbeat to website speedometer
+                if now_time - last_idle_heartbeat >= 2.0:
+                    last_idle_heartbeat = now_time
+                    threading.Thread(
+                        target=lambda: requests.post(
+                            f"{args.backend.rstrip('/')}/api/v1/telemetry/live-speed",
+                            json={"speed_kmh": 0.0, "is_target_present": False, "device_id": args.device_id},
+                            timeout=2
+                        ) if True else None,
+                        daemon=True
+                    ).start()
 
             # Throttle to requested streaming FPS
-            t_elapsed = time.time() - t_start
-            t_sleep = max(0.01, frame_interval - t_elapsed)
-            time.sleep(t_sleep)
             t_elapsed = time.time() - t_start
             t_sleep = max(0.01, frame_interval - t_elapsed)
             time.sleep(t_sleep)
