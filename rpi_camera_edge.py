@@ -177,16 +177,18 @@ class ZeroDiskCamera:
 
 
 # ---------------------------------------------------------------------------
-# Radar Sensor Interface
+# Radar Sensor Interface (Strictly Real Physical Hardware Only)
 # ---------------------------------------------------------------------------
 class RadarSensor:
-    def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 115200, allow_mock: bool = True):
+    def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 115200):
         self.conn = None
-        self.is_hardware = False
-        self.allow_mock = allow_mock
+        self.port = serial_port
+        self.baud = baud_rate
+        self.last_reconnect_check = 0.0
+        self._find_and_connect()
 
-        # Candidate serial devices if none explicitly provided
-        candidates = [serial_port] if serial_port else [
+    def _find_and_connect(self):
+        candidates = [self.port] if self.port else [
             "/dev/ttyUSB0",
             "/dev/ttyUSB1",
             "/dev/ttyACM0",
@@ -199,48 +201,51 @@ class RadarSensor:
             if port and os.path.exists(port):
                 try:
                     import serial
-                    self.conn = serial.Serial(port, baud_rate, timeout=0.1)
-                    self.is_hardware = True
-                    print(f"\n[Hardware Radar CONNECTED] Active Doppler radar link established on {port}")
-                    print("[Radar Mode] Mock simulation DISABLED - strictly reading real vehicle speeds from physical radar sensor.")
-                    break
+                    self.conn = serial.Serial(port, self.baud, timeout=0.05)
+                    self.port = port
+                    print(f"\n[Hardware Radar CONNECTED] Active Doppler radar connected on {port}")
+                    print("[Radar Mode] Pure Hardware: ONLY real vehicle speeds from physical radar will be shown.")
+                    return
                 except Exception as e:
-                    print(f"[Radar Port Notice] Tried {port}: {e}")
+                    pass
 
-        if not self.is_hardware:
-            if self.allow_mock:
-                print("\n[Radar Notice] No physical radar detected on serial ports.")
-                print("[Radar Mode] Running demo traffic simulation. (Use --no-mock to disable when waiting for real sensor)")
-            else:
-                print("\n[Radar Notice] No physical radar detected. Mock simulation is DISABLED (--no-mock).")
-                print("[Radar Mode] Waiting for real radar hardware to be plugged in. Speed will remain 0.0.")
+        print("\n[Radar Hardware Status] No physical radar detected on USB/serial ports.")
+        print("[Radar Hardware Status] Speed is locked to 0.0 km/h until radar sensor is connected.")
+        print("[Radar Hardware Status] When you plug in the radar sensor via USB or pins, it will auto-bind immediately.\n")
 
     def read_speed(self) -> float:
-        # 1. Real Hardware Radar Read
-        if self.is_hardware and self.conn:
-            try:
+        # If not connected, periodically re-check if user plugged in radar sensor
+        if not self.conn:
+            now = time.time()
+            if now - self.last_reconnect_check >= 3.0:
+                self.last_reconnect_check = now
+                for p in ["/dev/ttyUSB0", "/dev/ttyACM0", "/dev/ttyUSB1", "/dev/ttyACM1"]:
+                    if os.path.exists(p):
+                        self._find_and_connect()
+                        break
+            return 0.0
+
+        # Read actual speed from connected Doppler radar
+        try:
+            if hasattr(self.conn, "in_waiting") and self.conn.in_waiting > 0:
                 line = self.conn.readline().decode("utf-8", errors="ignore").strip()
                 if line:
                     import re
-                    # Look for speed values in incoming serial data (e.g. "SPEED: 28.4" or "28.4")
+                    # Look for speed values in incoming radar serial stream (e.g. "24.5", "SPEED: 28.1")
                     match = re.search(r"[-+]?\d*\.?\d+", line)
                     if match:
                         val = abs(float(match.group(0)))
-                        if val > 1.0: # filter noise floor
-                            return val
+                        # Filter out noise floor (speeds < 3.0 km/h are sensor jitter or ambient vibration)
+                        if val >= 3.0:
+                            return round(val, 1)
+        except Exception:
+            # Device disconnected or communication error
+            try:
+                self.conn.close()
             except Exception:
                 pass
-            return 0.0
+            self.conn = None
 
-        # 2. Synthetic Traffic Simulation (Only if mock is permitted and hardware is absent)
-        if self.allow_mock:
-            import random
-            if random.random() < 0.25:
-                # 85% compliant, 15% breach
-                if random.random() < 0.85:
-                    return round(random.gauss(17.5, 2.2), 1)
-                else:
-                    return round(random.uniform(22.0, 36.5), 1)
         return 0.0
 
 
@@ -434,16 +439,16 @@ def run_client(args):
     print("=" * 75)
 
     camera = ZeroDiskCamera(width=args.width, height=args.height)
-    radar = RadarSensor(serial_port=args.radar_port, allow_mock=not args.no_mock)
+    radar = RadarSensor(serial_port=args.radar_port)
 
-    # Allow testing ALPR by pressing Enter in the RPi terminal anytime while streaming
+    # Allow manual test snapshot by pressing Enter in the terminal
     def terminal_snap_listener():
         while True:
             try:
                 line = sys.stdin.readline()
                 if line is None:
                     break
-                print("\n[📸 Manual Snap Triggered via Terminal!] Snapping high-res frame from camera...")
+                print("\n[📸 Manual Snap Triggered via Terminal!] Snapping frame & running ALPR plate detection...")
                 snap = camera.capture_ram_jpeg()
                 if snap:
                     post_speed_breach(args.backend, args.device_id, args.road_name, 28.5, args.limit, snap)
@@ -452,18 +457,17 @@ def run_client(args):
 
     threading.Thread(target=terminal_snap_listener, daemon=True).start()
 
-    last_hazard_scan_time = 0.0
-    last_analytics_scan_time = time.time()
     frame_interval = 1.0 / max(0.5, args.fps)
 
-    print("\n[Edge Streaming Started] Connecting to website and transmitting live frames...")
-    print("[💡 Manual Test] Press [ENTER] in this terminal anytime to snap photo & detect number plate!\n")
+    print("\n[Edge Streaming Started] Transmitting live video frames to website...")
+    print("[Speed Radar Active] Strictly waiting for physical radar sensor readings.")
+    print("[💡 Manual Test] You can also press [ENTER] in this terminal to test snap & detect plate!\n")
 
     try:
         while True:
             t_start = time.time()
 
-            # 1. Capture frame into RAM buffer
+            # 1. Capture live camera frame into volatile RAM buffer
             frame_bytes = camera.capture_ram_jpeg()
 
             if frame_bytes:
@@ -474,40 +478,25 @@ def run_client(args):
                     daemon=True
                 ).start()
 
-                now = time.time()
-                # 3. Check for periodic AI road hazard inspection
-                if now - last_hazard_scan_time >= args.hazard_interval:
-                    last_hazard_scan_time = now
-                    threading.Thread(
-                        target=post_hazard_scan,
-                        args=(args.backend, args.device_id, args.road_name, frame_bytes),
-                        daemon=True
-                    ).start()
-
-                # 4. Check for periodic analytics photo capture
-                if now - last_analytics_scan_time >= args.analytics_interval:
-                    last_analytics_scan_time = now
-                    threading.Thread(
-                        target=post_analytics_photo,
-                        args=(args.backend, args.device_id, args.road_name, frame_bytes),
-                        daemon=True
-                    ).start()
-
-            # 5. Check Doppler radar for speed violations
+            # 3. Read REAL physical Doppler radar speed
             speed = radar.read_speed()
-            if speed > 0:
-                # Send 1-second live speed tick to website dials
+            if speed >= 3.0:
+                print(f"[Radar Speed Reading] Physical vehicle clocked at: {speed:.1f} km/h")
+
+                # Transmit live speed to website speedometer dials
                 threading.Thread(
-                    target=lambda: requests.post(
+                    target=lambda s=speed: requests.post(
                         f"{args.backend.rstrip('/')}/api/v1/telemetry/live-speed",
-                        json={"speed_kmh": speed, "device_id": args.device_id},
+                        json={"speed_kmh": s, "device_id": args.device_id},
                         timeout=2
                     ) if True else None,
                     daemon=True
                 ).start()
 
+                # Automatically trigger camera capture & ALPR when speed >= limit (20 km/h)
                 if speed >= args.threshold:
-                    print(f"[!] OVERSPEED DETECTED: {speed:.1f} km/h >= {args.threshold} km/h! Snapping ALPR evidence in RAM...")
+                    print(f"\n[🚨 REAL OVERSPEED DETECTED!] Vehicle: {speed:.1f} km/h >= {args.threshold} km/h limit!")
+                    print(" Snapping vehicle image from camera in RAM and sending to ALPR...")
                     breach_frame = camera.capture_ram_jpeg() or frame_bytes
                     if breach_frame:
                         threading.Thread(
@@ -518,6 +507,9 @@ def run_client(args):
                         ).start()
 
             # Throttle to requested streaming FPS
+            t_elapsed = time.time() - t_start
+            t_sleep = max(0.01, frame_interval - t_elapsed)
+            time.sleep(t_sleep)
             t_elapsed = time.time() - t_start
             t_sleep = max(0.01, frame_interval - t_elapsed)
             time.sleep(t_sleep)

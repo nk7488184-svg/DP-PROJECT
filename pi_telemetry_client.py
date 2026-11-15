@@ -78,13 +78,6 @@ class RadarSensorAdapter:
                 print(f"[Radar Error] Serial read error: {e}")
             return 0.0
 
-        # Simulated traffic distribution when running without radar hardware:
-        import random
-        if random.random() < 0.65:
-            if random.random() < 0.85:
-                return round(random.gauss(17.5, 2.5), 1)
-            else:
-                return round(random.uniform(22.0, 36.0), 1)
         return 0.0
 
 

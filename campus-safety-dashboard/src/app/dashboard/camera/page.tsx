@@ -586,7 +586,14 @@ export default function CameraEvidencePage() {
 
                       {/* Bottom Condition Badge */}
                       <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                        <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded truncate max-w-[180px]">
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded truncate max-w-[180px]",
+                            photo.road_condition.toLowerCase().includes("normal")
+                              ? "bg-emerald-600 text-white"
+                              : "bg-amber-600 text-white"
+                          )}
+                        >
                           {photo.road_condition}
                         </span>
                         <span className="text-[10px] font-mono bg-black/80 text-zinc-300 px-1.5 py-0.5 rounded">
