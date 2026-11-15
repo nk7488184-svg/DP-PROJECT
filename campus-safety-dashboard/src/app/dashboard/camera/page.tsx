@@ -82,7 +82,7 @@ export default function CameraEvidencePage() {
   });
 
   const [streamError, setStreamError] = useState(false);
-  const [streamKey, setStreamKey] = useState(Date.now());
+  const [streamKey, setStreamKey] = useState(0);
   const [activeTab, setActiveTab] = useState<"all" | "overspeed" | "analytics">("all");
 
   const [overspeedPhotos, setOverspeedPhotos] = useState<OverspeedPhoto[]>([]);
@@ -332,7 +332,7 @@ export default function CameraEvidencePage() {
           ) : (
             <img
               key={streamKey}
-              src={`${FASTAPI_BASE}/api/v1/camera/stream?t=${streamKey}`}
+              src={`${FASTAPI_BASE}/api/v1/camera/stream${streamKey > 0 ? `?t=${streamKey}` : ""}`}
               alt="RPi 5 Live Video Feed"
               className="w-full h-full object-contain max-h-[500px]"
               onError={() => setStreamError(true)}
@@ -503,7 +503,7 @@ export default function CameraEvidencePage() {
                     <div className="p-3 text-xs flex flex-col justify-between flex-1">
                       <div className="flex items-center justify-between text-muted mb-1">
                         <span className="font-mono text-[10px]">{photo.breach_id}</span>
-                        <span className="text-[10px]">{new Date(photo.timestamp).toLocaleTimeString()}</span>
+                        <span className="text-[10px]" suppressHydrationWarning>{new Date(photo.timestamp).toLocaleTimeString()}</span>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                         <span className="text-muted truncate max-w-[130px]">{photo.road_name}</span>
@@ -599,7 +599,7 @@ export default function CameraEvidencePage() {
                     <div className="p-3 text-xs flex flex-col justify-between flex-1">
                       <div className="flex items-center justify-between text-muted mb-1">
                         <span className="font-mono text-[10px]">{photo.id}</span>
-                        <span className="text-[10px]">{new Date(photo.timestamp).toLocaleTimeString()}</span>
+                        <span className="text-[10px]" suppressHydrationWarning>{new Date(photo.timestamp).toLocaleTimeString()}</span>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-border/50 text-[11px]">
                         <span className="text-muted truncate max-w-[130px]">{photo.road_name}</span>
@@ -718,7 +718,7 @@ export default function CameraEvidencePage() {
 
                   <div className="p-2.5 rounded-lg bg-input/40 border border-border text-center">
                     <span className="text-[10px] text-muted block uppercase">Timestamp</span>
-                    <span className="text-xs font-mono text-zinc-300 block">
+                    <span className="text-xs font-mono text-zinc-300 block" suppressHydrationWarning>
                       {new Date(selectedPhoto.timestamp).toLocaleTimeString()}
                     </span>
                     <span className="text-[10px] text-muted block">Behind A11</span>

@@ -46,7 +46,7 @@ DEFAULT_ROAD_NAME = os.environ.get("ROAD_NAME", "Behind A11 on New Construction 
 DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "3.0"))  # FPS for live web feed
 DEFAULT_HAZARD_SCAN_SEC = int(os.environ.get("HAZARD_SCAN_SEC", "25")) # Seconds between AI hazard scans
 DEFAULT_SPEED_LIMIT = float(os.environ.get("SPEED_LIMIT", "20.0"))
-DEFAULT_TRIGGER_LIMIT = float(os.environ.get("TRIGGER_LIMIT", "20.1"))
+DEFAULT_TRIGGER_LIMIT = float(os.environ.get("TRIGGER_LIMIT", "20.0"))
 
 
 # ---------------------------------------------------------------------------
