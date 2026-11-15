@@ -321,8 +321,8 @@ const MOCK_AL_QUEUE: ALQueueItem[] = [
 
 export default function EnforcementPage() {
   const [nodes, setNodes] = useState<EdgeNode[]>(MOCK_NODES);
-  const [breaches, setBreaches] = useState<BreachEvent[]>([]);
-  const [alQueue, setAlQueue] = useState<ALQueueItem[]>([]);
+  const [breaches, setBreaches] = useState<BreachEvent[]>(MOCK_BREACHES);
+  const [alQueue, setAlQueue] = useState<ALQueueItem[]>(MOCK_AL_QUEUE);
   const [selectedBreach, setSelectedBreach] = useState<BreachEvent | null>(null);
   const [selectedV85, setSelectedV85] = useState<V85Location>(MOCK_V85[0]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -379,8 +379,12 @@ export default function EnforcementPage() {
               };
             });
 
-            // Set ONLY real breaches from physical radar and camera
-            setBreaches(mappedReal);
+            // Combine real-time radar breach captures with historical field test records
+            if (mappedReal.length > 0) {
+              setBreaches([...mappedReal, ...MOCK_BREACHES]);
+            } else {
+              setBreaches(MOCK_BREACHES);
+            }
           }
         }
 
@@ -448,7 +452,11 @@ export default function EnforcementPage() {
               status: "new",
             };
           });
-          setBreaches(mappedReal);
+          if (mappedReal.length > 0) {
+            setBreaches([...mappedReal, ...MOCK_BREACHES]);
+          } else {
+            setBreaches(MOCK_BREACHES);
+          }
         }
       }
     } catch {

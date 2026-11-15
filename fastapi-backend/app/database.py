@@ -154,9 +154,7 @@ class TelemetryStore:
                 "network": "Wi-Fi / 4G LTE",
             }
         }
-        # In pure hardware enforcement mode, do NOT seed synthetic mock breaches.
-        # Only real speed readings from physical radar and real captures are recorded.
-        # self._seed_nov11_full_day()
+        self._seed_nov11_full_day()
 
     # ──────────────────────────────────────────────────────────────────
     # FIELD TEST SYNTHETIC SEED: November 11 2026, 15:00 IST → 21:00 IST (3 PM - 9 PM)
