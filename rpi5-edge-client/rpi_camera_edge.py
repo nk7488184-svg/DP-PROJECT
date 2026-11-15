@@ -27,15 +27,23 @@ import argparse
 import threading
 import subprocess
 import io
+import queue
 from datetime import datetime, timezone
 from typing import Optional
 
 # Only 1 external library required: requests
 try:
     import requests
+    from requests.adapters import HTTPAdapter
 except ImportError:
     print("[Error] 'requests' is missing. Install with: pip3 install requests --break-system-packages")
     sys.exit(1)
+
+# Persistent HTTP keep-alive session to avoid per-frame TLS handshakes
+http_session = requests.Session()
+adapter = HTTPAdapter(pool_connections=10, pool_maxsize=20, max_retries=1)
+http_session.mount("https://", adapter)
+http_session.mount("http://", adapter)
 
 # ---------------------------------------------------------------------------
 # Default Configuration (Can be overridden via CLI flags)
@@ -254,35 +262,77 @@ class RadarSensor:
 
 
 # ---------------------------------------------------------------------------
-# Background Uploader Tasks (Zero Disk, HTTP/REST)
+# Background Uploader Tasks (Zero Disk, Persistent HTTP Keep-Alive)
 # ---------------------------------------------------------------------------
-_stream_frame_counter = 0
-_stream_last_log_time = 0.0
+class LiveStreamUploader:
+    """
+    Dedicated background worker with a single-slot buffer.
+    Guarantees:
+      1. Keeps 1 persistent HTTP connection open (zero per-frame TLS handshakes).
+      2. Automatically drops stale frames if network is busy, always sending the freshest frame.
+      3. Never overflows threads or creates socket bottlenecks.
+    """
+    def __init__(self, backend_url: str, device_id: str, road_name: str):
+        self.backend_url = backend_url.rstrip("/")
+        self.device_id = device_id
+        self.road_name = road_name
+        self.frame_slot = queue.Queue(maxsize=1)
+        self.running = True
+        self.sent_count = 0
+        self.last_log = time.time()
+        self.worker_thread = threading.Thread(target=self._worker, daemon=True)
+        self.worker_thread.start()
 
-def post_camera_frame(backend_url: str, device_id: str, road_name: str, frame_bytes: bytes):
-    """Streams a live camera frame to the backend in memory."""
-    global _stream_frame_counter, _stream_last_log_time
-    url = f"{backend_url.rstrip('/')}/api/v1/camera/frame"
-    headers = {
-        "Content-Type": "image/jpeg",
-        "X-Device-Id": device_id,
-        "X-Road-Name": road_name
+    def submit_frame(self, frame_bytes: bytes):
+        try:
+            self.frame_slot.put_nowait(frame_bytes)
+        except queue.Full:
+            try:
+                self.frame_slot.get_nowait()
+            except queue.Empty:
+                pass
+            try:
+                self.frame_slot.put_nowait(frame_bytes)
+            except queue.Full:
+                pass
+
+    def _worker(self):
+        url = f"{self.backend_url}/api/v1/camera/frame"
+        headers = {
+            "Content-Type": "image/jpeg",
+            "X-Device-Id": self.device_id,
+            "X-Road-Name": self.road_name
+        }
+        while self.running:
+            try:
+                frame = self.frame_slot.get(timeout=0.5)
+            except queue.Empty:
+                continue
+
+            try:
+                res = http_session.post(url, data=frame, headers=headers, timeout=4)
+                if res.status_code == 200:
+                    self.sent_count += 1
+                    now = time.time()
+                    if now - self.last_log >= 3.0:
+                        self.last_log = now
+                        print(f"[Live Video Streaming] Sent {self.sent_count} frames live to dashboard -> {self.backend_url}")
+            except Exception:
+                pass
+
+
+def send_live_speed(backend_url: str, device_id: str, speed: float, is_present: bool):
+    """Sends radar speed update over persistent keep-alive connection without raising exceptions."""
+    url = f"{backend_url.rstrip('/')}/api/v1/telemetry/live-speed"
+    payload = {
+        "speed_kmh": speed,
+        "is_target_present": is_present,
+        "device_id": device_id
     }
     try:
-        res = requests.post(url, data=frame_bytes, headers=headers, timeout=4)
-        if res.status_code == 200:
-            _stream_frame_counter += 1
-            now = time.time()
-            if now - _stream_last_log_time >= 5.0:
-                _stream_last_log_time = now
-                print(f"[Live Video Streaming] Sent {_stream_frame_counter} frames live to dashboard -> {backend_url}")
-        else:
-            print(f"[Stream Warning] Server returned {res.status_code}: {res.text[:100]}")
-    except Exception as e:
-        now = time.time()
-        if now - _stream_last_log_time >= 5.0:
-            _stream_last_log_time = now
-            print(f"[Stream Warning] Could not reach backend: {e}")
+        http_session.post(url, json=payload, timeout=2.5)
+    except Exception:
+        pass
 
 
 def post_hazard_scan(backend_url: str, device_id: str, road_name: str, frame_bytes: bytes):
@@ -294,7 +344,7 @@ def post_hazard_scan(backend_url: str, device_id: str, road_name: str, frame_byt
     }
     try:
         files = {"image": ("rpi_scan.jpg", frame_bytes, "image/jpeg")}
-        res = requests.post(url, files=files, headers=headers, timeout=10)
+        res = http_session.post(url, files=files, headers=headers, timeout=10)
         if res.status_code == 200:
             data = res.json().get("data", {})
             pred = data.get("prediction", "Normal")
@@ -317,7 +367,7 @@ def post_analytics_photo(backend_url: str, device_id: str, road_name: str, frame
     }
     try:
         files = {"image": ("rpi_analytics.jpg", frame_bytes, "image/jpeg")}
-        res = requests.post(url, files=files, headers=headers, timeout=10)
+        res = http_session.post(url, files=files, headers=headers, timeout=10)
         if res.status_code == 200:
             data = res.json().get("data", {})
             cond = data.get("road_condition", "Normal")
@@ -344,7 +394,7 @@ def post_speed_breach(backend_url: str, device_id: str, road_name: str,
     }
     try:
         t0 = time.time()
-        res = requests.post(url, json=payload, timeout=20)
+        res = http_session.post(url, json=payload, timeout=20)
         dt = time.time() - t0
         if res.status_code == 200:
             data = res.json().get("data", {})
@@ -479,6 +529,9 @@ def run_client(args):
     frame_interval = 1.0 / max(0.5, args.fps)
     last_idle_heartbeat = 0.0
 
+    # Start dedicated non-blocking frame streamer (keeps 1 connection, zero bottlenecks)
+    uploader = LiveStreamUploader(args.backend, args.device_id, args.road_name)
+
     print("\n[Edge Streaming Started] Transmitting live video frames to website...")
     print("[Speed Radar Active] Strictly waiting for physical radar sensor readings.")
     print("[💡 Manual Test] You can also press [ENTER] in this terminal to test snap & detect plate!\n")
@@ -491,12 +544,8 @@ def run_client(args):
             frame_bytes = camera.capture_ram_jpeg()
 
             if frame_bytes:
-                # 2. Asynchronously stream live video frame to website
-                threading.Thread(
-                    target=post_camera_frame,
-                    args=(args.backend, args.device_id, args.road_name, frame_bytes),
-                    daemon=True
-                ).start()
+                # 2. Queue into single-slot uploader (drops stale frames if network is busy)
+                uploader.submit_frame(frame_bytes)
 
             # 3. Read REAL physical Doppler radar speed
             speed = radar.read_speed()
@@ -507,11 +556,8 @@ def run_client(args):
 
                 # Transmit live speed to website speedometer dials
                 threading.Thread(
-                    target=lambda s=speed: requests.post(
-                        f"{args.backend.rstrip('/')}/api/v1/telemetry/live-speed",
-                        json={"speed_kmh": s, "is_target_present": True, "device_id": args.device_id},
-                        timeout=2
-                    ) if True else None,
+                    target=send_live_speed,
+                    args=(args.backend, args.device_id, speed, True),
                     daemon=True
                 ).start()
 
@@ -532,11 +578,8 @@ def run_client(args):
                 if now_time - last_idle_heartbeat >= 2.0:
                     last_idle_heartbeat = now_time
                     threading.Thread(
-                        target=lambda: requests.post(
-                            f"{args.backend.rstrip('/')}/api/v1/telemetry/live-speed",
-                            json={"speed_kmh": 0.0, "is_target_present": False, "device_id": args.device_id},
-                            timeout=2
-                        ) if True else None,
+                        target=send_live_speed,
+                        args=(args.backend, args.device_id, 0.0, False),
                         daemon=True
                     ).start()
 
