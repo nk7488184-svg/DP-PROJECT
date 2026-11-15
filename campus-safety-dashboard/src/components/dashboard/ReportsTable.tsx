@@ -11,6 +11,14 @@ import { Search, ChevronLeft, ChevronRight, MapPin, X, RefreshCw, Sparkles, Imag
 import { cn } from "@/lib/utils";
 import { fetchFromApi } from "@/lib/api";
 
+const getReportAddress = (r: any): string => {
+  if (!r) return "Behind A11 on New Construction Road";
+  const loc = r.location;
+  if (!loc) return "Behind A11 on New Construction Road";
+  if (typeof loc === "string") return loc.trim() || "Behind A11 on New Construction Road";
+  return loc.address || loc.name || (typeof loc.lat === "number" && typeof loc.lng === "number" ? `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}` : "Behind A11 on New Construction Road");
+};
+
 export default function ReportsTable() {
   const [reports, setReports] = useState<HazardReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -286,7 +294,8 @@ export default function ReportsTable() {
 
   const filtered = useMemo(() => {
     return reports.filter((r) => {
-      if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !r.location.address.toLowerCase().includes(search.toLowerCase())) return false;
+      const addr = getReportAddress(r).toLowerCase();
+      if (search && !r.title.toLowerCase().includes(search.toLowerCase()) && !addr.includes(search.toLowerCase())) return false;
       if (catFilter && r.category !== catFilter) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (sevFilter && r.severity !== sevFilter) return false;
@@ -421,7 +430,7 @@ export default function ReportsTable() {
                     <td className="px-4 py-3 text-foreground">
                       <div className="flex items-center gap-1 text-xs">
                         <MapPin className="w-3 h-3 text-muted shrink-0" />
-                        <span className="truncate max-w-[180px]">{report.location.address}</span>
+                        <span className="truncate max-w-[180px]">{getReportAddress(report)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted text-xs whitespace-nowrap" suppressHydrationWarning>
@@ -608,17 +617,19 @@ export default function ReportsTable() {
               </div>
               <div>
                 <p className="text-xs text-muted">Location</p>
-                <p className="text-foreground">{selected.location.address}</p>
-                <div className="flex items-center justify-between mt-1 gap-2">
-                  <p className="text-xs text-muted font-mono">{selected.location.lat.toFixed(5)}, {selected.location.lng.toFixed(5)}</p>
-                  <Link
-                    href={`/dashboard/map?lat=${selected.location.lat}&lng=${selected.location.lng}&reportId=${selected.id}`}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    Show on map ↗
-                  </Link>
-                </div>
+                <p className="text-foreground">{getReportAddress(selected)}</p>
+                {selected.location && typeof selected.location === 'object' && typeof selected.location.lat === 'number' && typeof selected.location.lng === 'number' && (
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p className="text-xs text-muted font-mono">{selected.location.lat.toFixed(5)}, {selected.location.lng.toFixed(5)}</p>
+                    <Link
+                      href={`/dashboard/map?lat=${selected.location.lat}&lng=${selected.location.lng}&reportId=${selected.id}`}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-lg transition-colors"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      Show on map ↗
+                    </Link>
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-xs text-muted">Description</p>

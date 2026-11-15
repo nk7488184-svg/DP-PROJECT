@@ -107,7 +107,7 @@ export default function DashboardOverview() {
                   <div className="flex items-center gap-3 text-xs text-muted">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3 text-muted" />
-                      {report.location.address}
+                      {(report.location && typeof report.location === 'object' ? report.location.address : report.location) || "Behind A11 on New Construction Road"}
                     </span>
                     <span>•</span>
                     <span>{report.reportedBy}</span>

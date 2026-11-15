@@ -13,7 +13,8 @@ export default function AutomatedHotspotAlerts() {
   activeReports.forEach((report) => {
     // Creating a pseudo-coordinate key by rounding lat/lng to group nearby ones, 
     // but since mock locations are exact addresses, we'll just group by address for this demo.
-    const key = `${report.location.address}-${report.category}`;
+    const addr = (report.location && typeof report.location === 'object' ? report.location.address : report.location) || "Campus Road";
+    const key = `${addr}-${report.category}`;
     if (!clusters[key]) clusters[key] = [];
     clusters[key].push(report);
   });
@@ -32,7 +33,7 @@ export default function AutomatedHotspotAlerts() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {hotspots.slice(0, 2).map((hotspot, idx) => {
           const category = hotspot[0].category;
-          const address = hotspot[0].location.address;
+          const address = (hotspot[0].location && typeof hotspot[0].location === 'object' ? hotspot[0].location.address : hotspot[0].location) || "Campus Road";
           const count = hotspot.length;
           
           return (

@@ -49,6 +49,28 @@ export function updateLocalReport(id: string, updates: Partial<HazardReport>): H
   return null;
 }
 
+export function normalizeReport(r: any): HazardReport {
+  if (!r) return r;
+  let loc = r.location;
+  if (!loc || typeof loc !== 'object') {
+    loc = {
+      address: typeof loc === 'string' && loc.trim() ? loc : 'Behind A11 on New Construction Road',
+      lat: 31.7807,
+      lng: 76.9967
+    };
+  } else {
+    loc = {
+      address: loc.address || loc.name || (typeof loc.lat === 'number' && typeof loc.lng === 'number' ? `${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}` : 'Behind A11 on New Construction Road'),
+      lat: typeof loc.lat === 'number' ? loc.lat : 31.7807,
+      lng: typeof loc.lng === 'number' ? loc.lng : 76.9967
+    };
+  }
+  return {
+    ...r,
+    location: loc
+  };
+}
+
 export function getAllMergedReports(backendReports: HazardReport[] = []): HazardReport[] {
   const local = getLocalReports();
   const seenIds = new Set<string>();
@@ -108,5 +130,5 @@ export function getAllMergedReports(backendReports: HazardReport[] = []): Hazard
     return timeB - timeA;
   });
 
-  return merged;
+  return merged.map(normalizeReport);
 }
