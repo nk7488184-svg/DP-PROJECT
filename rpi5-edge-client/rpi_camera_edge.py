@@ -75,7 +75,11 @@ class ZeroDiskCamera:
         try:
             from picamera2 import Picamera2
             self.picam2 = Picamera2()
-            config = self.picam2.create_still_configuration(main={"size": (self.width, self.height)})
+            try:
+                # Video configuration is high-performance, non-blocking for live streaming
+                config = self.picam2.create_video_configuration(main={"size": (self.width, self.height)})
+            except Exception:
+                config = self.picam2.create_still_configuration(main={"size": (self.width, self.height)})
             self.picam2.configure(config)
             self.picam2.start()
             self.backend = "picamera2"
@@ -252,8 +256,12 @@ class RadarSensor:
 # ---------------------------------------------------------------------------
 # Background Uploader Tasks (Zero Disk, HTTP/REST)
 # ---------------------------------------------------------------------------
+_stream_frame_counter = 0
+_stream_last_log_time = 0.0
+
 def post_camera_frame(backend_url: str, device_id: str, road_name: str, frame_bytes: bytes):
     """Streams a live camera frame to the backend in memory."""
+    global _stream_frame_counter, _stream_last_log_time
     url = f"{backend_url.rstrip('/')}/api/v1/camera/frame"
     headers = {
         "Content-Type": "image/jpeg",
@@ -261,9 +269,20 @@ def post_camera_frame(backend_url: str, device_id: str, road_name: str, frame_by
         "X-Road-Name": road_name
     }
     try:
-        requests.post(url, data=frame_bytes, headers=headers, timeout=4)
-    except Exception:
-        pass
+        res = requests.post(url, data=frame_bytes, headers=headers, timeout=4)
+        if res.status_code == 200:
+            _stream_frame_counter += 1
+            now = time.time()
+            if now - _stream_last_log_time >= 5.0:
+                _stream_last_log_time = now
+                print(f"[Live Video Streaming] Sent {_stream_frame_counter} frames live to dashboard -> {backend_url}")
+        else:
+            print(f"[Stream Warning] Server returned {res.status_code}: {res.text[:100]}")
+    except Exception as e:
+        now = time.time()
+        if now - _stream_last_log_time >= 5.0:
+            _stream_last_log_time = now
+            print(f"[Stream Warning] Could not reach backend: {e}")
 
 
 def post_hazard_scan(backend_url: str, device_id: str, road_name: str, frame_bytes: bytes):

@@ -28,54 +28,6 @@ os.makedirs(ANALYTICS_DIR, exist_ok=True)
 # In-memory store for traffic & road condition analytics photos
 analytics_photos_store: list = []
 
-def _seed_analytics_photos():
-    if analytics_photos_store:
-        return
-    import random
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    target_dir = os.path.join(ANALYTICS_DIR, date_str)
-    os.makedirs(target_dir, exist_ok=True)
-    conditions = [
-        ("Normal Road Surface", 94.2, 280.0, 18.5),
-        ("Pothole Surface Breakout", 91.5, 195.0, 26.2),
-        ("Vegetation Moss Overgrowth", 88.0, 220.0, 15.0),
-        ("Transverse Road Crack", 86.4, 240.0, 19.8),
-        ("Raveling Loose Aggregate", 79.5, 215.0, 22.1),
-        ("Iron Grid Drainage Grate", 95.1, 260.0, 17.4),
-    ]
-    base_time = datetime.now(timezone.utc)
-    for i, (cond, conf, flow, dens) in enumerate(conditions):
-        pid = f"ANL-{int(time.time()) - (i * 300)}-{i+1:02d}"
-        fname = f"{pid}.jpg"
-        fpath = os.path.join(target_dir, fname)
-        if not os.path.exists(fpath):
-            try:
-                img = Image.new("RGB", (640, 360), color=(28, 33, 42))
-                draw = ImageDraw.Draw(img)
-                draw.rectangle([0, 140, 640, 360], fill=(45, 50, 60))
-                draw.line([320, 140, 320, 360], fill=(235, 195, 40), width=3)
-                draw.rectangle([20, 20, 460, 80], fill=(18, 22, 28), outline=(60, 70, 85), width=2)
-                draw.text((30, 28), f"IIT Mandi Corridor Analytics Snapshot #{i+1}", fill=(52, 211, 153))
-                draw.text((30, 48), f"Surface: {cond} ({conf}%) | Flow: {flow} VPH", fill=(200, 210, 225))
-                img.save(fpath, format="JPEG", quality=80)
-            except Exception:
-                pass
-        analytics_photos_store.append({
-            "id": pid,
-            "timestamp": (base_time - timedelta(minutes=i * 6)).isoformat(),
-            "image_url": f"/evidence/analytics/{date_str}/{fname}",
-            "road_condition": cond,
-            "condition_confidence": conf,
-            "flow_rate_vph": flow,
-            "road_density_pct": dens,
-            "device_id": "RPI4_CAMERA_UNIT_01",
-            "road_name": "Behind A11 on New Construction Road",
-            "corridor": "Behind A11 on New Construction Road",
-            "storage_mode": "Zero-Storage RAM Ingestion"
-        })
-
-_seed_analytics_photos()
-
 class CameraStore:
     def __init__(self):
         self.lock = threading.Lock()
@@ -91,6 +43,8 @@ class CameraStore:
         self.camera_backend: str = "picamera2" # or opencv, libcamera-pipe
 
     def update_frame(self, frame_bytes: bytes, device_id: Optional[str] = None, road_name: Optional[str] = None):
+        if not frame_bytes or len(frame_bytes) < 500 or not frame_bytes.startswith(b"\xff\xd8"):
+            return
         with self.lock:
             self.latest_frame = frame_bytes
             now = time.time()
@@ -111,7 +65,8 @@ class CameraStore:
 
     def get_latest_frame(self) -> bytes:
         with self.lock:
-            if self.latest_frame:
+            now = time.time()
+            if self.latest_frame and (now - self.last_updated) < 8.0:
                 return self.latest_frame
         return self._generate_standby_frame()
 
