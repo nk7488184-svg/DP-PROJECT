@@ -319,21 +319,108 @@ def post_speed_breach(backend_url: str, device_id: str, road_name: str,
         "image_base64": b64_str
     }
     try:
-        res = requests.post(url, json=payload, timeout=10)
+        t0 = time.time()
+        res = requests.post(url, json=payload, timeout=20)
+        dt = time.time() - t0
         if res.status_code == 200:
             data = res.json().get("data", {})
             plate = data.get("license_plate", "UNKNOWN")
             vtype = data.get("vehicle_type", "Vehicle")
             conf = data.get("ocr_confidence", 0.0)
-            print(f"[🚨 SPEED BREACH CAPTURED] {speed:.1f} km/h (Limit: {limit}) -> ML Detected Plate: [{plate}] ({vtype}, OCR Conf: {conf*100:.1f}%) -> Photo stored in Camera Menu & Plate displayed in Enforcement Menu!")
+            breach_id = data.get("breach_id", "BREACH-001")
+            print("\n" + "=" * 65)
+            print(f" 🚨 [SPEED BREACH / ALPR DETECTED in {dt:.2f}s]")
+            print(f" 🚘 Clocked Speed   : {speed:.1f} km/h (Limit: {limit} km/h)")
+            print(f" 🏷️  Recognized Plate: [ {plate} ]")
+            print(f" 🚗 Vehicle Class   : {vtype} (OCR Confidence: {conf*100:.1f}%)")
+            print(f" 📁 Event ID        : {breach_id}")
+            print(f" 🌐 Dashboard View  : Photo -> /dashboard/camera | Plate -> /dashboard/enforcement")
+            print("=" * 65 + "\n")
     except Exception as e:
         print(f"[Breach Upload Warning] {e}")
+
+
+def test_plate_detection(backend_url: str, device_id: str, road_name: str, width: int = 1280, height: int = 720) -> int:
+    """
+    Direct CLI Number Plate Recognition Test:
+    Snaps a high-res photo from the connected RPi camera into RAM,
+    submits it to YOLOv8 + EasyOCR on the central server, and prints the result.
+    """
+    print("\n" + "=" * 70)
+    print(" 📸 ROAD-SENTINEL CAMERA & NUMBER PLATE (ALPR) DETECTION TEST")
+    print("=" * 70)
+    print(f" Target Server       : {backend_url}")
+    print(f" Camera Resolution   : {width}x{height}")
+    print(f" Storage Policy      : 100% Volatile RAM (Zero SD-Card Flash Wear)")
+    print(" Initializing camera hardware...")
+    camera = ZeroDiskCamera(width=width, height=height)
+
+    print("\n [1/3] Capturing test snapshot directly into RAM...")
+    # Warmup camera sensor exposure
+    for _ in range(3):
+        camera.capture_ram_jpeg()
+        time.sleep(0.1)
+
+    frame_bytes = camera.capture_ram_jpeg()
+    if not frame_bytes:
+        print("❌ Camera capture failed. Ensure camera is plugged into RPi CSI or USB port.")
+        return 1
+
+    print(f"       ✅ Snapshot captured ({len(frame_bytes):,} bytes in RAM, 0 bytes on disk)")
+    print(" [2/3] Transmitting image to YOLOv8 vehicle & plate detection pipeline...")
+
+    url = f"{backend_url.rstrip('/')}/api/v1/telemetry/breach"
+    b64_str = base64.b64encode(frame_bytes).decode("utf-8")
+    payload = {
+        "device_id": device_id,
+        "road_name": road_name,
+        "posted_limit_kmh": 20.0,
+        "speed_kmh": 28.5,
+        "speed": 28.5,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "image_base64": b64_str
+    }
+
+    t0 = time.time()
+    try:
+        res = requests.post(url, json=payload, timeout=25)
+        dt = time.time() - t0
+        if res.status_code == 200:
+            data = res.json().get("data", {})
+            plate = data.get("license_plate", "UNKNOWN")
+            vtype = data.get("vehicle_type", "Vehicle")
+            conf = data.get("ocr_confidence", 0.0)
+            breach_id = data.get("breach_id", "BREACH-001")
+
+            print(f" [3/3] ✅ ML Processing Finished in {dt:.2f}s!\n")
+            print("+" + "-" * 68 + "+")
+            print(f"|  RECOGNIZED NUMBER PLATE :  [ {plate:<37} ]  |")
+            print(f"|  VEHICLE CLASSIFICATION  :  {vtype:<45} |")
+            print(f"|  OCR CONFIDENCE SCORE    :  {conf*100:.1f}%{'':<43} |")
+            print(f"|  EVIDENCE EVENT ID       :  {breach_id:<45} |")
+            print("+" + "-" * 68 + "+")
+            print("\n 🌐 VERIFY ON WEBSITE RIGHT NOW:")
+            print("    1. Camera Menu      : http://localhost:3000/dashboard/camera")
+            print("       -> Displays the exact vehicle photo just clicked by your camera")
+            print("    2. Enforcement Menu : http://localhost:3000/dashboard/enforcement")
+            print(f"       -> Displays the recognized Indian HSRP plate: {plate}")
+            print("=" * 70 + "\n")
+            return 0
+        else:
+            print(f"❌ Server Error {res.status_code}: {res.text}")
+            return 1
+    except Exception as e:
+        print(f"❌ Connection Error: {e}")
+        return 1
 
 
 # ---------------------------------------------------------------------------
 # Main Client Loop
 # ---------------------------------------------------------------------------
 def run_client(args):
+    if args.test_plate:
+        sys.exit(test_plate_detection(args.backend, args.device_id, args.road_name, args.width, args.height))
+
     print("=" * 75)
     print(" RoadSentinel Raspberry Pi Edge Camera & Telemetry Streamer")
     print("=" * 75)
@@ -349,11 +436,28 @@ def run_client(args):
     camera = ZeroDiskCamera(width=args.width, height=args.height)
     radar = RadarSensor(serial_port=args.radar_port, allow_mock=not args.no_mock)
 
+    # Allow testing ALPR by pressing Enter in the RPi terminal anytime while streaming
+    def terminal_snap_listener():
+        while True:
+            try:
+                line = sys.stdin.readline()
+                if line is None:
+                    break
+                print("\n[📸 Manual Snap Triggered via Terminal!] Snapping high-res frame from camera...")
+                snap = camera.capture_ram_jpeg()
+                if snap:
+                    post_speed_breach(args.backend, args.device_id, args.road_name, 28.5, args.limit, snap)
+            except Exception:
+                break
+
+    threading.Thread(target=terminal_snap_listener, daemon=True).start()
+
     last_hazard_scan_time = 0.0
     last_analytics_scan_time = time.time()
     frame_interval = 1.0 / max(0.5, args.fps)
 
     print("\n[Edge Streaming Started] Connecting to website and transmitting live frames...")
+    print("[💡 Manual Test] Press [ENTER] in this terminal anytime to snap photo & detect number plate!\n")
 
     try:
         while True:
@@ -436,6 +540,7 @@ if __name__ == "__main__":
     parser.add_argument("--height", type=int, default=720, help="Camera capture height")
     parser.add_argument("--radar-port", default=None, help="Serial port for radar hardware (e.g. /dev/ttyUSB0)")
     parser.add_argument("--no-mock", action="store_true", help="Disable synthetic demo speed simulation when physical radar is not connected")
+    parser.add_argument("--test-plate", action="store_true", help="One-shot test: Snaps a photo from camera directly into RAM and detects number plate with ML")
 
     args = parser.parse_args()
     run_client(args)
