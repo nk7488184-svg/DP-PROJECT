@@ -56,6 +56,7 @@ DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "20.0"))
 DEFAULT_SPEED_LIMIT = float(os.environ.get("SPEED_LIMIT", "20.0"))
 DEFAULT_TRIGGER_LIMIT = float(os.environ.get("TRIGGER_LIMIT", "20.0"))
 DEFAULT_SUMMARY_SEC = int(os.environ.get("SUMMARY_SEC", "60")) # 1-minute window
+MIN_VEHICLE_SPEED = 5.0  # Only vehicles moving faster than 5.0 km/h are tracked
 TARGET_ACCOUNT = "neerajjeeadv2025@gmail.com"
 
 
@@ -148,7 +149,7 @@ class SegmentSpeedAggregator:
         self.lock = threading.Lock()
 
     def add_sample(self, speed: float):
-        if speed >= 3.0:
+        if speed > MIN_VEHICLE_SPEED:
             with self.lock:
                 self.speeds.append(speed)
 
@@ -168,20 +169,17 @@ class SegmentSpeedAggregator:
     def _flush_worker(self, speeds: List[float], win_start: datetime, win_end: datetime):
         v_count = len(speeds)
         if v_count == 0:
-            avg_sp = 0.0
-            v85 = 0.0
-            max_sp = 0.0
-            overspeed_cnt = 0
-            compliance = 100.0
-            status = "Free Flow (Nominal)"
-        else:
-            sorted_s = sorted(speeds)
-            avg_sp = sum(speeds) / v_count
-            v85 = sorted_s[int(v_count * 0.85)] if v_count > 1 else sorted_s[0]
-            max_sp = max(speeds)
-            overspeed_cnt = sum(1 for s in speeds if s >= self.limit)
-            compliance = round(((v_count - overspeed_cnt) / v_count) * 100.0, 1)
-            status = "Overspeed Detected" if overspeed_cnt > 0 else "Free Flow"
+            # Only record & update when vehicles moving > 5 km/h pass.
+            # Road is idle: do NOT spam empty rows to Google Sheets or central DB.
+            return
+
+        sorted_s = sorted(speeds)
+        avg_sp = sum(speeds) / v_count
+        v85 = sorted_s[int(v_count * 0.85)] if v_count > 1 else sorted_s[0]
+        max_sp = max(speeds)
+        overspeed_cnt = sum(1 for s in speeds if s >= self.limit)
+        compliance = round(((v_count - overspeed_cnt) / v_count) * 100.0, 1)
+        status = "Overspeed Detected" if overspeed_cnt > 0 else "Free Flow"
 
         # 1. ALWAYS Upload to Google Drive / Sheets (24/7, works when laptop is offline)
         cloud_payload = {
@@ -419,7 +417,7 @@ class RadarSensorAsync:
                         match = re.search(r"[-+]?\d*\.?\d+", line)
                         if match:
                             val = abs(float(match.group(0)))
-                            if val >= 3.0:
+                            if val > MIN_VEHICLE_SPEED:
                                 with self.lock:
                                     self.current_speed = round(val, 1)
                                     self.last_target_time = time.time()
@@ -602,7 +600,7 @@ def run_client(args):
             speed = radar.read_speed()
             now_time = time.time()
 
-            if speed >= 3.0:
+            if speed > MIN_VEHICLE_SPEED:
                 # Record into periodic road segment analytics aggregator
                 segment_aggregator.add_sample(speed)
 
