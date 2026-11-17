@@ -70,6 +70,13 @@ class CameraStore:
                 return self.latest_frame
         return self._generate_standby_frame()
 
+    def get_latest_frame_with_id(self) -> tuple:
+        with self.lock:
+            now = time.time()
+            if self.latest_frame and (now - self.last_updated) < 8.0:
+                return self.latest_frame, self.frame_count
+        return self._generate_standby_frame(), 0
+
     def get_status(self) -> Dict[str, Any]:
         with self.lock:
             now = time.time()
@@ -209,21 +216,21 @@ async def get_live_snapshot():
 @router.get("/stream", summary="Live MJPEG video stream from RPi 5 camera")
 async def get_live_mjpeg_stream():
     """
-    Returns a continuous MJPEG (Motion JPEG) stream.
-    Display seamlessly in any browser with:
-    <img src="http://localhost:8000/api/v1/camera/stream" />
+    Returns a continuous MJPEG (Motion JPEG) stream optimized for low-latency.
     """
     async def frame_generator():
+        last_id = -1
         while True:
-            frame = camera_store.get_latest_frame()
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n"
-                b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n" +
-                frame + b"\r\n"
-            )
-            # ~12 FPS stream rate
-            await asyncio.sleep(0.08)
+            frame, fid = camera_store.get_latest_frame_with_id()
+            if fid != last_id or fid == 0:
+                last_id = fid
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n" +
+                    frame + b"\r\n"
+                )
+            await asyncio.sleep(0.02)
 
     return StreamingResponse(
         frame_generator(),

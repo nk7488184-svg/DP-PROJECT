@@ -140,7 +140,7 @@ export default function CameraEvidencePage() {
     if (useSnapshotFallback && telemetry.online) {
       const timer = setInterval(() => {
         setLiveTick(Date.now());
-      }, 400);
+      }, 100); // 10 FPS smooth live refresh
       return () => clearInterval(timer);
     }
   }, [useSnapshotFallback, telemetry.online]);
