@@ -316,6 +316,23 @@ export default function CameraEvidencePage() {
           </div>
 
           <div className="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setUseSnapshotFallback((prev) => !prev);
+                setStreamKey(Date.now());
+              }}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-xs font-mono border transition-all flex items-center gap-1",
+                useSnapshotFallback
+                  ? "bg-amber-950/60 border-amber-800 text-amber-300"
+                  : "bg-emerald-950/60 border-emerald-800 text-emerald-300"
+              )}
+              title="Click to toggle streaming mode"
+            >
+              <Radio className="w-3 h-3" />
+              <span>{useSnapshotFallback ? "Fast Refresh (Snapshot)" : "Direct MJPEG (Lowest Latency)"}</span>
+            </button>
             <span className="font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2.5 py-1 rounded-lg">
               {telemetry.fps > 0 ? `${telemetry.fps} FPS` : "STREAM ACTIVE"}
             </span>

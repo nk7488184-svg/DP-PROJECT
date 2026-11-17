@@ -44,14 +44,37 @@ http_session.mount("http://", adapter)
 # ---------------------------------------------------------------------------
 # Default Configuration (Ultra-Fast 1GB RAM Profile)
 # ---------------------------------------------------------------------------
-DEFAULT_BACKEND_URL = os.environ.get("BACKEND_URL", "https://defensive-products-dozens-snap.trycloudflare.com")
+DEFAULT_LAN_URL = os.environ.get("LAN_URL", "http://172.18.64.170:8000")
+DEFAULT_TUNNEL_URL = os.environ.get("BACKEND_URL", "https://defensive-products-dozens-snap.trycloudflare.com")
 DEFAULT_DRIVE_WEBHOOK = os.environ.get("DRIVE_WEBHOOK", "https://script.google.com/macros/s/AKfycbz9pMyATj3yq2YCz0oovQe1l5CUYV6KM_BVmWCb8ZzCPq2A9HRHAdK6lthgpO7Nywnw/exec")
 DEFAULT_DEVICE_ID = os.environ.get("DEVICE_ID", "RPI4_CAMERA_UNIT_01")
 DEFAULT_ROAD_NAME = os.environ.get("ROAD_NAME", "Behind A11 on New Construction Road")
-DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "15.0"))
+DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "20.0")) # 20 FPS high performance
 DEFAULT_SPEED_LIMIT = float(os.environ.get("SPEED_LIMIT", "20.0"))
 DEFAULT_TRIGGER_LIMIT = float(os.environ.get("TRIGGER_LIMIT", "20.0"))
 TARGET_ACCOUNT = "neerajjeeadv2025@gmail.com"
+
+
+def select_best_backend(preferred_url: str, lan_url: str) -> str:
+    """
+    Auto-detects ultra-fast local Wi-Fi LAN (<5ms latency) if laptop & Pi
+    share the same Wi-Fi/hotspot. Falls back to Cloudflare tunnel for remote access.
+    """
+    if preferred_url and "trycloudflare.com" not in preferred_url and "127.0.0.1" not in preferred_url:
+        return preferred_url
+
+    # Check direct LAN connection first
+    if lan_url:
+        try:
+            check = requests.get(f"{lan_url.rstrip('/')}/api/v1/camera/status", timeout=0.8)
+            if check.status_code == 200:
+                print(f"\n[🚀 ULTRA-FAST LAN DETECTED] Connected directly over local Wi-Fi to {lan_url} (<5ms latency!)")
+                return lan_url
+        except Exception:
+            pass
+
+    print(f"\n[🌐 REMOTE CLOUD TUNNEL] Streaming via Cloudflare -> {preferred_url}")
+    return preferred_url
 
 
 # ---------------------------------------------------------------------------
@@ -455,10 +478,12 @@ def post_speed_breach_dual(backend_url: str, cloud_dispatcher: RamCloudDispatche
 # Main Client Loop
 # ---------------------------------------------------------------------------
 def run_client(args):
+    active_backend = select_best_backend(args.backend, args.lan_url)
+
     print("=" * 75)
     print(" RoadSentinel Ultra-Low Latency Streamer (Decoupled Multi-Threaded)")
     print("=" * 75)
-    print(f" Target Website/Backend : {args.backend}")
+    print(f" Target Website/Backend : {active_backend}")
     print(f" Target Cloud / Drive   : {TARGET_ACCOUNT}")
     print(f" Corridor Location      : {args.road_name}")
     print(f" Stream Resolution      : {args.width}x{args.height} (~12KB/frame lightweight)")
@@ -475,7 +500,7 @@ def run_client(args):
     last_idle_heartbeat = 0.0
     last_overspeed_trigger = 0.0
 
-    uploader = LiveStreamUploaderPipelined(args.backend, args.device_id, args.road_name)
+    uploader = LiveStreamUploaderPipelined(active_backend, args.device_id, args.road_name)
 
     print("\n[Edge Streaming Started] Transmitting live video frames to website...")
     print("[Speed Radar Active] Strictly waiting for physical radar sensor readings.\n")
@@ -533,7 +558,8 @@ def run_client(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RoadSentinel Ultra-Low-Latency Edge Streamer")
-    parser.add_argument("--backend", "--server", default=DEFAULT_BACKEND_URL)
+    parser.add_argument("--backend", "--server", default=DEFAULT_TUNNEL_URL)
+    parser.add_argument("--lan-url", default=DEFAULT_LAN_URL, help="Direct LAN IP of laptop backend")
     parser.add_argument("--drive-webhook", default=DEFAULT_DRIVE_WEBHOOK)
     parser.add_argument("--device-id", default=DEFAULT_DEVICE_ID)
     parser.add_argument("--road-name", default=DEFAULT_ROAD_NAME)
