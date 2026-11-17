@@ -154,7 +154,10 @@ class TelemetryStore:
                 "network": "Wi-Fi / 4G LTE",
             }
         }
-        self._seed_nov11_full_day()
+        if os.environ.get("ENABLE_SYNTHETIC_DEMO", "0") == "1":
+            self._seed_nov11_full_day()
+        else:
+            print("[Data Mode: 100% REAL HARDWARE & GOOGLE DRIVE] Synthetic demo seeding disabled.")
         self._load_persisted_breaches()
 
     def _get_persistent_path(self) -> str:

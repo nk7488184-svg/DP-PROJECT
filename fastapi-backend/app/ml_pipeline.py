@@ -190,19 +190,12 @@ def run_ml_inference(payload: SpeedBreachPayload, image_path: Optional[str]) -> 
         confidence = 0.96
         return v_type, pce, payload.license_plate, confidence
 
-    # If no image was provided at all (telemetry-only simulation fallback)
-    import random
-    if payload.speed_kmh > 40.0:
-        vehicle_type = random.choice(["Motorcycle", "Car", "SUV"])
-    elif payload.speed_kmh < 22.0:
-        vehicle_type = random.choice(["Bus", "Van", "Car"])
-    else:
-        vehicle_type = random.choice(["Car", "SUV", "Motorcycle", "Van"])
-
-    pce = PCE_WEIGHTS.get(vehicle_type, 1.0)
-    confidence = round(random.uniform(0.62, 0.98), 2)
-    plate = random.choice(SAMPLE_PLATES)
-    return vehicle_type, pce, plate, confidence
+    # If no image was provided at all (camera offline or telemetry-only breach)
+    v_type = payload.vehicle_type or "Vehicle"
+    pce = PCE_WEIGHTS.get(v_type, 1.0)
+    plate = payload.license_plate or "WAITING_ALPR"
+    confidence = 0.0
+    return v_type, pce, plate, confidence
 
 def process_speed_breach(payload: SpeedBreachPayload) -> Tuple[ProcessedBreachRecord, Optional[ActiveLearningSample]]:
     """
