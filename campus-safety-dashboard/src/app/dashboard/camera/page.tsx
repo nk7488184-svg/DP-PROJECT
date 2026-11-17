@@ -83,6 +83,8 @@ export default function CameraEvidencePage() {
 
   const [streamError, setStreamError] = useState(false);
   const [streamKey, setStreamKey] = useState(0);
+  const [liveTick, setLiveTick] = useState(0);
+  const [useSnapshotFallback, setUseSnapshotFallback] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "overspeed" | "analytics">("overspeed");
 
   const [overspeedPhotos, setOverspeedPhotos] = useState<OverspeedPhoto[]>([]);
@@ -129,12 +131,23 @@ export default function CameraEvidencePage() {
 
   useEffect(() => {
     fetchCameraData();
-    const interval = setInterval(fetchCameraData, 4000);
+    const interval = setInterval(fetchCameraData, 3000);
     return () => clearInterval(interval);
   }, []);
 
+  // Live snapshot refresh timer if MJPEG fallback is active or for ultra-reliable streaming
+  useEffect(() => {
+    if (useSnapshotFallback && telemetry.online) {
+      const timer = setInterval(() => {
+        setLiveTick(Date.now());
+      }, 400);
+      return () => clearInterval(timer);
+    }
+  }, [useSnapshotFallback, telemetry.online]);
+
   const handleRefreshStream = () => {
     setStreamError(false);
+    setUseSnapshotFallback(false);
     setStreamKey(Date.now());
     fetchCameraData();
   };
@@ -314,30 +327,26 @@ export default function CameraEvidencePage() {
 
         {/* Video Canvas */}
         <div className="relative rounded-2xl overflow-hidden bg-black border border-zinc-800 min-h-[360px] max-h-[500px] flex items-center justify-center shadow-2xl">
-          {streamError ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center text-white">
-              <Camera className="w-12 h-12 text-zinc-600 mb-2" />
-              <p className="text-sm font-semibold">RPi 5 Camera Feed Reconnecting...</p>
-              <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-                Awaiting frame packets from Raspberry Pi 5 edge streamer. Verify edge client is running.
-              </p>
-              <button
-                onClick={handleRefreshStream}
-                className="mt-4 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-200 flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Retry Connection</span>
-              </button>
-            </div>
-          ) : (
-            <img
-              key={streamKey}
-              src={`${FASTAPI_BASE}/api/v1/camera/stream${streamKey > 0 ? `?t=${streamKey}` : ""}`}
-              alt="RPi 5 Live Video Feed"
-              className="w-full h-full object-contain max-h-[500px]"
-              onError={() => setStreamError(true)}
-            />
-          )}
+          {/* Video Stream Element */}
+          <img
+            key={useSnapshotFallback ? `snap-${liveTick}` : `stream-${streamKey}`}
+            src={
+              useSnapshotFallback
+                ? `${FASTAPI_BASE}/api/v1/camera/live?t=${liveTick}`
+                : `${FASTAPI_BASE}/api/v1/camera/stream${streamKey > 0 ? `?t=${streamKey}` : ""}`
+            }
+            alt="RPi 5 Live Video Feed"
+            className="w-full h-full object-contain max-h-[500px]"
+            onError={() => {
+              if (!useSnapshotFallback) {
+                // Seamlessly fall back to continuous live snapshot refresh
+                setUseSnapshotFallback(true);
+                setLiveTick(Date.now());
+              } else {
+                setStreamError(true);
+              }
+            }}
+          />
 
           {/* Top HUD */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
