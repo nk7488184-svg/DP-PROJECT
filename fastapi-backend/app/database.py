@@ -374,89 +374,107 @@ class TelemetryStore:
                     )
                 )
 
-                # ── Breach events for vehicles exceeding 20 km/h limit ──
-                for vi, sp in enumerate(speeds):
-                    if sp <= limit:
-                        continue
-                    delta = round(sp - limit, 1)
-                    # Hilly road violation captures across 6-hour field test (~20-25 total breaches):
-                    #   delta < 3.0 (20-22.9 km/h) → radar tolerance, ignored
-                    #   delta 3.0-7.0 (23-26.9 km/h) → capture ~12 %
-                    #   delta 7.0-14.0 (27-33.9 km/h) → capture ~35 %
-                    #   delta >= 14.0 (34-44.8 km/h) → capture ~70 %
-                    if delta < 3.0:
-                        continue
-                    elif delta < 7.0 and _det_hash(f"{seed_base}_br{vi}") > 0.12:
-                        continue
-                    elif delta < 14.0 and _det_hash(f"{seed_base}_br{vi}") > 0.35:
-                        continue
-                    elif _det_hash(f"{seed_base}_fastbr{vi}") > 0.70:
-                        continue
+                # Baseline breach seeding handled separately (strictly the 6 confirmed baseline events)
+                pass
 
-                    breach_counter += 1
-                    bid = f"BREACH-{breach_counter:04d}"
-                    breach_ts = w_start + timedelta(seconds=int(_det_hash(f"{seed_base}_bt{vi}") * 290))
+        # ── EXACT 6 BASELINE BREACH EVENTS (Strictly No Fake Photos, image_url = None) ──
+        exact_6_baseline = [
+            {
+                "breach_id": "BREACH-1001",
+                "timestamp": "2026-11-11T18:31:00+05:30",
+                "speed_kmh": 38.0,
+                "posted_limit_kmh": 20.0,
+                "delta_over_limit": 18.0,
+                "severity": "critical",
+                "vehicle_type": "Bike",
+                "pce_weight": 0.5,
+                "license_plate": "HP 01 BG 7733",
+                "ocr_confidence": 0.95,
+            },
+            {
+                "breach_id": "BREACH-1002",
+                "timestamp": "2026-11-11T17:27:00+05:30",
+                "speed_kmh": 24.0,
+                "posted_limit_kmh": 20.0,
+                "delta_over_limit": 4.0,
+                "severity": "minor",
+                "vehicle_type": "Bike",
+                "pce_weight": 0.5,
+                "license_plate": "HP 28 T 3319",
+                "ocr_confidence": 0.89,
+            },
+            {
+                "breach_id": "BREACH-1003",
+                "timestamp": "2026-11-11T16:22:00+05:30",
+                "speed_kmh": 34.0,
+                "posted_limit_kmh": 20.0,
+                "delta_over_limit": 14.0,
+                "severity": "moderate",
+                "vehicle_type": "Car",
+                "pce_weight": 1.0,
+                "license_plate": "HP 31 E 8840",
+                "ocr_confidence": 0.97,
+            },
+            {
+                "breach_id": "BREACH-1004",
+                "timestamp": "2026-11-11T15:54:00+05:30",
+                "speed_kmh": 28.0,
+                "posted_limit_kmh": 20.0,
+                "delta_over_limit": 8.0,
+                "severity": "moderate",
+                "vehicle_type": "Car",
+                "pce_weight": 1.0,
+                "license_plate": "HP 34 C 1209",
+                "ocr_confidence": 0.94,
+            },
+            {
+                "breach_id": "BREACH-1005",
+                "timestamp": "2026-11-11T15:38:00+05:30",
+                "speed_kmh": 39.0,
+                "posted_limit_kmh": 20.0,
+                "delta_over_limit": 19.0,
+                "severity": "critical",
+                "vehicle_type": "Car",
+                "pce_weight": 1.0,
+                "license_plate": "HP 02 A 5567",
+                "ocr_confidence": 0.93,
+            },
+            {
+                "breach_id": "BREACH-1006",
+                "timestamp": "2026-11-11T15:16:00+05:30",
+                "speed_kmh": 29.0,
+                "posted_limit_kmh": 20.0,
+                "delta_over_limit": 9.0,
+                "severity": "moderate",
+                "vehicle_type": "Bus",
+                "pce_weight": 3.0,
+                "license_plate": "HP 33 C 8841",
+                "ocr_confidence": 0.89,
+            }
+        ]
 
-                    vtype, pce = _pick_vehicle(f"{seed_base}_vt{vi}")
-                    plate_idx = int(_det_hash(f"{seed_base}_pl{vi}") * len(_PLATE_POOL))
-                    plate = _PLATE_POOL[plate_idx]
-
-                    ocr_conf = round(0.60 + _det_hash(f"{seed_base}_oc{vi}") * 0.38, 2)
-                    ocr_conf = min(ocr_conf, 0.99)
-                    al_routed = ocr_conf < 0.75
-
-                    # Severity on a 20 km/h hill road:
-                    if delta > 16:      # >= 36.1 km/h (nearly 2x limit)
-                        severity = "critical"
-                    elif delta > 10:    # 30.1 - 36.0 km/h
-                        severity = "high"
-                    elif delta > 5:     # 25.1 - 30.0 km/h
-                        severity = "moderate"
-                    else:               # 23.0 - 25.0 km/h
-                        severity = "low"
-
-                    # Generate real evidence snapshot image file on disk
-                    rel_img = f"storage/evidence/{node['device_id']}/2026-11-11/{bid}.jpg"
-                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                    abs_img = os.path.join(base_dir, rel_img)
-                    _generate_synthetic_evidence_image(abs_img, plate, sp, limit, vtype, breach_ts.isoformat(), node['device_id'], node['road_name'])
-                    img_url = f"/evidence/{node['device_id']}/2026-11-11/{bid}.jpg"
-
-                    self.breaches.append(
-                        ProcessedBreachRecord(
-                            breach_id=bid,
-                            device_id=node["device_id"],
-                            timestamp=breach_ts.isoformat(),
-                            speed_kmh=round(sp, 1),
-                            posted_limit_kmh=limit,
-                            delta_over_limit=delta,
-                            severity=severity,
-                            vehicle_type=vtype,
-                            pce_weight=pce,
-                            license_plate=plate,
-                            ocr_confidence=ocr_conf,
-                            routed_to_active_learning=al_routed,
-                            image_url=img_url,
-                            fine_suppressed=fine_supp,
-                            road_name=node["road_name"],
-                            latitude=node["lat"],
-                            longitude=node["lng"],
-                        )
-                    )
-
-                    if al_routed:
-                        self.active_learning_queue.append(
-                            ActiveLearningSample(
-                                sample_id=f"AL-{breach_counter:04d}",
-                                timestamp=breach_ts.isoformat(),
-                                device_id=node["device_id"],
-                                image_path=f"storage/evidence/{node['device_id']}/2026-11-11/{bid}.jpg",
-                                predicted_plate=plate,
-                                confidence=ocr_conf,
-                                vehicle_type=vtype,
-                                flag_reason=f"OCR confidence {ocr_conf*100:.0f}% < 75% threshold",
-                            )
-                        )
+        for item in exact_6_baseline:
+            self.breaches.append(
+                ProcessedBreachRecord(
+                    breach_id=item["breach_id"],
+                    device_id="RPI4_CAMERA_UNIT_01",
+                    timestamp=item["timestamp"],
+                    speed_kmh=item["speed_kmh"],
+                    posted_limit_kmh=item["posted_limit_kmh"],
+                    delta_over_limit=item["delta_over_limit"],
+                    severity=item["severity"],
+                    vehicle_type=item["vehicle_type"],
+                    pce_weight=item["pce_weight"],
+                    license_plate=item["license_plate"],
+                    ocr_confidence=item["ocr_confidence"],
+                    routed_to_active_learning=False,
+                    image_url=None,  # STRICTLY NO FAKE PHOTOS
+                    fine_suppressed=False,
+                    road_name="Behind A11 on New Construction Road",
+                    latitude=31.7807,
+                    longitude=76.9967,
+                )
+            )
 
         # Sort breaches newest-first (dashboard expects this)
         self.breaches.sort(key=lambda b: b.timestamp, reverse=True)

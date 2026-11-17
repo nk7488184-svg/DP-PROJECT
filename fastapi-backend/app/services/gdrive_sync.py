@@ -53,6 +53,10 @@ def sync_from_gdrive() -> dict:
             dev_id = str(v.get("device_id", "RPI4_CAMERA_UNIT_01"))
             road = str(v.get("road_name", "Behind A11 on New Construction Road"))
 
+            # Skip old test runs so only genuine records and the 6 baselines remain
+            if "HP 33 B 9999" in plate or "WAITING_ALPR" in plate or "HP 33 B 4921" in plate:
+                continue
+
             # Check if already in db.breaches
             already_exists = any(
                 b.timestamp == ts or (b.license_plate == plate and abs(b.speed_kmh - speed) < 0.1)
@@ -74,7 +78,7 @@ def sync_from_gdrive() -> dict:
                     license_plate=plate,
                     ocr_confidence=0.95,
                     routed_to_active_learning=False,
-                    image_url=img_url,
+                    image_url=img_url if (img_url and "No Image" not in img_url and len(img_url) > 10) else None,
                     fine_suppressed=False,
                     road_name=road,
                     latitude=31.7807,

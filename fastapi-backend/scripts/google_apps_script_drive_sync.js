@@ -48,6 +48,56 @@ function doPost(e) {
     var istTime = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
 
     // ==========================================================================
+    // ACTION: Clean Fake Photos & Reset Overspeed_Violations to 6 Baselines
+    // ==========================================================================
+    if (data.action === "clean_fake_data") {
+      // 1. Delete all fake images in Google Drive folder
+      var filesInFolder = folder.getFiles();
+      while (filesInFolder.hasNext()) {
+        var f = filesInFolder.next();
+        if (f.getMimeType() === "image/jpeg" || f.getMimeType() === "image/png" || f.getName().indexOf("BREACH_") === 0) {
+          f.setTrashed(true);
+        }
+      }
+
+      // 2. Clear Overspeed_Violations sheet and write header + only the 6 baseline rows (with "No Image")
+      var vSheet = spreadsheet.getSheetByName("Overspeed_Violations");
+      if (vSheet) {
+        vSheet.clear();
+        vSheet.appendRow([
+          "Timestamp (IST)",
+          "Device ID",
+          "Road Location",
+          "Speed (km/h)",
+          "Limit",
+          "Over Limit",
+          "Plate",
+          "Drive Photo URL",
+          "Preview"
+        ]);
+        vSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#1e293b").setFontColor("#ffffff");
+
+        var baselines = [
+          ["2026-11-11 18:31:00", "RPI4_CAMERA_UNIT_01", "Behind A11 on New Construction Road", 38.0, 20.0, 18.0, "HP 01 BG 7733", "No Image", "No Photo"],
+          ["2026-11-11 17:27:00", "RPI4_CAMERA_UNIT_01", "Behind A11 on New Construction Road", 24.0, 20.0, 4.0,  "HP 28 T 3319", "No Image", "No Photo"],
+          ["2026-11-11 16:22:00", "RPI4_CAMERA_UNIT_01", "Behind A11 on New Construction Road", 34.0, 20.0, 14.0, "HP 31 E 8840", "No Image", "No Photo"],
+          ["2026-11-11 15:54:00", "RPI4_CAMERA_UNIT_01", "Behind A11 on New Construction Road", 28.0, 20.0, 8.0,  "HP 34 C 1209", "No Image", "No Photo"],
+          ["2026-11-11 15:38:00", "RPI4_CAMERA_UNIT_01", "Behind A11 on New Construction Road", 39.0, 20.0, 19.0, "HP 02 A 5567", "No Image", "No Photo"],
+          ["2026-11-11 15:16:00", "RPI4_CAMERA_UNIT_01", "Behind A11 on New Construction Road", 29.0, 20.0, 9.0,  "HP 33 C 8841", "No Image", "No Photo"]
+        ];
+
+        for (var b = 0; b < baselines.length; b++) {
+          vSheet.appendRow(baselines[b]);
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        message: "All fake photos trashed from Google Drive. Kept strictly the 6 baseline records with No Image."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ==========================================================================
     // CASE A: Periodic Road Segment Speed Analytics (Campus Road Speeds)
     // ==========================================================================
     if (data.type === "segment_speed_summary") {
