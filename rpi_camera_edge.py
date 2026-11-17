@@ -55,7 +55,7 @@ http_session.mount("http://", adapter)
 # Default Configuration
 # ---------------------------------------------------------------------------
 DEFAULT_BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
-DEFAULT_DRIVE_WEBHOOK = os.environ.get("DRIVE_WEBHOOK", "")
+DEFAULT_DRIVE_WEBHOOK = os.environ.get("DRIVE_WEBHOOK", "https://script.google.com/macros/s/AKfycbz9pMyATj3yq2YCz0oovQe1l5CUYV6KM_BVmWCb8ZzCPq2A9HRHAdK6lthgpO7Nywnw/exec")
 DEFAULT_DEVICE_ID = os.environ.get("DEVICE_ID", "RPI4_CAMERA_UNIT_01")
 DEFAULT_ROAD_NAME = os.environ.get("ROAD_NAME", "Behind A11 on New Construction Road")
 DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "3.0"))
