@@ -155,6 +155,54 @@ class TelemetryStore:
             }
         }
         self._seed_nov11_full_day()
+        self._load_persisted_breaches()
+
+    def _get_persistent_path(self) -> str:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        storage_dir = os.path.join(base_dir, "storage")
+        os.makedirs(storage_dir, exist_ok=True)
+        return os.path.join(storage_dir, "persistent_breaches.json")
+
+    def _load_persisted_breaches(self):
+        """Loads previously captured real breaches from persistent disk storage."""
+        p_path = self._get_persistent_path()
+        if os.path.exists(p_path):
+            try:
+                with open(p_path, "r", encoding="utf-8") as f:
+                    saved_list = json.load(f)
+                count = 0
+                for item in reversed(saved_list):
+                    try:
+                        record = ProcessedBreachRecord(**item)
+                        # Avoid duplicates
+                        if not any(b.breach_id == record.breach_id for b in self.breaches):
+                            self.breaches.insert(0, record)
+                            count += 1
+                    except Exception:
+                        pass
+                if count > 0:
+                    print(f"[Persistence] Restored {count} previously recorded live breaches from disk storage.")
+            except Exception as e:
+                print(f"[Persistence Load Error] {e}")
+
+    def _save_persisted_breach(self, breach: ProcessedBreachRecord):
+        """Appends new breach event to persistent disk storage so server restarts never lose data."""
+        p_path = self._get_persistent_path()
+        try:
+            records = []
+            if os.path.exists(p_path):
+                try:
+                    with open(p_path, "r", encoding="utf-8") as f:
+                        records = json.load(f)
+                except Exception:
+                    records = []
+            records.insert(0, breach.model_dump())
+            if len(records) > 500:
+                records = records[:500]
+            with open(p_path, "w", encoding="utf-8") as f:
+                json.dump(records, f, indent=2)
+        except Exception as e:
+            print(f"[Persistence Save Error] {e}")
 
     # ──────────────────────────────────────────────────────────────────
     # FIELD TEST SYNTHETIC SEED: November 11 2026, 15:00 IST → 21:00 IST (3 PM - 9 PM)
@@ -487,8 +535,25 @@ class TelemetryStore:
 
     def add_breach(self, breach: ProcessedBreachRecord):
         self.breaches.insert(0, breach)
-        if len(self.breaches) > 200:
+        if len(self.breaches) > 500:
             self.breaches.pop()
+        self._save_persisted_breach(breach)
+        try:
+            from app.cloud_backup import cloud_backup
+            abs_img = None
+            if breach.image_url:
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                clean_path = breach.image_url.lstrip("/").replace("/", os.sep)
+                candidate = os.path.join(base_dir, clean_path)
+                if os.path.exists(candidate):
+                    abs_img = candidate
+                else:
+                    candidate2 = os.path.join(base_dir, "storage", clean_path)
+                    if os.path.exists(candidate2):
+                        abs_img = candidate2
+            cloud_backup.backup_breach(breach.model_dump(), abs_img)
+        except Exception as e:
+            print(f"[Cloud Backup Hook Notice] {e}")
 
     def add_active_learning(self, sample: ActiveLearningSample):
         self.active_learning_queue.insert(0, sample)

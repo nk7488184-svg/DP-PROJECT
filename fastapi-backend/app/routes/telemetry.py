@@ -311,3 +311,11 @@ async def get_field_test_session():
         "breaches": [b.model_dump() for b in db.breaches],
         "telemetry_windows": [t.model_dump() for t in db.telemetry_history],
     }
+
+@router.get("/cloud-backup", summary="Get continuous Google Cloud / Drive sync status for neerajjeeadv2025@gmail.com")
+async def get_cloud_backup_status():
+    from app.cloud_backup import cloud_backup
+    return {
+        "success": True,
+        "data": cloud_backup.get_status()
+    }
