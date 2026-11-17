@@ -4,24 +4,15 @@
  * Account: neerajjeeadv2025@gmail.com
  * ==============================================================================
  * 
- * Instructions to Deploy (Takes 60 seconds):
- * 1. Open your browser and go to: https://script.google.com
- *    (Make sure you are logged in with neerajjeeadv2025@gmail.com)
- * 2. Click "New project".
- * 3. Delete everything in the editor and paste THIS entire script.
- * 4. Click the blue "Deploy" button (top right) -> Select "New deployment".
- * 5. Click the Gear icon next to "Select type" -> choose "Web app".
- * 6. Set:
- *      - Description: RoadSentinel Cloud Storage
- *      - Execute as: "Me (neerajjeeadv2025@gmail.com)"
- *      - Who has access: "Anyone" (so the Raspberry Pi on the road can upload)
- * 7. Click "Deploy" -> Click "Authorize access" -> choose neerajjeeadv2025@gmail.com.
- * 8. Copy the "Web app URL" (looks like https://script.google.com/macros/s/AKfycb.../exec).
- * 9. Pass this URL to the Raspberry Pi:
- *      python3 rpi_camera_edge.py --drive-webhook https://script.google.com/macros/s/YOUR_URL/exec
+ * Features Supported:
+ * 1. Sheet 1: "Overspeed_Violations"
+ *    - Captures high-res photos directly into Google Drive folder "RoadSentinel_IIT_Mandi".
+ *    - Logs timestamp, speed, limit, plate, vehicle type, and image link in Google Sheets.
  * 
- * That's it! Every vehicle overspeed, license plate, and photo will now be
- * uploaded directly into your Google Drive & Google Sheet 24/7 with ZERO SD card usage!
+ * 2. Sheet 2: "Campus_Road_Segment_Speeds"
+ *    - Logs real-time campus road speed analytics (Behind A11 on New Construction Road).
+ *    - Records vehicle volume, average speed, V85 (85th percentile), peak speed,
+ *      overspeed count, and compliance rate (%) 24/7 even when laptop is offline!
  * ==============================================================================
  */
 
@@ -30,7 +21,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var timestamp = data.timestamp || new Date().toISOString();
     var speed = data.speed_kmh || data.speed || 0.0;
-    var limit = data.posted_limit_kmh || 20.0;
+    var limit = data.posted_limit_kmh || data.posted_limit || 20.0;
     var plate = data.license_plate || data.plate || "WAITING_ALPR";
     var deviceId = data.device_id || "RPI4_CAMERA_UNIT_01";
     var roadName = data.road_name || "Behind A11 on New Construction Road";
@@ -39,30 +30,9 @@ function doPost(e) {
     // 1. Get or Create dedicated Google Drive folder: "RoadSentinel_IIT_Mandi"
     var folderName = "RoadSentinel_IIT_Mandi";
     var folders = DriveApp.getFoldersByName(folderName);
-    var folder;
-    if (folders.hasNext()) {
-      folder = folders.next();
-    } else {
-      folder = DriveApp.createFolder(folderName);
-    }
+    var folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
 
-    var imageUrl = "No Image";
-    var fileId = "";
-
-    // 2. Decode JPEG photo from RAM and save directly to Google Drive
-    if (imageBase64 && imageBase64.length > 50) {
-      if (imageBase64.indexOf(",") > -1) {
-        imageBase64 = imageBase64.split(",")[1];
-      }
-      var decodedBytes = Utilities.base64Decode(imageBase64);
-      var blob = Utilities.newBlob(decodedBytes, "image/jpeg", "BREACH_" + new Date().getTime() + "_" + plate.replace(/\s+/g, "_") + ".jpg");
-      var file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      imageUrl = file.getUrl();
-      fileId = file.getId();
-    }
-
-    // 3. Get or Create dedicated Google Sheet: "RoadSentinel_Traffic_Ledger"
+    // 2. Get or Create Master Google Spreadsheet: "RoadSentinel_Traffic_Ledger"
     var sheetName = "RoadSentinel_Traffic_Ledger";
     var files = DriveApp.getFilesByName(sheetName);
     var spreadsheet;
@@ -73,28 +43,104 @@ function doPost(e) {
       var fileInRoot = DriveApp.getFileById(spreadsheet.getId());
       folder.addFile(fileInRoot);
       DriveApp.getRootFolder().removeFile(fileInRoot);
-      var initSheet = spreadsheet.getActiveSheet();
-      initSheet.appendRow([
-        "Timestamp (IST)",
-        "Device ID",
-        "Road Location",
-        "Speed (km/h)",
-        "Speed Limit (km/h)",
-        "Violation (km/h)",
-        "License Plate",
-        "Google Drive Photo URL",
-        "Photo Preview"
-      ]);
-      initSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#1e293b").setFontColor("#ffffff");
     }
 
-    var sheet = spreadsheet.getActiveSheet();
     var istTime = Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd HH:mm:ss");
+
+    // ==========================================================================
+    // CASE A: Periodic Road Segment Speed Analytics (Campus Road Speeds)
+    // ==========================================================================
+    if (data.type === "segment_speed_summary") {
+      var speedSheetName = "Campus_Road_Segment_Speeds";
+      var speedSheet = spreadsheet.getSheetByName(speedSheetName);
+      if (!speedSheet) {
+        speedSheet = spreadsheet.insertSheet(speedSheetName);
+        speedSheet.appendRow([
+          "Timestamp (IST)",
+          "Road Segment",
+          "Posted Limit (km/h)",
+          "Vehicles Observed",
+          "Average Speed (km/h)",
+          "85th Percentile V85 (km/h)",
+          "Max Speed (km/h)",
+          "Overspeed Violations",
+          "Compliance Rate (%)",
+          "Traffic Status",
+          "Edge Device ID"
+        ]);
+        speedSheet.getRange("A1:K1").setFontWeight("bold").setBackground("#0f172a").setFontColor("#38bdf8");
+      }
+
+      var vCount = data.vehicle_count || 0;
+      var avgSp = (data.avg_speed || 0.0).toFixed(1);
+      var v85 = (data.v85_speed || 0.0).toFixed(1);
+      var maxSp = (data.max_speed || 0.0).toFixed(1);
+      var overCount = data.overspeed_count || 0;
+      var compRate = (data.compliance_rate !== undefined ? data.compliance_rate : 100.0).toFixed(1) + "%";
+      var status = data.status || "Normal Flow";
+
+      speedSheet.appendRow([
+        istTime,
+        roadName,
+        limit.toFixed(1),
+        vCount,
+        avgSp,
+        v85,
+        maxSp,
+        overCount,
+        compRate,
+        status,
+        deviceId
+      ]);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        message: "Campus road speed analytics recorded in Google Drive for neerajjeeadv2025@gmail.com",
+        sheet: speedSheetName
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ==========================================================================
+    // CASE B: Speed Breach & Vehicle Snapshot (Overspeeding Enforcement)
+    // ==========================================================================
+    var violationSheetName = "Overspeed_Violations";
+    var violationSheet = spreadsheet.getSheetByName(violationSheetName);
+    if (!violationSheet) {
+      violationSheet = spreadsheet.getSheetByName("Sheet1") || spreadsheet.insertSheet(violationSheetName);
+      violationSheet.setName(violationSheetName);
+      if (violationSheet.getLastRow() === 0) {
+        violationSheet.appendRow([
+          "Timestamp (IST)",
+          "Device ID",
+          "Road Location",
+          "Speed (km/h)",
+          "Limit",
+          "Over Limit",
+          "Plate",
+          "Drive Photo URL",
+          "Preview"
+        ]);
+        violationSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#1e293b").setFontColor("#ffffff");
+      }
+    }
+
+    var imageUrl = "No Image";
+    var fileId = "";
+
+    // Save JPEG photo to Google Drive
+    if (imageBase64 && imageBase64.length > 50) {
+      if (imageBase64.indexOf(",") > -1) imageBase64 = imageBase64.split(",")[1];
+      var blob = Utilities.newBlob(Utilities.base64Decode(imageBase64), "image/jpeg", "BREACH_" + new Date().getTime() + "_" + plate.replace(/\s+/g, "_") + ".jpg");
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      imageUrl = file.getUrl();
+      fileId = file.getId();
+    }
+
+    var imgFormula = fileId ? '=IMAGE("https://drive.google.com/uc?export=view&id=' + fileId + '", 1)' : "N/A";
     var delta = Math.max(0, speed - limit).toFixed(1);
 
-    var formulaImage = fileId ? '=IMAGE("https://drive.google.com/uc?export=view&id=' + fileId + '", 1)' : "N/A";
-
-    sheet.appendRow([
+    violationSheet.appendRow([
       istTime,
       deviceId,
       roadName,
@@ -103,54 +149,19 @@ function doPost(e) {
       delta,
       plate,
       imageUrl,
-      formulaImage
+      imgFormula
     ]);
 
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
-      message: "Data securely stored directly in neerajjeeadv2025@gmail.com Google Drive & Sheets",
-      drive_image_url: imageUrl,
-      timestamp: istTime
+      message: "Violation & Photo saved to Google Drive",
+      url: imageUrl
     })).setMimeType(ContentService.MimeType.JSON);
 
-  } catch (error) {
+  } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
-      error: error.toString()
+      error: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doGet(e) {
-  // Returns recent violations stored in Google Sheets for the dashboard
-  try {
-    var sheetName = "RoadSentinel_Traffic_Ledger";
-    var files = DriveApp.getFilesByName(sheetName);
-    if (!files.hasNext()) {
-      return ContentService.createTextOutput(JSON.stringify({ success: true, records: [] })).setMimeType(ContentService.MimeType.JSON);
-    }
-    var spreadsheet = SpreadsheetApp.open(files.next());
-    var sheet = spreadsheet.getActiveSheet();
-    var rows = sheet.getDataRange().getValues();
-    var records = [];
-    for (var i = 1; i < rows.length; i++) {
-      records.push({
-        timestamp_ist: rows[i][0],
-        device_id: rows[i][1],
-        road_name: rows[i][2],
-        speed: rows[i][3],
-        limit: rows[i][4],
-        delta: rows[i][5],
-        plate: rows[i][6],
-        drive_url: rows[i][7]
-      });
-    }
-    return ContentService.createTextOutput(JSON.stringify({
-      success: true,
-      total: records.length,
-      records: records.slice(-50).reverse()
-    })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }

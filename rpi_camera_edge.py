@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
 ================================================================================
-RoadSentinel - Ultra-Low-Latency Edge Streamer (Zero-Lag 1GB RAM Architecture)
+RoadSentinel - Ultra-Low-Latency Edge Streamer & Road Analytics Engine
 ================================================================================
 Target Hardware : Raspberry Pi 4 / 3B+ / 5 (1GB RAM Optimized)
 Sensors         : Sony IMX708 NoIR (Camera Module 3) + 24GHz Doppler Radar
-Threading Model : Decoupled 3-Tier Multi-Threaded Engine:
-                  Tier 1: Dedicated Camera ISP Capture Loop (15-25 FPS)
-                  Tier 2: Dedicated Asynchronous Radar Serial Poller (Non-blocking)
-                  Tier 3: Dual HTTP/2 Pipelined Zero-Lag Network Uploader
 Storage Policy  : STRICT ZERO SD-CARD STORAGE (100% Volatile RAM / 0 Bytes on SD)
 Cloud Target    : Google Drive & Google Cloud (neerajjeeadv2025@gmail.com)
+
+Features:
+  1. Real-time Live Camera Stream (Hardware binned ISP, zero-latency).
+  2. Overspeeding Enforcement Snapshots with Continuous PDAF Autofocus.
+  3. Campus Road Segments - Real-time Speeds Analytics Engine:
+     Aggregates vehicle volume, average speed, V85 speed, max speed, and compliance %
+     and uploads to Google Drive & Google Sheets 24/7 (even when laptop is off!).
 ================================================================================
 """
 
@@ -25,7 +28,7 @@ import subprocess
 import io
 import queue
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
 
 # Only 1 external library required: requests
 try:
@@ -42,28 +45,24 @@ http_session.mount("https://", adapter)
 http_session.mount("http://", adapter)
 
 # ---------------------------------------------------------------------------
-# Default Configuration (Ultra-Fast 1GB RAM Profile)
+# Default Configuration
 # ---------------------------------------------------------------------------
 DEFAULT_LAN_URL = os.environ.get("LAN_URL", "http://172.18.64.170:8000")
 DEFAULT_TUNNEL_URL = os.environ.get("BACKEND_URL", "https://defensive-products-dozens-snap.trycloudflare.com")
 DEFAULT_DRIVE_WEBHOOK = os.environ.get("DRIVE_WEBHOOK", "https://script.google.com/macros/s/AKfycbz9pMyATj3yq2YCz0oovQe1l5CUYV6KM_BVmWCb8ZzCPq2A9HRHAdK6lthgpO7Nywnw/exec")
 DEFAULT_DEVICE_ID = os.environ.get("DEVICE_ID", "RPI4_CAMERA_UNIT_01")
 DEFAULT_ROAD_NAME = os.environ.get("ROAD_NAME", "Behind A11 on New Construction Road")
-DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "20.0")) # 20 FPS high performance
+DEFAULT_STREAM_FPS = float(os.environ.get("STREAM_FPS", "20.0"))
 DEFAULT_SPEED_LIMIT = float(os.environ.get("SPEED_LIMIT", "20.0"))
 DEFAULT_TRIGGER_LIMIT = float(os.environ.get("TRIGGER_LIMIT", "20.0"))
+DEFAULT_SUMMARY_SEC = int(os.environ.get("SUMMARY_SEC", "60")) # 1-minute window
 TARGET_ACCOUNT = "neerajjeeadv2025@gmail.com"
 
 
 def select_best_backend(preferred_url: str, lan_url: str) -> str:
-    """
-    Auto-detects ultra-fast local Wi-Fi LAN (<5ms latency) if laptop & Pi
-    share the same Wi-Fi/hotspot. Falls back to Cloudflare tunnel for remote access.
-    """
+    """Auto-detects direct Wi-Fi if available, falls back to Cloudflare tunnel."""
     if preferred_url and "trycloudflare.com" not in preferred_url and "127.0.0.1" not in preferred_url:
         return preferred_url
-
-    # Check direct LAN connection first
     if lan_url:
         try:
             check = requests.get(f"{lan_url.rstrip('/')}/api/v1/camera/status", timeout=0.8)
@@ -72,7 +71,6 @@ def select_best_backend(preferred_url: str, lan_url: str) -> str:
                 return lan_url
         except Exception:
             pass
-
     print(f"\n[🌐 REMOTE CLOUD TUNNEL] Streaming via Cloudflare -> {preferred_url}")
     return preferred_url
 
@@ -83,7 +81,7 @@ def select_best_backend(preferred_url: str, lan_url: str) -> str:
 class RamCloudDispatcher:
     def __init__(self, drive_webhook_url: str):
         self.webhook_url = drive_webhook_url.strip()
-        self.queue = queue.Queue(maxsize=5)
+        self.queue = queue.Queue(maxsize=10)
         self.running = True
         if self.webhook_url:
             threading.Thread(target=self._worker, daemon=True).start()
@@ -104,7 +102,7 @@ class RamCloudDispatcher:
                 pass
 
     def _worker(self):
-        print(f"[Cloud Dispatcher Active] Google Drive sync armed for {TARGET_ACCOUNT}")
+        print(f"[Cloud Dispatcher Active] Direct Google Drive sync armed for {TARGET_ACCOUNT}")
         while self.running:
             try:
                 item = self.queue.get(timeout=1.0)
@@ -114,21 +112,116 @@ class RamCloudDispatcher:
             try:
                 res = requests.post(self.webhook_url, json=item, timeout=20)
                 if res.status_code == 200:
-                    speed = item.get("speed_kmh", 0.0)
-                    print(f"\n[☁️ GOOGLE DRIVE BACKUP OK] Vehicle {speed:.1f} km/h uploaded directly to {TARGET_ACCOUNT} Google Drive!\n")
+                    ev_type = item.get("type", "breach")
+                    if ev_type == "segment_speed_summary":
+                        road = item.get("road_name", "Road")
+                        v_cnt = item.get("vehicle_count", 0)
+                        avg_sp = item.get("avg_speed", 0.0)
+                        print(f"\n[☁️ GOOGLE DRIVE ROAD ANALYTICS OK] {road}: {v_cnt} vehicles, Avg {avg_sp:.1f} km/h uploaded directly to Google Sheet!")
+                    else:
+                        speed = item.get("speed_kmh", 0.0)
+                        print(f"\n[☁️ GOOGLE DRIVE OVERSPEED PHOTO OK] Vehicle {speed:.1f} km/h uploaded to {TARGET_ACCOUNT} Google Drive!\n")
             except Exception:
                 time.sleep(1.0)
+
+
+# ---------------------------------------------------------------------------
+# Road Segments Real-Time Speed Aggregator (24/7 Cloud & Website Sync)
+# ---------------------------------------------------------------------------
+class SegmentSpeedAggregator:
+    """
+    Computes real-time road segment speeds:
+    Volume, Average Speed, V85 (85th percentile), Max Speed, Compliance Rate %.
+    Uploads directly to Google Drive / Sheets 24/7 even when laptop is offline!
+    """
+    def __init__(self, backend_url: str, cloud_dispatcher: RamCloudDispatcher,
+                 device_id: str, road_name: str, speed_limit: float, window_sec: int = 60):
+        self.backend_url = backend_url.rstrip("/")
+        self.cloud_dispatcher = cloud_dispatcher
+        self.device_id = device_id
+        self.road_name = road_name
+        self.limit = speed_limit
+        self.window_sec = window_sec
+        self.speeds: List[float] = []
+        self.window_start = datetime.now(timezone.utc)
+        self.last_flush = time.time()
+        self.lock = threading.Lock()
+
+    def add_sample(self, speed: float):
+        if speed >= 3.0:
+            with self.lock:
+                self.speeds.append(speed)
+
+    def check_and_flush(self):
+        now = time.time()
+        if now - self.last_flush >= self.window_sec:
+            with self.lock:
+                current_speeds = list(self.speeds)
+                self.speeds.clear()
+                win_start = self.window_start
+                win_end = datetime.now(timezone.utc)
+                self.window_start = win_end
+                self.last_flush = now
+
+            threading.Thread(target=self._flush_worker, args=(current_speeds, win_start, win_end), daemon=True).start()
+
+    def _flush_worker(self, speeds: List[float], win_start: datetime, win_end: datetime):
+        v_count = len(speeds)
+        if v_count == 0:
+            avg_sp = 0.0
+            v85 = 0.0
+            max_sp = 0.0
+            overspeed_cnt = 0
+            compliance = 100.0
+            status = "Free Flow (Nominal)"
+        else:
+            sorted_s = sorted(speeds)
+            avg_sp = sum(speeds) / v_count
+            v85 = sorted_s[int(v_count * 0.85)] if v_count > 1 else sorted_s[0]
+            max_sp = max(speeds)
+            overspeed_cnt = sum(1 for s in speeds if s >= self.limit)
+            compliance = round(((v_count - overspeed_cnt) / v_count) * 100.0, 1)
+            status = "Overspeed Detected" if overspeed_cnt > 0 else "Free Flow"
+
+        # 1. ALWAYS Upload to Google Drive / Sheets (24/7, works when laptop is offline)
+        cloud_payload = {
+            "type": "segment_speed_summary",
+            "road_name": self.road_name,
+            "device_id": self.device_id,
+            "posted_limit": self.limit,
+            "vehicle_count": v_count,
+            "avg_speed": round(avg_sp, 1),
+            "v85_speed": round(v85, 1),
+            "max_speed": round(max_sp, 1),
+            "overspeed_count": overspeed_cnt,
+            "compliance_rate": compliance,
+            "status": status,
+            "timestamp": win_end.isoformat()
+        }
+        self.cloud_dispatcher.submit_event(cloud_payload)
+
+        # 2. ALSO send to central website backend if laptop is online
+        try:
+            telemetry_payload = {
+                "device_id": self.device_id,
+                "road_name": self.road_name,
+                "posted_limit_kmh": self.limit,
+                "raw_vehicle_count": v_count,
+                "speed_array": speeds,
+                "window_start": win_start.isoformat(),
+                "window_end": win_end.isoformat(),
+                "latitude": 31.7807,
+                "longitude": 76.9967
+            }
+            http_session.post(f"{self.backend_url}/api/v1/telemetry/summary", json=telemetry_payload, timeout=3.0)
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
 # High-Efficiency Zero-Disk Camera Adapter (Hardware Binned + NEON SIMD)
 # ---------------------------------------------------------------------------
 class ZeroDiskCamera:
-    """
-    Ultra-low latency camera capture interface for Raspberry Pi 1GB RAM.
-    Streams at 512x288 or 640x360 (~12-18KB) with hardware NEON SIMD encoding.
-    Captures high-res only during vehicle overspeed detection.
-    """
     def __init__(self, stream_w: int = 512, stream_h: int = 288):
         self.stream_w = stream_w
         self.stream_h = stream_h
@@ -140,21 +233,19 @@ class ZeroDiskCamera:
 
         print("[Camera Init] Initializing ultra-fast hardware camera pipeline...")
 
-        # 1. Picamera2 (Official RPi Bookworm driver)
+        # 1. Picamera2
         try:
             from picamera2 import Picamera2
             self.picam2 = Picamera2()
             try:
-                # Video configuration with native hardware ISP downsampling
                 config = self.picam2.create_video_configuration(main={"size": (self.stream_w, self.stream_h)})
             except Exception:
                 config = self.picam2.create_still_configuration(main={"size": (self.stream_w, self.stream_h)})
             self.picam2.configure(config)
             self.picam2.start()
             self.backend = "picamera2"
-            print(f"[Camera OK] Picamera2 Hardware ISP Active @ {self.stream_w}x{self.stream_h} (Ultra-low latency mode)")
+            print(f"[Camera OK] Picamera2 Hardware ISP Active @ {self.stream_w}x{self.stream_h}")
 
-            # Enable Hardware Continuous Phase Detection Autofocus (PDAF) on Sony IMX708
             try:
                 from libcamera import controls
                 self.picam2.set_controls({
@@ -171,7 +262,7 @@ class ZeroDiskCamera:
         except Exception:
             pass
 
-        # 2. OpenCV VideoCapture (USB Webcams)
+        # 2. OpenCV VideoCapture
         try:
             import cv2
             self.cap = cv2.VideoCapture(0)
@@ -199,11 +290,9 @@ class ZeroDiskCamera:
         print("[Camera Notice] Physical camera not detected; using in-memory benchmark stream.")
 
     def capture_stream_frame(self) -> Optional[bytes]:
-        """Captures lightweight frame in 3-5ms using hardware NEON SIMD encoding."""
         try:
             with self.lock:
                 if self.backend == "picamera2" and self.picam2:
-                    # Attempt fast array capture with OpenCV if installed
                     try:
                         import cv2
                         arr = self.picam2.capture_array("main")
@@ -213,7 +302,6 @@ class ZeroDiskCamera:
                     except Exception:
                         pass
 
-                    # Direct reused in-memory stream buffer
                     self.stream_buf.seek(0)
                     self.stream_buf.truncate(0)
                     self.picam2.capture_file(self.stream_buf, format="jpeg")
@@ -246,7 +334,6 @@ class ZeroDiskCamera:
         return self._generate_synthetic_ram_frame()
 
     def focus_and_capture_evidence(self) -> Optional[bytes]:
-        """Locks continuous PDAF focus on approaching vehicle for high-res ALPR snapshot."""
         try:
             with self.lock:
                 if self.backend == "picamera2" and self.picam2:
@@ -285,14 +372,9 @@ class ZeroDiskCamera:
 
 
 # ---------------------------------------------------------------------------
-# Dedicated Asynchronous Background Radar Poller (Zero Latency on Camera)
+# Dedicated Asynchronous Background Radar Poller
 # ---------------------------------------------------------------------------
 class RadarSensorAsync:
-    """
-    Dedicated background thread that polls Doppler radar serial UART continuously.
-    get_speed() is completely non-blocking (O(1) memory lookup, 0.00001ms latency).
-    The camera stream NEVER waits for serial timeouts or slow baud rates.
-    """
     def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 115200):
         self.conn = None
         self.port = serial_port
@@ -329,7 +411,6 @@ class RadarSensorAsync:
                     time.sleep(2.0)
                     continue
 
-            # Read serial data asynchronously without blocking main thread
             try:
                 if hasattr(self.conn, "in_waiting") and self.conn.in_waiting > 0:
                     line = self.conn.readline().decode("utf-8", errors="ignore").strip()
@@ -353,7 +434,6 @@ class RadarSensorAsync:
                 time.sleep(1.0)
 
     def read_speed(self) -> float:
-        """Instant non-blocking speed query."""
         with self.lock:
             if time.time() - self.last_target_time > 1.2:
                 self.current_speed = 0.0
@@ -364,11 +444,6 @@ class RadarSensorAsync:
 # Dual Pipelined Zero-Lag Network Uploader
 # ---------------------------------------------------------------------------
 class LiveStreamUploaderPipelined:
-    """
-    Dual-threaded HTTP/2 network dispatcher.
-    Always maintains at most 1 fresh frame in flight.
-    Never buffers or delays old frames.
-    """
     def __init__(self, backend_url: str, device_id: str, road_name: str):
         self.backend_url = backend_url.rstrip("/")
         self.device_id = device_id
@@ -377,7 +452,6 @@ class LiveStreamUploaderPipelined:
         self.running = True
         self.sent_count = 0
         self.last_log = time.time()
-        # 2 concurrent worker threads to eliminate TCP handshake latency gaps
         for _ in range(2):
             threading.Thread(target=self._worker, daemon=True).start()
 
@@ -438,6 +512,7 @@ def post_speed_breach_dual(backend_url: str, cloud_dispatcher: RamCloudDispatche
     b64_str = base64.b64encode(frame_bytes).decode("utf-8")
     ts_now = datetime.now(timezone.utc).isoformat()
     payload = {
+        "type": "breach",
         "device_id": device_id,
         "road_name": road_name,
         "posted_limit_kmh": limit,
@@ -481,20 +556,28 @@ def run_client(args):
     active_backend = select_best_backend(args.backend, args.lan_url)
 
     print("=" * 75)
-    print(" RoadSentinel Ultra-Low Latency Streamer (Decoupled Multi-Threaded)")
+    print(" RoadSentinel Ultra-Low Latency Streamer & Road Analytics Engine")
     print("=" * 75)
     print(f" Target Website/Backend : {active_backend}")
     print(f" Target Cloud / Drive   : {TARGET_ACCOUNT}")
     print(f" Corridor Location      : {args.road_name}")
     print(f" Stream Resolution      : {args.width}x{args.height} (~12KB/frame lightweight)")
     print(f" Live Stream Target FPS : {args.fps} FPS")
-    print(f" Camera Focus Mode      : Continuous PDAF Autofocus on Vehicles")
+    print(f" Road Speed Analytics   : Enabled (Aggregates & Uploads to Drive Every {args.summary_interval}s)")
     print(f" SD Card Write Policy   : ZERO STORAGE (0 bytes on 16GB SD card)")
     print("=" * 75)
 
     camera = ZeroDiskCamera(stream_w=args.width, stream_h=args.height)
     radar = RadarSensorAsync(serial_port=args.radar_port)
     cloud_dispatcher = RamCloudDispatcher(args.drive_webhook)
+    segment_aggregator = SegmentSpeedAggregator(
+        backend_url=active_backend,
+        cloud_dispatcher=cloud_dispatcher,
+        device_id=args.device_id,
+        road_name=args.road_name,
+        speed_limit=args.limit,
+        window_sec=args.summary_interval
+    )
 
     frame_interval = 1.0 / max(1.0, args.fps)
     last_idle_heartbeat = 0.0
@@ -520,6 +603,9 @@ def run_client(args):
             now_time = time.time()
 
             if speed >= 3.0:
+                # Record into periodic road segment analytics aggregator
+                segment_aggregator.add_sample(speed)
+
                 threading.Thread(
                     target=send_live_speed,
                     args=(args.backend, args.device_id, speed, True),
@@ -547,6 +633,9 @@ def run_client(args):
                         daemon=True
                     ).start()
 
+            # 3. Periodic road segment speed flush to Google Drive & Website
+            segment_aggregator.check_and_flush()
+
             # High precision throttle
             t_elapsed = time.time() - t_start
             t_sleep = max(0.002, frame_interval - t_elapsed)
@@ -557,7 +646,7 @@ def run_client(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="RoadSentinel Ultra-Low-Latency Edge Streamer")
+    parser = argparse.ArgumentParser(description="RoadSentinel Ultra-Low-Latency Edge Streamer & Road Analytics Engine")
     parser.add_argument("--backend", "--server", default=DEFAULT_TUNNEL_URL)
     parser.add_argument("--lan-url", default=DEFAULT_LAN_URL, help="Direct LAN IP of laptop backend")
     parser.add_argument("--drive-webhook", default=DEFAULT_DRIVE_WEBHOOK)
@@ -566,6 +655,7 @@ if __name__ == "__main__":
     parser.add_argument("--fps", type=float, default=DEFAULT_STREAM_FPS)
     parser.add_argument("--limit", type=float, default=DEFAULT_SPEED_LIMIT)
     parser.add_argument("--threshold", type=float, default=DEFAULT_TRIGGER_LIMIT)
+    parser.add_argument("--summary-interval", type=int, default=DEFAULT_SUMMARY_SEC, help="Seconds between road segment speed analytics summaries")
     parser.add_argument("--width", type=int, default=512)
     parser.add_argument("--height", type=int, default=288)
     parser.add_argument("--radar-port", default=None)
