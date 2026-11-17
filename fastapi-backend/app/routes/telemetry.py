@@ -319,3 +319,14 @@ async def get_cloud_backup_status():
         "success": True,
         "data": cloud_backup.get_status()
     }
+
+@router.get("/sync-gdrive", summary="Sync offline records from Google Drive / Sheets")
+@router.post("/sync-gdrive", summary="Sync offline records from Google Drive / Sheets")
+async def trigger_gdrive_sync():
+    """
+    Pulls violations and road segment speed analytics recorded to Google Drive/Sheets
+    while the laptop was offline, and updates local database and website in real time.
+    """
+    from app.services.gdrive_sync import sync_from_gdrive
+    result = sync_from_gdrive()
+    return result

@@ -26,6 +26,13 @@ async def startup_event():
     except Exception as e:
         print(f"[Startup Warning] Could not warm-load ML classifier: {e}")
 
+    try:
+        from app.services.gdrive_sync import start_periodic_drive_sync
+        print("[Startup] Starting 2-Way Google Drive Sync daemon (pulls offline field records)...")
+        start_periodic_drive_sync(interval_sec=60)
+    except Exception as e:
+        print(f"[Startup Warning] Could not start Google Drive sync daemon: {e}")
+
 # Enable CORS for Next.js Website & Dashboard frontends
 app.use_all_cors = True
 app.add_middleware(

@@ -165,3 +165,87 @@ function doPost(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+/**
+ * ==============================================================================
+ * 3. GET /exec: 2-Way Sync - Exports all recorded data back to Localhost Website
+ * When user opens laptop and starts backend, this allows laptop to pull all
+ * offline violations and road segment analytics from Google Drive!
+ * ==============================================================================
+ */
+function doGet(e) {
+  try {
+    var sheetName = "RoadSentinel_Traffic_Ledger";
+    var files = DriveApp.getFilesByName(sheetName);
+    if (!files.hasNext()) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        violations: [],
+        segment_speeds: []
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var spreadsheet = SpreadsheetApp.open(files.next());
+
+    // 1. Fetch Overspeed Violations
+    var violations = [];
+    var vSheet = spreadsheet.getSheetByName("Overspeed_Violations");
+    if (vSheet && vSheet.getLastRow() > 1) {
+      var vData = vSheet.getRange(2, 1, vSheet.getLastRow() - 1, 9).getValues();
+      for (var i = 0; i < vData.length; i++) {
+        var row = vData[i];
+        if (row[0]) {
+          violations.push({
+            timestamp: row[0],
+            device_id: row[1],
+            road_name: row[2],
+            speed_kmh: Number(row[3]) || 0.0,
+            posted_limit: Number(row[4]) || 20.0,
+            delta_over_limit: Number(row[5]) || 0.0,
+            license_plate: String(row[6] || "UNKNOWN"),
+            image_url: String(row[7] || "")
+          });
+        }
+      }
+    }
+
+    // 2. Fetch Campus Road Segment Speeds
+    var segmentSpeeds = [];
+    var sSheet = spreadsheet.getSheetByName("Campus_Road_Segment_Speeds");
+    if (sSheet && sSheet.getLastRow() > 1) {
+      var sData = sSheet.getRange(2, 1, sSheet.getLastRow() - 1, 11).getValues();
+      for (var j = 0; j < sData.length; j++) {
+        var sRow = sData[j];
+        if (sRow[0]) {
+          segmentSpeeds.push({
+            timestamp: sRow[0],
+            road_name: sRow[1],
+            posted_limit: Number(sRow[2]) || 20.0,
+            vehicle_count: Number(sRow[3]) || 0,
+            avg_speed: Number(sRow[4]) || 0.0,
+            v85_speed: Number(sRow[5]) || 0.0,
+            max_speed: Number(sRow[6]) || 0.0,
+            overspeed_count: Number(sRow[7]) || 0,
+            compliance_rate: String(sRow[8] || "100%"),
+            status: String(sRow[9] || "Normal Flow"),
+            device_id: String(sRow[10] || "RPI4_CAMERA_UNIT_01")
+          });
+        }
+      }
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      total_violations: violations.length,
+      total_summaries: segmentSpeeds.length,
+      violations: violations,
+      segment_speeds: segmentSpeeds
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
