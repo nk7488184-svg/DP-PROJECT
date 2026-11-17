@@ -85,7 +85,9 @@ class ANPRPipeline:
     def _boxes(result, keep=None):
         out = []
         for b in result.boxes:
-            cls = result.names[int(b.cls[0])]
+            cls = str(result.names[int(b.cls[0])]).lower()
+            if cls == "truck":
+                cls = "bus"  # Campus policy: No trucks inside IIT Mandi campus; remap heavy transport to campus bus
             if keep is not None and not keep(cls):
                 continue
             x1, y1, x2, y2 = [round(float(v), 1) for v in b.xyxy[0].tolist()]

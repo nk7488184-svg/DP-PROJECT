@@ -74,7 +74,7 @@ def _generate_synthetic_evidence_image(disk_path: str, plate: str, speed: float,
         h_val = int(hashlib.md5(plate.encode()).hexdigest(), 16)
         car_col = _VEHICLE_COLORS[h_val % len(_VEHICLE_COLORS)]
 
-        if vtype in ["Bus", "Truck"]:
+        if vtype == "Bus":
             draw.rectangle([190, 110, 450, 275], fill=car_col, outline=(15, 20, 30), width=3)
             draw.rectangle([210, 125, 430, 175], fill=(70, 90, 115))  # Windshield
             draw.rectangle([210, 245, 240, 265], fill=(240, 230, 150)) # Left light
@@ -174,6 +174,8 @@ class TelemetryStore:
                 for item in reversed(saved_list):
                     try:
                         record = ProcessedBreachRecord(**item)
+                        if record.vehicle_type == "Truck":
+                            record.vehicle_type = "Bus"
                         # Avoid duplicates
                         if not any(b.breach_id == record.breach_id for b in self.breaches):
                             self.breaches.insert(0, record)

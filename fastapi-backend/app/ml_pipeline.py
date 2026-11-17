@@ -135,12 +135,17 @@ def run_ml_inference(payload: SpeedBreachPayload, image_path: Optional[str]) -> 
                     plate_obj = v.get("plate")
                     if plate_obj and plate_obj.get("text") and len(plate_obj.get("text", "").strip()) >= 3:
                         formatted = format_indian_plate(plate_obj["text"])
-                        return v.get("class", "Car").capitalize(), v.get("pce", 1.0), formatted, float(plate_obj.get("ocr_confidence", 0.92))
+                        v_cls = v.get("class", "Car").capitalize()
+                        if v_cls == "Truck":
+                            v_cls = "Bus"
+                        return v_cls, v.get("pce", 1.0), formatted, float(plate_obj.get("ocr_confidence", 0.92))
 
                 # 2. Check unassigned detected plates (plate visible without whole car bounding box)
                 for u in unassigned:
                     if u.get("text") and len(u.get("text", "").strip()) >= 3:
                         v_type = vehicles[0].get("class", "Car").capitalize() if vehicles else "Car"
+                        if v_type == "Truck":
+                            v_type = "Bus"
                         formatted = format_indian_plate(u["text"])
                         return v_type, 1.0, formatted, float(u.get("ocr_confidence", 0.88))
 
@@ -159,12 +164,16 @@ def run_ml_inference(payload: SpeedBreachPayload, image_path: Optional[str]) -> 
 
                     if best_match and best_conf > 0.30:
                         v_type = vehicles[0].get("class", "Car").capitalize() if vehicles else "Car"
+                        if v_type == "Truck":
+                            v_type = "Bus"
                         formatted = format_indian_plate(best_match)
                         return v_type, 1.0, formatted, round(best_conf, 4)
 
                 # 4. If vehicle detected but plate could not be read
                 if vehicles:
                     v_type = vehicles[0].get("class", "Car").capitalize()
+                    if v_type == "Truck":
+                        v_type = "Bus"
                     pce = vehicles[0].get("pce", 1.0)
                     return v_type, pce, "PLATE_UNREADABLE", 0.40
 
@@ -186,7 +195,7 @@ def run_ml_inference(payload: SpeedBreachPayload, image_path: Optional[str]) -> 
     if payload.speed_kmh > 40.0:
         vehicle_type = random.choice(["Motorcycle", "Car", "SUV"])
     elif payload.speed_kmh < 22.0:
-        vehicle_type = random.choice(["Truck", "Bus", "Van", "Car"])
+        vehicle_type = random.choice(["Bus", "Van", "Car"])
     else:
         vehicle_type = random.choice(["Car", "SUV", "Motorcycle", "Van"])
 
