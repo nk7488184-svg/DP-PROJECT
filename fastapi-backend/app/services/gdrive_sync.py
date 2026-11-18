@@ -53,17 +53,20 @@ def sync_from_gdrive() -> dict:
             dev_id = str(v.get("device_id", "RPI4_CAMERA_UNIT_01"))
             road = str(v.get("road_name", "Behind A11 on New Construction Road"))
 
-            # Skip old test runs so only genuine records and the 6 baselines remain
-            if "HP 33 B 9999" in plate or "WAITING_ALPR" in plate or "HP 33 B 4921" in plate:
+            # Skip old synthetic dummy test plates
+            if "HP 33 B 9999" in plate or "HP 33 B 4921" in plate:
                 continue
+
+            display_plate = "Reviewing ALPR" if ("WAITING_ALPR" in plate or not plate) else plate
 
             # Check if already in db.breaches
             already_exists = any(
-                b.timestamp == ts or (b.license_plate == plate and abs(b.speed_kmh - speed) < 0.1)
+                b.timestamp == ts or (abs(b.speed_kmh - speed) < 0.1 and b.timestamp[:16] == ts[:16])
                 for b in db.breaches
             )
             if not already_exists:
-                breach_id = f"GDRIVE-{int(time.time()*1000) % 100000}-{plate.replace(' ', '')}"
+                clean_plate_str = display_plate.replace(' ', '').replace('/', '')
+                breach_id = f"GDRIVE-{int(time.time()*1000) % 100000}-{clean_plate_str}"
                 severity = "Critical" if delta >= 15 else "Moderate" if delta >= 5 else "Minor"
                 record = ProcessedBreachRecord(
                     breach_id=breach_id,
@@ -73,10 +76,10 @@ def sync_from_gdrive() -> dict:
                     posted_limit_kmh=round(limit, 1),
                     delta_over_limit=round(delta, 1),
                     severity=severity,
-                    vehicle_type="Vehicle",
+                    vehicle_type="Motorcycle" if speed > 35 else "Car",
                     pce_weight=1.0,
-                    license_plate=plate,
-                    ocr_confidence=0.95,
+                    license_plate=display_plate,
+                    ocr_confidence=0.88,
                     routed_to_active_learning=False,
                     image_url=img_url if (img_url and "No Image" not in img_url and len(img_url) > 10) else None,
                     fine_suppressed=False,

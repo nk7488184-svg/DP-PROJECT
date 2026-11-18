@@ -297,27 +297,26 @@ class ZeroDiskCamera:
         try:
             with self.lock:
                 if self.backend == "picamera2" and self.picam2:
-                    # Capture fast 512x288 frame from lores stream (or main if lores not available)
-                    for stream_name in ["lores", "main"]:
-                        try:
-                            import cv2
-                            arr = self.picam2.capture_array(stream_name)
-                            if stream_name == "main":
-                                arr = cv2.resize(arr, (self.stream_w, self.stream_h))
-                            ret, buf = cv2.imencode(".jpg", arr, [cv2.IMWRITE_JPEG_QUALITY, 50])
+                    try:
+                        import cv2
+                        # Primary: Capture from main ISP array and downscale for web stream
+                        arr = self.picam2.capture_array("main")
+                        if arr is not None:
+                            small = cv2.resize(arr, (self.stream_w, self.stream_h))
+                            ret, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 55])
                             if ret:
                                 return buf.tobytes()
-                        except Exception:
-                            pass
+                    except Exception:
+                        pass
 
+                    # Fallback: capture_file JPEG
                     self.stream_buf.seek(0)
                     self.stream_buf.truncate(0)
                     try:
-                        self.picam2.capture_file(self.stream_buf, format="jpeg", name="lores")
-                        return self.stream_buf.getvalue()
-                    except Exception:
                         self.picam2.capture_file(self.stream_buf, format="jpeg")
                         return self.stream_buf.getvalue()
+                    except Exception:
+                        pass
 
                 elif self.backend == "opencv" and self.cap:
                     import cv2
@@ -518,15 +517,18 @@ class LiveStreamUploaderPipelined:
                 continue
 
             try:
-                res = http_session.post(url, data=frame, headers=headers, timeout=0.8)
+                res = http_session.post(url, data=frame, headers=headers, timeout=2.5)
                 if res.status_code == 200:
                     self.sent_count += 1
                     now = time.time()
                     if now - self.last_log >= 3.0:
                         self.last_log = now
                         print(f"[Live Video Streaming] Sent {self.sent_count} frames live to dashboard -> {self.backend_url}")
-            except Exception:
-                pass
+            except Exception as e:
+                now = time.time()
+                if now - self.last_log >= 5.0:
+                    self.last_log = now
+                    print(f"[Live Stream Upload Notice] {e}")
 
 
 def send_live_speed(backend_url: str, device_id: str, speed: float, is_present: bool):
