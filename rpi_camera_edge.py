@@ -231,18 +231,24 @@ class ZeroDiskCamera:
 
         print("[Camera Init] Initializing ultra-fast hardware camera pipeline...")
 
-        # 1. Picamera2
+        # 1. Picamera2 with Hardware Dual-Stream (2304x1296 Main for ALPR + 512x288 Lores for Web Stream)
         try:
             from picamera2 import Picamera2
             self.picam2 = Picamera2()
             try:
-                config = self.picam2.create_video_configuration(main={"size": (self.stream_w, self.stream_h)})
+                config = self.picam2.create_video_configuration(
+                    main={"size": (2304, 1296)},
+                    lores={"size": (self.stream_w, self.stream_h)}
+                )
             except Exception:
-                config = self.picam2.create_still_configuration(main={"size": (self.stream_w, self.stream_h)})
+                try:
+                    config = self.picam2.create_video_configuration(main={"size": (self.stream_w, self.stream_h)})
+                except Exception:
+                    config = self.picam2.create_still_configuration(main={"size": (self.stream_w, self.stream_h)})
             self.picam2.configure(config)
             self.picam2.start()
             self.backend = "picamera2"
-            print(f"[Camera OK] Picamera2 Hardware ISP Active @ {self.stream_w}x{self.stream_h}")
+            print(f"[Camera OK] Picamera2 Hardware Dual-Stream ISP Active: Main 2304x1296 (ALPR) + Lores {self.stream_w}x{self.stream_h} (Web)")
 
             try:
                 from libcamera import controls
@@ -291,19 +297,27 @@ class ZeroDiskCamera:
         try:
             with self.lock:
                 if self.backend == "picamera2" and self.picam2:
-                    try:
-                        import cv2
-                        arr = self.picam2.capture_array("main")
-                        ret, buf = cv2.imencode(".jpg", arr, [cv2.IMWRITE_JPEG_QUALITY, 50])
-                        if ret:
-                            return buf.tobytes()
-                    except Exception:
-                        pass
+                    # Capture fast 512x288 frame from lores stream (or main if lores not available)
+                    for stream_name in ["lores", "main"]:
+                        try:
+                            import cv2
+                            arr = self.picam2.capture_array(stream_name)
+                            if stream_name == "main":
+                                arr = cv2.resize(arr, (self.stream_w, self.stream_h))
+                            ret, buf = cv2.imencode(".jpg", arr, [cv2.IMWRITE_JPEG_QUALITY, 50])
+                            if ret:
+                                return buf.tobytes()
+                        except Exception:
+                            pass
 
                     self.stream_buf.seek(0)
                     self.stream_buf.truncate(0)
-                    self.picam2.capture_file(self.stream_buf, format="jpeg")
-                    return self.stream_buf.getvalue()
+                    try:
+                        self.picam2.capture_file(self.stream_buf, format="jpeg", name="lores")
+                        return self.stream_buf.getvalue()
+                    except Exception:
+                        self.picam2.capture_file(self.stream_buf, format="jpeg")
+                        return self.stream_buf.getvalue()
 
                 elif self.backend == "opencv" and self.cap:
                     import cv2
@@ -332,35 +346,9 @@ class ZeroDiskCamera:
         return self._generate_synthetic_ram_frame()
 
     def focus_and_capture_evidence(self) -> Optional[bytes]:
-        """Capture a HIGH-RESOLUTION evidence photo for ALPR using rpicam-still.
-        Uses the full sensor resolution (2304x1296) independently of the
-        low-res video stream, so number plates are readable by OCR."""
+        """Capture a CRYSTAL-CLEAR HIGH-RESOLUTION (2304x1296) evidence photo directly from Picamera2 main stream.
+        Number plates will be over 200 pixels wide and easily readable by OCR."""
         try:
-            # Method 1: rpicam-still at high resolution (independent of video stream)
-            for cmd_name in ["rpicam-still", "libcamera-still"]:
-                try:
-                    proc = subprocess.run(
-                        [cmd_name, "-n", "-t", "800",
-                         "-o", "-",
-                         "--width", "2304", "--height", "1296",
-                         "-q", "90",
-                         "--autofocus-mode", "auto",
-                         "--autofocus-on-capture"],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.DEVNULL,
-                        timeout=5
-                    )
-                    if proc.stdout and len(proc.stdout) > 2000:
-                        print(f"[Evidence OK] High-res 2304x1296 ALPR snapshot captured ({len(proc.stdout)//1024}KB)")
-                        return proc.stdout
-                except FileNotFoundError:
-                    continue
-                except subprocess.TimeoutExpired:
-                    print("[Evidence Notice] High-res capture timed out, falling back to stream frame")
-                except Exception as e:
-                    print(f"[Evidence Notice] rpicam-still: {e}")
-
-            # Method 2: Fallback to picamera2 stream capture (low-res)
             with self.lock:
                 if self.backend == "picamera2" and self.picam2:
                     try:
@@ -373,11 +361,33 @@ class ZeroDiskCamera:
                         time.sleep(0.04)
                     except Exception:
                         pass
-                    buf = io.BytesIO()
-                    self.picam2.capture_file(buf, format="jpeg")
-                    return buf.getvalue()
+
+                    # 1. Capture full uncompressed main stream array & encode high-quality JPEG
+                    try:
+                        import cv2
+                        arr = self.picam2.capture_array("main")
+                        if arr is not None and arr.shape[0] > 600:
+                            ret, buf = cv2.imencode(".jpg", arr, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                            if ret:
+                                data = buf.tobytes()
+                                print(f"[Evidence OK] Ultra-High-Res 2304x1296 ALPR snapshot captured ({len(data)//1024}KB, {arr.shape[1]}x{arr.shape[0]})")
+                                return data
+                    except Exception as e:
+                        print(f"[Evidence Main Array Notice] {e}")
+
+                    # 2. Direct capture_file from main stream
+                    try:
+                        buf = io.BytesIO()
+                        self.picam2.capture_file(buf, format="jpeg", name="main")
+                        data = buf.getvalue()
+                        if len(data) > 10000:
+                            print(f"[Evidence OK] High-Res Picamera2 main evidence captured ({len(data)//1024}KB)")
+                            return data
+                    except Exception:
+                        pass
         except Exception as e:
             print(f"[Evidence Capture Notice] {e}")
+
         return self.capture_stream_frame()
 
     def _generate_synthetic_ram_frame(self) -> bytes:
