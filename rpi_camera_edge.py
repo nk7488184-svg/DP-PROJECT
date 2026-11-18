@@ -332,7 +332,35 @@ class ZeroDiskCamera:
         return self._generate_synthetic_ram_frame()
 
     def focus_and_capture_evidence(self) -> Optional[bytes]:
+        """Capture a HIGH-RESOLUTION evidence photo for ALPR using rpicam-still.
+        Uses the full sensor resolution (2304x1296) independently of the
+        low-res video stream, so number plates are readable by OCR."""
         try:
+            # Method 1: rpicam-still at high resolution (independent of video stream)
+            for cmd_name in ["rpicam-still", "libcamera-still"]:
+                try:
+                    proc = subprocess.run(
+                        [cmd_name, "-n", "-t", "800",
+                         "-o", "-",
+                         "--width", "2304", "--height", "1296",
+                         "-q", "90",
+                         "--autofocus-mode", "auto",
+                         "--autofocus-on-capture"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        timeout=5
+                    )
+                    if proc.stdout and len(proc.stdout) > 2000:
+                        print(f"[Evidence OK] High-res 2304x1296 ALPR snapshot captured ({len(proc.stdout)//1024}KB)")
+                        return proc.stdout
+                except FileNotFoundError:
+                    continue
+                except subprocess.TimeoutExpired:
+                    print("[Evidence Notice] High-res capture timed out, falling back to stream frame")
+                except Exception as e:
+                    print(f"[Evidence Notice] rpicam-still: {e}")
+
+            # Method 2: Fallback to picamera2 stream capture (low-res)
             with self.lock:
                 if self.backend == "picamera2" and self.picam2:
                     try:
