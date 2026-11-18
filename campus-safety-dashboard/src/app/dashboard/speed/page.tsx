@@ -306,56 +306,158 @@ export default function SpeedTrackerPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
 
-  // Probe FastAPI backend connection on mount & load real telemetry
-  useEffect(() => {
-    async function checkBackend() {
-      try {
-        const telemetryData = await fetchRecentTelemetry(1440);
-        if (telemetryData?.success) {
-          setBackendConnected(true);
-          if (telemetryData.summaries && telemetryData.summaries.length > 0) {
-            // Map real telemetry into hourly profile - only vehicles above 5 km/h
-            const hourlyMap: Record<string, { sum: number; count: number; limit: number }> = {};
-            telemetryData.summaries.forEach((s) => {
-              const speedVal = s.speed_85th_percentile || s.avg_speed;
-              if (speedVal > 5.0) { // Filter out pedestrian/human speeds (<= 5 km/h)
-                const dt = new Date(s.timestamp);
-                const hr = `${dt.getHours().toString().padStart(2, "0")}:00`;
-                if (!hourlyMap[hr]) hourlyMap[hr] = { sum: 0, count: 0, limit: 20 };
-                hourlyMap[hr].sum += speedVal;
-                hourlyMap[hr].count += 1;
-              }
-            });
-            const formattedHourly = Object.entries(hourlyMap).map(([hour, val]) => ({
-              hour,
-              speed: Number((val.sum / val.count).toFixed(1)),
-              limit: 20,
-            }));
-            if (formattedHourly.length > 0) {
-              setSelectedSegment((prev) => ({
-                ...prev,
-                hourly_data: formattedHourly,
-                p85: telemetryData.analytics.speed_distribution ? 22.4 : prev.p85,
-              }));
-            }
+  // Probe FastAPI backend connection & periodically poll live telemetry
+  const fetchTelemetry = async () => {
+    try {
+      const telemetryData = await fetchRecentTelemetry(1440);
+      if (telemetryData?.success) {
+        setBackendConnected(true);
+
+        const summaries = telemetryData.summaries || [];
+        const breaches = telemetryData.breaches || [];
+
+        // 1. Calculate live metrics for segment #101 from summaries & breaches
+        const now = Date.now();
+        const thirtyMinAgo = now - 30 * 60 * 1000;
+        const recent30mSummaries = summaries.filter(
+          (s) => new Date(s.timestamp).getTime() >= thirtyMinAgo
+        );
+
+        // Trips in last 30 minutes (sum of vehicle_count or latest observed)
+        const trips30m = recent30mSummaries.reduce(
+          (acc, s) => acc + (s.vehicle_count || 0),
+          0
+        ) || (summaries.length > 0 ? summaries[summaries.length - 1].vehicle_count : 0);
+
+        // Speeds: filter > 5.0 km/h
+        const validSummaries = summaries.filter(
+          (s) => (s.speed_85th_percentile || s.avg_speed) > 5.0
+        );
+        const latestSummary = validSummaries.length > 0
+          ? validSummaries[validSummaries.length - 1]
+          : (summaries.length > 0 ? summaries[summaries.length - 1] : null);
+
+        let currentP50 = latestSummary?.avg_speed ? Number(latestSummary.avg_speed.toFixed(1)) : 16.8;
+        let currentP85 = latestSummary?.speed_85th_percentile ? Number(latestSummary.speed_85th_percentile.toFixed(1)) : 22.4;
+
+        // If there are recent breaches within last 15 mins, factor them in
+        const fifteenMinAgo = now - 15 * 60 * 1000;
+        const recentBreaches = breaches.filter(
+          (b) => new Date(b.timestamp).getTime() >= fifteenMinAgo
+        );
+        if (recentBreaches.length > 0) {
+          const maxBreach = Math.max(...recentBreaches.map((b) => b.speed_kmh || b.speed || 0));
+          if (maxBreach > currentP85) {
+            currentP85 = Number(maxBreach.toFixed(1));
           }
         }
-      } catch {
-        setBackendConnected(false);
+
+        // Status calculation for #101
+        let segStatus: SegmentData["status"] = "normal";
+        if (currentP85 > 20 * 1.1 || recentBreaches.length > 0) {
+          segStatus = "overspeed";
+        } else if (currentP50 >= 20 * 0.8) {
+          segStatus = "normal";
+        } else if (currentP50 >= 20 * 0.5) {
+          segStatus = "slowdown";
+        } else if (trips30m === 0) {
+          segStatus = "nodata";
+        } else {
+          segStatus = "severe_slowdown";
+        }
+
+        // Hourly aggregation for scrubbing chart
+        const hourlyMap: Record<string, { sum: number; count: number; limit: number }> = {};
+        summaries.forEach((s) => {
+          const speedVal = s.speed_85th_percentile || s.avg_speed;
+          if (speedVal > 5.0) {
+            const dt = new Date(s.timestamp);
+            const hr = `${dt.getHours().toString().padStart(2, "0")}:00`;
+            if (!hourlyMap[hr]) hourlyMap[hr] = { sum: 0, count: 0, limit: 20 };
+            hourlyMap[hr].sum += speedVal;
+            hourlyMap[hr].count += 1;
+          }
+        });
+        const formattedHourly = Object.entries(hourlyMap).map(([hour, val]) => ({
+          hour,
+          speed: Number((val.sum / val.count).toFixed(1)),
+          limit: 20,
+        }));
+
+        // Update segments state
+        setSegments((prev) =>
+          prev.map((seg) => {
+            if (seg.id === 101) {
+              return {
+                ...seg,
+                p50: currentP50,
+                p85: currentP85,
+                n_trips: trips30m > 0 ? trips30m : seg.n_trips,
+                status: segStatus,
+                hourly_data: formattedHourly.length > 0 ? formattedHourly : seg.hourly_data,
+              };
+            }
+            return seg;
+          })
+        );
+
+        // Update selected segment if it's #101
+        setSelectedSegment((prev) => {
+          if (prev.id === 101) {
+            return {
+              ...prev,
+              p50: currentP50,
+              p85: currentP85,
+              n_trips: trips30m > 0 ? trips30m : prev.n_trips,
+              status: segStatus,
+              hourly_data: formattedHourly.length > 0 ? formattedHourly : prev.hourly_data,
+            };
+          }
+          return prev;
+        });
+
+        // Update events table with real overspeed breaches
+        if (breaches.length > 0) {
+          const realEvents: SpeedEventItem[] = breaches.slice(0, 10).map((b, idx) => {
+            const sp = b.speed_kmh || b.speed || 0;
+            const limit = b.posted_limit || 20;
+            const sev = sp >= 35 ? 3 : sp >= 25 ? 2 : 1;
+            const dt = new Date(b.timestamp);
+            const timeStr = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const minsAgo = Math.max(0, Math.floor((now - dt.getTime()) / 60000));
+            const lastSeenStr = minsAgo === 0 ? "Just now" : `${minsAgo} mins ago`;
+
+            return {
+              id: 300 + idx,
+              type: "OVERSPEED" as const,
+              segment_id: 101,
+              segment_name: b.road_name || "Behind A11 on New Construction Road",
+              severity: sev as 1 | 2 | 3,
+              p85: Number(sp.toFixed(1)),
+              limit,
+              first_seen: `Today, ${timeStr}`,
+              last_seen: lastSeenStr,
+              status: "open" as const,
+            };
+          });
+          setEvents(realEvents);
+        }
       }
+    } catch {
+      setBackendConnected(false);
     }
-    checkBackend();
+  };
+
+  useEffect(() => {
+    fetchTelemetry();
+    const interval = setInterval(fetchTelemetry, 3500);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    try {
-      const telemetryData = await fetchRecentTelemetry(1440);
-      if (telemetryData?.success) setBackendConnected(true);
-    } catch {
-      // Keep state
-    }
-    setTimeout(() => setIsRefreshing(false), 600);
+    await fetchTelemetry();
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   const handleUpdateEventStatus = (eventId: number, newStatus: "acknowledged" | "closed" | "linked") => {
@@ -451,7 +553,9 @@ export default function SpeedTrackerPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground">1</span>
+            <span className="text-2xl font-bold text-foreground">
+              {segments.filter((s) => s.status === "overspeed").length}
+            </span>
             <span className="text-xs text-purple-400 font-medium">P85 &gt; 1.1x limit</span>
           </div>
           <p className="text-[11px] text-muted mt-1">Requires speed breakers / enforcement</p>
@@ -465,7 +569,9 @@ export default function SpeedTrackerPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground">2</span>
+            <span className="text-2xl font-bold text-foreground">
+              {segments.filter((s) => s.status === "slowdown" || s.status === "severe_slowdown").length}
+            </span>
             <span className="text-xs text-rose-400 font-medium">P50 &lt; 0.6x baseline</span>
           </div>
           <p className="text-[11px] text-muted mt-1">Correlated with active pothole reports</p>
@@ -479,10 +585,12 @@ export default function SpeedTrackerPage() {
             </div>
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground">156</span>
+            <span className="text-2xl font-bold text-foreground">
+              {segments.reduce((acc, s) => acc + s.n_trips, 0)}
+            </span>
             <span className="text-xs text-emerald-400 font-medium">+12% peak traffic</span>
           </div>
-          <p className="text-[11px] text-muted mt-1">Campus shuttles, trucks &amp; logged drives</p>
+          <p className="text-[11px] text-muted mt-1">Campus shuttles, buses &amp; logged drives</p>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-4.5">

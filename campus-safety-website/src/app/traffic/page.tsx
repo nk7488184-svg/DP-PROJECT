@@ -44,7 +44,7 @@ interface ProcessedTelemetry {
 }
 
 export default function PublicTrafficPage() {
-  const [selectedNode, setSelectedNode] = useState("RPI4_NORTH_GATE");
+  const [selectedNode, setSelectedNode] = useState("RPI4_CAMERA_UNIT_01");
   const [telemetry, setTelemetry] = useState<ProcessedTelemetry | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [nodes, setNodes] = useState<any[]>([]);
@@ -55,13 +55,13 @@ export default function PublicTrafficPage() {
     flow_rate_vph: 264.0,
     approaching_count: 14,
     receding_count: 8,
-    average_speed_kmh: 28.5,
-    speed_85th_percentile: 32.4,
-    median_speed_kmh: 27.8,
+    average_speed_kmh: 21.5,
+    speed_85th_percentile: 24.2,
+    median_speed_kmh: 20.8,
     speed_std_dev: 4.8,
-    max_speed_kmh: 41.2,
+    max_speed_kmh: 36.7,
     min_speed_kmh: 15.0,
-    posted_limit_kmh: 30.0,
+    posted_limit_kmh: 20.0,
     overspeed_count: 3,
     violation_rate_percentage: 13.6,
     extreme_overspeed_count: 0,
@@ -69,8 +69,8 @@ export default function PublicTrafficPage() {
     radar_occupancy_pct: 18.2,
     congestion_index: 0.95,
     fine_suppression_active: false,
-    device_id: "RPI4_NORTH_GATE",
-    road_name: "North Campus Main Gate Road",
+    device_id: "RPI4_CAMERA_UNIT_01",
+    road_name: "Behind A11 on New Construction Road",
     window_start: new Date(Date.now() - 300000).toISOString(),
     window_end: new Date().toISOString(),
     calculated_at: new Date().toISOString(),
@@ -82,9 +82,12 @@ export default function PublicTrafficPage() {
       if (statsRes?.data) setStats(statsRes.data);
 
       const nodesRes = await fetchFromFastApi("/api/v1/telemetry/nodes");
-      if (nodesRes?.data) setNodes(nodesRes.data);
+      if (nodesRes?.data && nodesRes.data.length > 0) {
+        setNodes(nodesRes.data);
+      }
 
-      const latestRes = await fetchFromFastApi(`/api/v1/telemetry/latest?device_id=${selectedNode}`);
+      const activeNode = selectedNode || (nodesRes?.data?.[0]?.device_id ?? "RPI4_CAMERA_UNIT_01");
+      const latestRes = await fetchFromFastApi(`/api/v1/telemetry/latest?device_id=${activeNode}`);
       if (latestRes?.data) {
         setTelemetry(latestRes.data);
         setLastUpdated(new Date().toLocaleTimeString());
