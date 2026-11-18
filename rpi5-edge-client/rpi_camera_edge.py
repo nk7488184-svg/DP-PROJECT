@@ -373,7 +373,7 @@ class ZeroDiskCamera:
 # Dedicated Asynchronous Background Radar Poller
 # ---------------------------------------------------------------------------
 class RadarSensorAsync:
-    def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 115200):
+    def __init__(self, serial_port: Optional[str] = None, baud_rate: int = 9600):
         self.conn = None
         self.port = serial_port
         self.baud = baud_rate
